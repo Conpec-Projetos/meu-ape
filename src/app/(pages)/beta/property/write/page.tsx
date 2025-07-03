@@ -63,6 +63,7 @@ export default function PropertyPage() {
       const propertyData = {
         ...values,
         dataLancamento: new Date(values.dataLancamento),
+        prazoEntrega: new Date(values.prazoEntrega),
       };
       await criarPropriedade(propertyData);
       toast.success("Empreendimento cadastrado com sucesso! 🎉");
@@ -77,7 +78,11 @@ export default function PropertyPage() {
   return (
     <div className="h-screen w-screen">
       <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
-        <Button variant="outline" onClick={() => router.push("/")}>
+        <Button
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => router.push("/")}
+        >
           Voltar ao Início
         </Button>
       </div>
@@ -139,23 +144,6 @@ export default function PropertyPage() {
 
                 <FormField
                   control={form.control}
-                  name="prazoEntrega"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prazo de Entrega</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ex: Dezembro 2025" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Prazo estimado para entrega do empreendimento
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="dataLancamento"
                   render={({ field }) => (
                     <FormItem>
@@ -171,7 +159,28 @@ export default function PropertyPage() {
                   )}
                 />
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <FormField
+                  control={form.control}
+                  name="prazoEntrega"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prazo de Entrega</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Prazo estimado para entrega do empreendimento
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full cursor-pointer"
+                  disabled={isLoading}
+                >
                   {isLoading ? "Salvando..." : "Cadastrar Empreendimento"}
                 </Button>
               </form>

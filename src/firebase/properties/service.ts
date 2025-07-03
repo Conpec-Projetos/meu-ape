@@ -9,6 +9,7 @@ export async function criarPropriedade(property: Omit<Property, 'criadoEm'>) {
       ...property,
       criadoEm: Timestamp.now(),
       dataLancamento: Timestamp.fromDate(property.dataLancamento),
+      prazoEntrega: Timestamp.fromDate(property.prazoEntrega),
     });
     return docRef.id;
   } catch (error) {
@@ -29,7 +30,7 @@ export async function buscarPropriedades() {
         id: doc.id,
         nomeEmpreendimento: data.nomeEmpreendimento,
         enderecoCompleto: data.enderecoCompleto,
-        prazoEntrega: data.prazoEntrega,
+        prazoEntrega: data.prazoEntrega.toDate(),
         dataLancamento: data.dataLancamento.toDate(),
         criadoEm: data.criadoEm.toDate(),
       });

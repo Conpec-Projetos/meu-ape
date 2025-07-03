@@ -9,7 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { buscarPropriedades, excluirPropriedade } from "@/firebase/properties/service";
+import {
+  buscarPropriedades,
+  excluirPropriedade,
+} from "@/firebase/properties/service";
 import { Property } from "@/interfaces/property";
 import { useRouter } from "next/navigation";
 import { Calendar, MapPin, Clock, Building, Trash2 } from "lucide-react";
@@ -45,32 +48,36 @@ export default function PropertiesListPage() {
   };
 
   const handleDelete = async (id: string, nome: string) => {
-    toast(
-      `Tem certeza que deseja excluir o empreendimento "${nome}"?`,
-      {
+    toast(`Tem certeza que deseja excluir o empreendimento "${nome}"?`, {
       action: {
         label: "Excluir",
         onClick: async () => {
-        try {
-          await excluirPropriedade(id);
-          setProperties(properties.filter(p => p.id !== id));
-          toast.success("Empreendimento excluído com sucesso!");
-        } catch {
-          toast.error("Erro ao excluir empreendimento. Tente novamente.");
-        }
+          try {
+            await excluirPropriedade(id);
+            setProperties(properties.filter((p) => p.id !== id));
+            toast.success("Empreendimento excluído com sucesso!");
+          } catch {
+            toast.error("Erro ao excluir empreendimento. Tente novamente.");
+          }
         },
       },
-      }
-    );
+    });
   };
 
   return (
     <div className="w-screen min-h-screen bg-gray-50 flex flex-col">
       <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
-        <Button variant="outline" onClick={() => router.push("/")}>
+        <Button
+          variant="outline"
+          className="cursor-pointer"
+          onClick={() => router.push("/")}
+        >
           Voltar ao Início
         </Button>
-        <Button onClick={() => router.push("/beta/property/write")}>
+        <Button
+          onClick={() => router.push("/beta/property/write")}
+          className="cursor-pointer"
+        >
           Novo Empreendimento
         </Button>
       </div>
@@ -118,14 +125,18 @@ export default function PropertiesListPage() {
                       </CardTitle>
                       <CardDescription className="flex items-start gap-2 mt-2">
                         <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">{property.enderecoCompleto}</span>
+                        <span className="text-sm">
+                          {property.enderecoCompleto}
+                        </span>
                       </CardDescription>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer"
-                      onClick={() => handleDelete(property.id!, property.nomeEmpreendimento)}
+                      onClick={() =>
+                        handleDelete(property.id!, property.nomeEmpreendimento)
+                      }
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -136,7 +147,8 @@ export default function PropertiesListPage() {
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Clock className="h-4 w-4" />
                       <span>
-                        <strong>Prazo:</strong> {property.prazoEntrega}
+                        <strong>Prazo:</strong>{" "}
+                        {formatDate(property.prazoEntrega)}
                       </span>
                     </div>
 
