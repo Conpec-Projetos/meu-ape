@@ -4,5 +4,6 @@ export interface Property {
   enderecoCompleto: string;
   prazoEntrega: Date;
   dataLancamento: Date;
+  imagens?: string[];
   criadoEm: Date;
 }

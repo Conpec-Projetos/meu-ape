@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { criarPropriedade } from "@/firebase/properties/service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Upload, X } from "lucide-react";
 
 const formSchema = z.object({
   nomeEmpreendimento: z.string().min(1, {
@@ -43,6 +44,9 @@ const formSchema = z.object({
 
 export default function PropertyPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const router = useRouter();
 
@@ -56,6 +60,27 @@ export default function PropertyPage() {
     },
   });
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      setSelectedImages(prev => [...prev, ...fileArray]);
+      
+      fileArray.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreviews(prev => [...prev, e.target?.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
@@ -65,9 +90,11 @@ export default function PropertyPage() {
         dataLancamento: new Date(values.dataLancamento),
         prazoEntrega: new Date(values.prazoEntrega),
       };
-      await criarPropriedade(propertyData);
+      await criarPropriedade(propertyData, selectedImages);
       toast.success("Empreendimento cadastrado com sucesso! 🎉");
       form.reset();
+      setSelectedImages([]);
+      setImagePreviews([]);
     } catch {
       toast.error("Erro ao cadastrar empreendimento. Tente novamente.");
     } finally {
@@ -76,7 +103,7 @@ export default function PropertyPage() {
   }
 
   return (
-    <div className="h-screen w-screen">
+    <div className="h-screen">
       <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
         <Button
           variant="outline"
@@ -175,6 +202,59 @@ export default function PropertyPage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="w-full">
+                  <div>
+                    <h1 className="text-sm font-medium">Imagens do Empreendimento</h1>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Adicione fotos do empreendimento para torná-lo mais atrativo
+                    </p>
+                  </div>
+                  
+                  <div className="w-full mt-4">
+                    <div
+                      className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full"
+                    >
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative w-full max-w-[128px]">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 sm:h-32 lg:h-40 object-cover rounded-lg border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1 h-6 w-6 p-0 cursor-pointer"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      <div
+                        className="w-full max-w-[128px] h-24 sm:h-32 lg:h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-gray-400 mb-1" />
+                        <span className="text-xs sm:text-sm text-gray-600 text-center px-2">
+                          Adicionar Imagem
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </div> 
 
                 <Button
                   type="submit"
