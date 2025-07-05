@@ -26,6 +26,7 @@ import { criarPropriedade } from "@/firebase/properties/service";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Upload, X } from "lucide-react";
+import Image from "next/image";
 
 const formSchema = z.object({
   nomeEmpreendimento: z.string().min(1, {
@@ -64,12 +65,12 @@ export default function PropertyPage() {
     const files = event.target.files;
     if (files) {
       const fileArray = Array.from(files);
-      setSelectedImages(prev => [...prev, ...fileArray]);
-      
-      fileArray.forEach(file => {
+      setSelectedImages((prev) => [...prev, ...fileArray]);
+
+      fileArray.forEach((file) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-          setImagePreviews(prev => [...prev, e.target?.result as string]);
+          setImagePreviews((prev) => [...prev, e.target?.result as string]);
         };
         reader.readAsDataURL(file);
       });
@@ -77,8 +78,8 @@ export default function PropertyPage() {
   };
 
   const removeImage = (index: number) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -205,22 +206,27 @@ export default function PropertyPage() {
 
                 <div className="w-full">
                   <div>
-                    <h1 className="text-sm font-medium">Imagens do Empreendimento</h1>
+                    <h1 className="text-sm font-medium">
+                      Imagens do Empreendimento
+                    </h1>
                     <p className="text-sm text-gray-600 mt-1">
-                      Adicione fotos do empreendimento para torná-lo mais atrativo
+                      Adicione fotos do empreendimento para torná-lo mais
+                      atrativo
                     </p>
                   </div>
-                  
+
                   <div className="w-full mt-4">
-                    <div
-                      className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full"
-                    >
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
                       {imagePreviews.map((preview, index) => (
-                        <div key={index} className="relative w-full max-w-[128px]">
-                          <img
+                        <div
+                          key={index}
+                          className="relative w-full max-w-[128px]"
+                        >
+                          <Image
                             src={preview}
                             alt={`Preview ${index + 1}`}
                             className="w-full h-24 sm:h-32 lg:h-40 object-cover rounded-lg border"
+                            fill
                           />
                           <Button
                             type="button"
@@ -245,7 +251,7 @@ export default function PropertyPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -254,7 +260,7 @@ export default function PropertyPage() {
                     onChange={handleImageSelect}
                     className="hidden"
                   />
-                </div> 
+                </div>
 
                 <Button
                   type="submit"
