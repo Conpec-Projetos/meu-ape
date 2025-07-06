@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  buscarPropriedades,
+  buscarPropriedadesPaginado,
   excluirPropriedade,
 } from "@/firebase/properties/service";
 import { Property } from "@/interfaces/property";
@@ -26,18 +26,24 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { QueryDocumentSnapshot } from "firebase/firestore";
 
 export default function PropertiesListPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchProperties() {
       try {
         setIsLoading(true);
-        const data = await buscarPropriedades();
-        setProperties(data);
+        const data = await buscarPropriedadesPaginado(30);
+        setProperties(data.properties);
+        setLastDoc(data.lastDoc);
+        setHasMore(data.hasMore);
       } catch {
         toast.error("Erro ao carregar a lista de empreendimentos.");
       } finally {
@@ -57,6 +63,22 @@ export default function PropertiesListPage() {
       minute: "2-digit",
       hour12: false,
     }).format(date);
+  };
+
+  const loadMoreProperties = async () => {
+    if (!hasMore || isLoadingMore || !lastDoc) return;
+    
+    try {
+      setIsLoadingMore(true);
+      const result = await buscarPropriedadesPaginado(30, lastDoc);
+      setProperties(prev => [...prev, ...result.properties]);
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch {
+      toast.error("Erro ao carregar mais empreendimentos.");
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const handleDelete = async (id: string, nome: string) => {
@@ -216,6 +238,27 @@ export default function PropertiesListPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+        
+        {/* Load More Button */}
+        {!isLoading && properties.length > 0 && hasMore && (
+          <div className="flex justify-center mt-8">
+            <Button 
+              onClick={loadMoreProperties} 
+              disabled={isLoadingMore}
+              variant="default"
+              className="cursor-pointer"
+            >
+              {isLoadingMore ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900"></div>
+                  Carregando mais...
+                </div>
+              ) : (
+                "Carregar mais empreendimentos"
+              )}
+            </Button>
           </div>
         )}
       </div>

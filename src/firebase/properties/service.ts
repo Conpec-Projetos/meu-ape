@@ -1,4 +1,4 @@
-import { collection, addDoc, Timestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc, getDoc, limit, startAfter, QueryDocumentSnapshot } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/firebase/firebase-config';
 
@@ -47,6 +47,52 @@ export async function buscarPropriedades() : Promise<Property[]> {
     return properties;
   } catch (error) {
     console.error('Erro ao buscar propriedades:', error);
+    throw error;
+  }
+}
+
+export async function buscarPropriedadesPaginado(pageSize: number = 30, lastDoc?: QueryDocumentSnapshot) : Promise<{ properties: Property[], lastDoc: QueryDocumentSnapshot | null, hasMore: boolean }> {
+  try {
+    let q = query(
+      collection(db, 'properties'), 
+      orderBy('criadoEm', 'desc'),
+      limit(pageSize)
+    );
+    
+    if (lastDoc) {
+      q = query(
+        collection(db, 'properties'), 
+        orderBy('criadoEm', 'desc'),
+        startAfter(lastDoc),
+        limit(pageSize)
+      );
+    }
+    
+    const querySnapshot = await getDocs(q);
+    const properties: Property[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      properties.push({
+        id: doc.id,
+        ...data,
+        prazoEntrega: data.prazoEntrega.toDate(),
+        dataLancamento: data.dataLancamento.toDate(),
+        criadoEm: data.criadoEm.toDate(),
+        imagens: data.imagens || [],
+      } as Property);
+    });
+    
+    const lastDocument = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
+    const hasMore = querySnapshot.docs.length === pageSize;
+    
+    return {
+      properties,
+      lastDoc: lastDocument,
+      hasMore
+    };
+  } catch (error) {
+    console.error('Erro ao buscar propriedades paginadas:', error);
     throw error;
   }
 }
