@@ -65,7 +65,7 @@ export default function PropertiesListPage() {
   };
 
   return (
-    <div className="w-screen min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
         <Button
           variant="outline"
