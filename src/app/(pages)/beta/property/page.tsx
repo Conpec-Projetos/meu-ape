@@ -15,8 +15,17 @@ import {
 } from "@/firebase/properties/service";
 import { Property } from "@/interfaces/property";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, Clock, Building, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Building,
+  Trash2,
+  Pencil,
+  ImageIcon,
+} from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 export default function PropertiesListPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -44,6 +53,9 @@ export default function PropertiesListPage() {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     }).format(date);
   };
 
@@ -119,27 +131,64 @@ export default function PropertiesListPage() {
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">
-                        {property.nomeEmpreendimento}
-                      </CardTitle>
-                      <CardDescription className="flex items-start gap-2 mt-2">
-                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm">
-                          {property.enderecoCompleto}
-                        </span>
-                      </CardDescription>
+                    <div className="grid grid-cols-[auto_1fr] w-3/4 max-w-3/4 gap-3 items-start">
+                      {/* Property Image Preview */}
+                      <div className="w-16 h-16 rounded-lg relative bg-gray-100">
+                        {property.imagens && property.imagens.length > 0 ? (
+                          <Image
+                            src={property.imagens[0]}
+                            alt={property.nomeEmpreendimento}
+                            fill
+                            className="object-cover"
+                            sizes="64px"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-full h-full">
+                            <ImageIcon className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Property Info */}
+                      <div>
+                        <CardTitle className="text-lg">
+                          {property.nomeEmpreendimento}
+                        </CardTitle>
+                        <CardDescription className="flex items-start gap-2 mt-2">
+                          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm line-clamp-2">
+                            {property.enderecoCompleto}
+                          </span>
+                        </CardDescription>
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer"
-                      onClick={() =>
-                        handleDelete(property.id!, property.nomeEmpreendimento)
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-1 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer p-2"
+                        onClick={() =>
+                          router.push(`/beta/property/write/${property.id}`)
+                        }
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer p-2"
+                        onClick={() =>
+                          handleDelete(
+                            property.id!,
+                            property.nomeEmpreendimento
+                          )
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
