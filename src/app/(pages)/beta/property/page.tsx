@@ -139,7 +139,7 @@ export default function PropertiesListPage() {
                             src={property.imagens[0]}
                             alt={property.nomeEmpreendimento}
                             fill
-                            className="object-cover"
+                            className="object-cover rounded-lg"
                             sizes="64px"
                           />
                         ) : (
