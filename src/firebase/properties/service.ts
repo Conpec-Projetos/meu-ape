@@ -1,4 +1,4 @@
-import { collection, addDoc, Timestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, Timestamp, getDocs, query, orderBy, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '@/firebase/firebase-config';
 
@@ -36,13 +36,12 @@ export async function buscarPropriedades() : Promise<Property[]> {
       const data = doc.data();
       properties.push({
         id: doc.id,
-        nomeEmpreendimento: data.nomeEmpreendimento,
-        enderecoCompleto: data.enderecoCompleto,
+        ...data,
         prazoEntrega: data.prazoEntrega.toDate(),
         dataLancamento: data.dataLancamento.toDate(),
         criadoEm: data.criadoEm.toDate(),
         imagens: data.imagens || [],
-      });
+      } as Property);
     });
     
     return properties;
@@ -101,4 +100,59 @@ export async function deleteImages(imageUrls: string[]) : Promise<void> {
   });
 
   await Promise.all(deletePromises);
+}
+
+export async function buscarPropriedadePorId(id: string): Promise<Property | null> {
+  try {
+    const docRef = doc(db, 'properties', id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        prazoEntrega: data.prazoEntrega.toDate(),
+        dataLancamento: data.dataLancamento.toDate(),
+        criadoEm: data.criadoEm.toDate(),
+        imagens: data.imagens || [],
+      } as Property;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao buscar propriedade:', error);
+    throw error;
+  }
+}
+
+export async function atualizarPropriedade(id: string, property: Omit<Property, 'criadoEm' | 'id'>, imageFiles?: File[], imagensParaRemover?: string[]) {
+  try {
+    // Remove old images to be deleted
+    if (imagensParaRemover && imagensParaRemover.length > 0) {
+      await deleteImages(imagensParaRemover);
+    }
+
+    // Upload new imgs
+    let novasImagensUrls: string[] = [];
+    if (imageFiles && imageFiles.length > 0) {
+      novasImagensUrls = await subirImagensEmLotes(imageFiles, id);
+    }
+
+    // Updates the images in the db, maintaing the old ones
+    const imagensExistentes = property.imagens || [];
+    const imagensAtualizadas = imagensExistentes.filter(img => !imagensParaRemover?.includes(img)).concat(novasImagensUrls);
+
+    await updateDoc(doc(db, 'properties', id), {
+      ...property,
+      dataLancamento: Timestamp.fromDate(property.dataLancamento),
+      prazoEntrega: Timestamp.fromDate(property.prazoEntrega),
+      imagens: imagensAtualizadas,
+    });
+
+    return id;
+  } catch (error) {
+    console.error('Erro ao atualizar propriedade:', error);
+    throw error;
+  }
 }
