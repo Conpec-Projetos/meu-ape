@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Upload, X } from "lucide-react";
 import Image from "next/image";
+import imageCompression from 'browser-image-compression';
 
 const formSchema = z.object({
   nomeEmpreendimento: z.string().min(1, {
@@ -45,6 +46,7 @@ const formSchema = z.object({
 
 export default function PropertyPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,19 +63,61 @@ export default function PropertyPage() {
     },
   });
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
+      setIsUploadingImages(true);
       const fileArray = Array.from(files);
-      setSelectedImages((prev) => [...prev, ...fileArray]);
-
-      fileArray.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setImagePreviews((prev) => [...prev, e.target?.result as string]);
+      
+      try {
+        const options = {
+          maxSizeMB: 1,
+          useWebWorker: true,
+          fileType: 'image/jpeg',
+          initialQuality: 0.8,
         };
-        reader.readAsDataURL(file);
-      });
+
+        const compressedFiles: File[] = [];
+        const previews: string[] = [];
+
+        for (const file of fileArray) {
+          try {
+            const compressedFile = await imageCompression(file, options);
+            compressedFiles.push(compressedFile);
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              previews.push(e.target?.result as string);
+              if (previews.length === fileArray.length) {
+                setImagePreviews(prev => [...prev, ...previews]);
+              }
+            };
+            console.log(`Compressed image size: ${compressedFile.size / 1024 / 1024} MB`);
+            reader.readAsDataURL(compressedFile);
+          } catch (error) {
+            console.error('Error compressing image:', error);
+            // Using the original file if compression fails
+            console.warn('Using original file due to compression error:', file.name);
+            compressedFiles.push(file);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              previews.push(e.target?.result as string);
+              if (previews.length === fileArray.length) {
+                setImagePreviews(prev => [...prev, ...previews]);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+
+        setSelectedImages(prev => [...prev, ...compressedFiles]);
+      } catch (error) {
+        console.error('Error processing images:', error);
+        toast.error('Erro ao processar imagens. Tente novamente.');
+      } finally {
+        setIsUploadingImages(false);
+      }
     }
   };
 
@@ -91,13 +135,28 @@ export default function PropertyPage() {
         dataLancamento: new Date(values.dataLancamento),
         prazoEntrega: new Date(values.prazoEntrega),
       };
+
+      if (selectedImages.length > 0) {
+        toast.loading(`Carregando empreendimento e ${selectedImages.length} imagem(ns)...`, {
+          id: 'upload-progress'
+        });
+      } else {
+        toast.loading('Salvando empreendimento...', {
+          id: 'upload-progress'
+        });
+      }
+
       await criarPropriedade(propertyData, selectedImages);
+      
+      toast.dismiss('upload-progress');
       toast.success("Empreendimento cadastrado com sucesso! 🎉");
+      
       form.reset();
       setSelectedImages([]);
       setImagePreviews([]);
     } catch {
-      toast.error("Erro ao cadastrar empreendimento. Tente novamente.");
+      toast.dismiss('upload-progress');
+      toast.error("Erro ao cadastrar empreendimento. Verifique sua conexão e tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -216,16 +275,16 @@ export default function PropertyPage() {
                   </div>
 
                   <div className="w-full mt-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full auto-rows-max">
                       {imagePreviews.map((preview, index) => (
                         <div
                           key={index}
-                          className="relative w-full max-w-[128px]"
+                          className="relative w-full aspect-square"
                         >
                           <Image
                             src={preview}
                             alt={`Preview ${index + 1}`}
-                            className="w-full h-24 sm:h-32 lg:h-40 object-cover rounded-lg border"
+                            className="w-full h-full object-cover rounded-lg border"
                             fill
                           />
                           <Button
@@ -241,13 +300,22 @@ export default function PropertyPage() {
                       ))}
 
                       <div
-                        className="w-full max-w-[128px] h-24 sm:h-32 lg:h-40 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+                        onClick={() => !isUploadingImages && fileInputRef.current?.click()}
                       >
-                        <Upload className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-gray-400 mb-1" />
-                        <span className="text-xs sm:text-sm text-gray-600 text-center px-2">
-                          Adicionar Imagem
-                        </span>
+                        {isUploadingImages ? (
+                          <>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 mb-1"></div>
+                            <span className="text-xs text-gray-600">Processando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 mb-1" />
+                            <span className="text-xs sm:text-sm text-gray-600 text-center px-2">
+                              Adicionar Imagem
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -265,9 +333,14 @@ export default function PropertyPage() {
                 <Button
                   type="submit"
                   className="w-full cursor-pointer"
-                  disabled={isLoading}
+                  disabled={isLoading || isUploadingImages}
                 >
-                  {isLoading ? "Salvando..." : "Cadastrar Empreendimento"}
+                  {isLoading 
+                    ? selectedImages.length > 0 
+                      ? `Salvando com ${selectedImages.length} imagem(ns)...` 
+                      : "Salvando..." 
+                    : "Cadastrar Empreendimento"
+                  }
                 </Button>
               </form>
             </Form>

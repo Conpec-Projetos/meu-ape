@@ -15,7 +15,7 @@ export async function criarPropriedade(property: Omit<Property, 'criadoEm'>, ima
     });
 
     if (imageFiles && imageFiles.length > 0) {
-      const imageUrls = await uploadImages(imageFiles, docRef.id);
+      const imageUrls = await subirImagensEmLotes(imageFiles, docRef.id);
       await updateDoc(docRef, { imagens: imageUrls });
     }
 
@@ -61,15 +61,33 @@ export async function excluirPropriedade(id: string) {
   }
 }
 
-export async function uploadImages(files: File[], propertyId: string): Promise<string[]> {
-  const uploadPromises = files.map(async (file, index) => {
-    const storageRef = ref(storage, `properties/${propertyId}/image_${index}_${Date.now()}`);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
-  });
+export async function subirImagensEmLotes(files: File[], propertyId: string): Promise<string[]> {
+  const BATCH_SIZE = 3;
+  const imageUrls: string[] = [];
+  
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
+    
+    const batchPromises = batch.map(async (file, index) => {
+      const actualIndex = i + index;
+      const fileName = `image_${actualIndex}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const storageRef = ref(storage, `properties/${propertyId}/${fileName}`);
+      
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+      } catch (error) {
+        console.error(`Error uploading image ${actualIndex}:`, error);
+        throw new Error(`Failed to upload image ${actualIndex + 1}`);
+      }
+    });
 
-  return Promise.all(uploadPromises);
+    const batchUrls = await Promise.all(batchPromises);
+    imageUrls.push(...batchUrls);
+  }
+
+  return imageUrls;
 }
 
 export async function deleteImages(imageUrls: string[]) : Promise<void> {
