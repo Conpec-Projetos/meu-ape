@@ -28,7 +28,7 @@ import {
 } from "@/firebase/properties/service";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
-import { Upload, X } from "lucide-react";
+import { LayoutGrid, Upload, X } from "lucide-react";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
 import imgPlaceholder from "@/assets/img_placeholder.jpg";
@@ -230,9 +230,9 @@ export default function EditPropertyPage() {
         <Button
           variant="outline"
           className="cursor-pointer"
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/beta/property")}
         >
-          Voltar ao Início
+          <LayoutGrid />Voltar a Lista
         </Button>
       </div>
       <div className="h-fit flex flex-col items-center justify-center py-4 px-4">
