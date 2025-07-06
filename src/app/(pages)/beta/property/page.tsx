@@ -162,7 +162,7 @@ export default function PropertiesListPage() {
                             alt={property.nomeEmpreendimento}
                             fill
                             className="object-cover rounded-lg"
-                            sizes="64px"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                           />
                         ) : (
                           <div className="flex items-center justify-center w-full h-full">
