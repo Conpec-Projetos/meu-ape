@@ -31,7 +31,7 @@ import { useRouter, useParams } from "next/navigation";
 import { LayoutGrid, Upload, X } from "lucide-react";
 import Image from "next/image";
 import imageCompression from "browser-image-compression";
-import imgPlaceholder from "@/assets/img_placeholder.jpg";
+import blurImgPlaceholder from "@/assets/img_placeholder.jpg";
 
 const formSchema = z.object({
   nomeEmpreendimento: z.string().min(1, {
@@ -348,7 +348,9 @@ export default function EditPropertyPage() {
                             alt={`Imagem ${index + 1}`}
                             className="w-full h-full object-cover rounded-lg border"
                             fill
-                            blurDataURL={imgPlaceholder.src}
+                            blurDataURL={blurImgPlaceholder.src}
+                            placeholder="blur"
+                            unoptimized
                           />
                           <Button
                             type="button"

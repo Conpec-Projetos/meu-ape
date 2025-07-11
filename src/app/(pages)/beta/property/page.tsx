@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { QueryDocumentSnapshot } from "firebase/firestore";
+import blurImgUrl from "@/assets/blur_img_placeholder.jpg";
 
 export default function PropertiesListPage() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -163,6 +164,9 @@ export default function PropertiesListPage() {
                             fill
                             className="object-cover rounded-lg"
                             sizes="(max-width: 768px) 100vw, 50vw"
+                            placeholder="blur"
+                            blurDataURL={blurImgUrl.src}
+                            unoptimized
                           />
                         ) : (
                           <div className="flex items-center justify-center w-full h-full">

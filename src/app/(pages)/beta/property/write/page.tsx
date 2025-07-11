@@ -286,6 +286,7 @@ export default function PropertyPage() {
                             alt={`Preview ${index + 1}`}
                             className="w-full h-full object-cover rounded-lg border"
                             fill
+                            unoptimized
                           />
                           <Button
                             type="button"
