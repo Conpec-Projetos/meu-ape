@@ -22,6 +22,14 @@ export default function Home() {
         >
           Ver todos os empreendimentos
         </Button>
+        <Button
+          variant={"success"}
+          className="cursor-pointer text-sm sm:text-base"
+          onClick={() => router.push("/beta/dashboard")}
+          size={"fit"}
+        >
+          Ver Dashboard
+        </Button>
       </div>
     </div>
   );
