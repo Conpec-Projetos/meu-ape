@@ -70,7 +70,7 @@ type MenuSidebarProps = {
 
 export function AppSidebar({ variant }: MenuSidebarProps) {
   return (
-    <Sidebar >
+    <Sidebar>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Meu Perfil</SidebarGroupLabel>
