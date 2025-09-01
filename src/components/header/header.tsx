@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button"
-import {CircleUserRound, Settings, LogOut, Menu, Heart, Calendar, Home, Inbox, Search, LogIn, UserRound} from "lucide-react"
+import {CircleUserRound, Settings, LogOut, Heart, Calendar, Home, Inbox, Search, LogIn, UserRound} from "lucide-react"
 import { useRouter } from "next/navigation";
-import { useState } from 'react';
 
 import {
   DropdownMenu,
@@ -13,15 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 
@@ -32,13 +22,6 @@ type NavItem = {
   label: string;
   href: string;
 };
-
-type SidebarItem = {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-};
-
 
 
 const navConfig: Record<Variant, NavItem[]> = {
@@ -65,48 +48,6 @@ const navConfig: Record<Variant, NavItem[]> = {
   ],
 };
 
-const profileSidebar: Record<Variant, SidebarItem[]> = {
-  guest: [
-    { label: 'Entrar', href: '/', icon: LogIn },
-  ],
-  customer: [
-    { label: 'Configurações', href: '/', icon: Settings },
-    { label: 'Favoritos', href: '/', icon: Heart },
-    { label: 'Sair', href: '/', icon: LogOut },
-  ],
-  agent: [
-    { label: 'Configurações', href: '/', icon: Settings },
-    { label: 'Sair', href: '/', icon: LogOut },
-  ],
-  admin: [
-    { label: 'Configurações', href: '/', icon: Settings },
-    { label: 'Sair', href: '/', icon: LogOut },
-  ],
-}
-
-const menuSidebar: Record<Variant, SidebarItem[]> = {
-  guest: [
-    { label: 'Buscar Imóveis', href: '/', icon: Home },
-    { label: 'Sou corretor(a)', href: '/', icon: Search },
-  ],
-  customer: [
-    { label: 'Buscar Imóveis', href: '/', icon: Home },
-    { label: 'Visitas', href: '/', icon: Calendar },
-    { label: 'Reservas', href: '/', icon: Inbox },
-  ],
-  agent: [
-    { label: 'Buscar Imóveis', href: '/', icon: Home },
-    { label: 'Visitas', href: '/', icon: Calendar },
-    { label: 'Reservas', href: '/', icon: Inbox },
-  ],
-  admin: [
-    { label: 'Buscar Imóveis', href: '/', icon: Home },
-    { label: 'Visitas', href: '/', icon: Calendar },
-    { label: 'Reservas', href: '/', icon: Inbox },
-    { label: 'Editar Imóveis', href: '/', icon: Settings },
-    { label: 'Contas', href: '/', icon: UserRound },
-  ],
-}
 
 interface HeaderProps {
   variant: Variant;
@@ -119,44 +60,8 @@ function Header({variant}: HeaderProps) {
 
 
   return (
-    <SidebarProvider className="h-[80px] bg-green-200">
 
-      <Sidebar>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Meu Perfil</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {profileSidebar[variant].map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton asChild>
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-            <SidebarGroupLabel>Menu</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {menuSidebar[variant].map((item) => (
-                  <SidebarMenuItem key={item.label}>
-                    <SidebarMenuButton asChild>
-                      <a href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
+      
 
       <header className="w-full h-[80px] py-4 px-6 bg-[#332475] flex justify-start gap-1.5 lg:gap-0 lg:justify-between items-center">
 
@@ -233,10 +138,50 @@ function Header({variant}: HeaderProps) {
         </div>
 
       </header>
-    </SidebarProvider>
     
   )
 }
 
 export default Header
 
+
+
+//         <SidebarTrigger className="lg:hidden text-white" />
+
+
+      // <Sidebar collapsible="offcanvas">
+      //   <SidebarContent>
+      //     <SidebarGroup>
+      //       <SidebarGroupLabel>Meu Perfil</SidebarGroupLabel>
+      //       <SidebarGroupContent>
+      //         <SidebarMenu>
+      //           {profileSidebar[variant].map((item) => (
+      //             <SidebarMenuItem key={item.label}>
+      //               <SidebarMenuButton asChild>
+      //                 <a href={item.href}>
+      //                   <item.icon />
+      //                   <span>{item.label}</span>
+      //                 </a>
+      //               </SidebarMenuButton>
+      //             </SidebarMenuItem>
+      //           ))}
+      //         </SidebarMenu>
+      //       </SidebarGroupContent>
+      //       <SidebarGroupLabel>Menu</SidebarGroupLabel>
+      //       <SidebarGroupContent>
+      //         <SidebarMenu>
+      //           {menuSidebar[variant].map((item) => (
+      //             <SidebarMenuItem key={item.label}>
+      //               <SidebarMenuButton asChild>
+      //                 <a href={item.href}>
+      //                   <item.icon />
+      //                   <span>{item.label}</span>
+      //                 </a>
+      //               </SidebarMenuButton>
+      //             </SidebarMenuItem>
+      //           ))}
+      //         </SidebarMenu>
+      //       </SidebarGroupContent>
+      //     </SidebarGroup>
+      //   </SidebarContent>
+      // </Sidebar>
