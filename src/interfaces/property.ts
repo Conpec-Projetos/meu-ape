@@ -7,3 +7,8 @@ export interface Property {
   imagens?: string[];
   criadoEm: Date;
 }
+
+interface DropdownCheckboxesProps {
+  name: string;
+  label: string;
+}
