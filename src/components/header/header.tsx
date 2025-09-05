@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar"
 
 
-type Variant = 'guest' | 'customer' | 'agent' | 'admin';
+type Variant = 'guest' | 'client' | 'agent' | 'admin';
 
 type NavItem = {
   label: string;
@@ -29,7 +29,7 @@ const navConfig: Record<Variant, NavItem[]> = {
     { label: 'Buscar Imóveis', href: '/' },
     { label: 'Sou corretor(a)', href: '/' },
   ],
-  customer: [
+  client: [
     { label: 'Buscar Imóveis', href: '/' },
     { label: 'Visitas', href: '/' },
     { label: 'Reservas', href: '/' },
@@ -113,7 +113,7 @@ function Header({variant}: HeaderProps) {
                       Configurações
                     </DropdownMenuCheckboxItem>
                     {
-                      variant === 'customer' && (
+                      variant === 'client' && (
                         <DropdownMenuCheckboxItem
                           onClick={() => router.push('/')}
                         >

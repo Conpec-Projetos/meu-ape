@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar"
 
 
-type Variant = 'guest' | 'customer' | 'agent' | 'admin';
+type Variant = 'guest' | 'client' | 'agent' | 'admin';
 type SidebarItem = {
   label: string;
   href: string;
@@ -24,7 +24,7 @@ const profileSidebar: Record<Variant, SidebarItem[]> = {
   guest: [
     { label: 'Entrar', href: '/', icon: LogIn },
   ],
-  customer: [
+  client: [
     { label: 'Configurações', href: '/', icon: Settings },
     { label: 'Favoritos', href: '/', icon: Heart },
     { label: 'Sair', href: '/', icon: LogOut },
@@ -45,7 +45,7 @@ const menuSidebar: Record<Variant, SidebarItem[]> = {
     { label: 'Buscar Imóveis', href: '/', icon: Home },
     { label: 'Sou corretor(a)', href: '/', icon: Search },
   ],
-  customer: [
+  client: [
     { label: 'Buscar Imóveis', href: '/', icon: Home },
     { label: 'Visitas', href: '/', icon: Calendar },
     { label: 'Reservas', href: '/', icon: Inbox },
