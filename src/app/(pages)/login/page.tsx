@@ -47,7 +47,7 @@ export default function Login() {
                                         <Input id="password" type="password" className="bg-white rounded-lg border-gray-300 h-12" placeholder="Sua senha" required />
                                         <a
                                             href="#"
-                                            className="text-sm font-semibold text-purple-800 hover:underline px-2"
+                                            className="text-sm font-semibold text-[#332475] hover:underline px-2"
                                         >
                                             Esqueceu a senha?
                                         </a>
@@ -60,12 +60,12 @@ export default function Login() {
 
                     </CardContent>
                     <CardFooter className="flex-col gap-2">
-                        <Button type="submit" className="bg-purple-900 w-1/3 h-12 text-2xl">
+                        <Button type="submit" className="bg-[#332475] w-1/3 h-12 text-2xl">
                             Entrar
                         </Button>
                         <div className="flex justify-between gap-2 pt-8">
                             <div>Ainda não possui conta?</div>
-                            <div className="font-bold text-purple-800 hover:underline ">Cadastre-se</div>
+                            <button className="font-bold text-[#332475] hover:underline ">Cadastre-se</button>
                         </div>
                         
 
