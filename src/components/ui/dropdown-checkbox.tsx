@@ -37,20 +37,20 @@ export function DropdownCheckboxes({ label,Name }: DropdownCheckboxesProps) {
           checked={showStatusBar}
           onCheckedChange={setShowStatusBar}
         >
-          Status Bar
+          Filtro 1
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={showActivityBar}
           onCheckedChange={setShowActivityBar}
           disabled
         >
-          Activity Bar
+          Filtro 2
         </DropdownMenuCheckboxItem>
         <DropdownMenuCheckboxItem
           checked={showPanel}
           onCheckedChange={setShowPanel}
         >
-          Panel
+          Filtro 3
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>

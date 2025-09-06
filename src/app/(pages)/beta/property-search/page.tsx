@@ -3,6 +3,10 @@ import { Input } from "@/components/ui/input"
 import Image from 'next/image';
 import SearchIcon from '@assets/SearchIcon.svg'
 import { DropdownCheckboxes } from "@/components/ui/dropdown-checkbox";
+import MapVector from '@assets/MapVector.svg'
+
+import { CardProp } from "@/components/ui/cardProp";
+
 import {
     Select,
     SelectContent,
@@ -36,35 +40,78 @@ export default function PropertySearch(){
     return(
     
         
-        <main>
-            <header className="w-screen h-20 bg-gray-500 flex justify-center items-center">HEADER</header>
+        <main className="">
+            <header className="w-screen h-20 bg-gray-500 flex justify-center items-center">HEADER PLACEHOLDER</header>
 
             <body>
-               {/*Componentes de filtro (Search Input, Drop down de filtros*/}
-                <div className="flex">
+               {/*
+               Adicionar a logica de filtro e pesquisa
+               */}
+                <div className="flex p-3">
                     <div className="relative">
                     <Image src={SearchIcon} alt="SearchIcon" className="absolute w-6 h-6 top-1.5 left-2"/>
                     <Input/>
                     </div>
+                        {/*
+                        Implementar toda a logica de filtro
+                        Adicionar Dinamismo pro name Filtros com Typescript
+                        Possivelmente só fechar quando o usuario clica fora?
+                        */}
                         <DropdownCheckboxes label="Selecione seus filtros: " Name="Filtros (0)"/>
+                            {/*
+                            Implementar toda a logica de filtro
+                            Iniciar com o Mais Relevantes selecionado
+                            */}
                          <Select>
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select a fruit" />
+                                <SelectValue placeholder="Mais relevantes" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                 <SelectLabel>Filtros</SelectLabel>
-                                <SelectItem value="apple">Apple</SelectItem>
-                                <SelectItem value="banana">Banana</SelectItem>
-                                <SelectItem value="blueberry">Blueberry</SelectItem>
-                                <SelectItem value="grapes">Grapes</SelectItem>
-                                <SelectItem value="pineapple">Pineapple</SelectItem>
+                                <SelectItem value="apple">Mais relevantes</SelectItem>
+                                <SelectItem value="banana">...</SelectItem>
+                                <SelectItem value="blueberry">....</SelectItem>
+                                <SelectItem value="grapes">.....</SelectItem>
+                                <SelectItem value="pineapple">......</SelectItem>
                                 </SelectGroup>
                             </SelectContent>
                     </Select>
 
                 </div>
+                            
 
+
+                <div className="flex p-5">{/*
+                Todo o body não relacionado a filtros e pesquisa abaixo:
+                Colocar a logica de imagem e pá, nem sei exatamente oq é pra aparecer aqui, perguntar*/}
+                <div className="h-[335px] w-[335px] bg-[#D9D9D9] rounded-[15px] flex justify-center items-center">
+                    <Image src={MapVector} alt="MapVector" className="h-[62px]"></Image></div>
+                            
+                            {/*
+                            Fazer um scroll funcional nékkkkkk
+                            */}
+                <div className="w-[11px] h-[371px] bg-[#D9D9D9] rounded-[7px] flex justify-center items-start pt-2 m-1"> 
+                    <div className="h-[82px] w-[8px] bg-white rounded-[7px]">
+
+
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-2 grid-rows-3 gap-1.5">
+                    {/*
+                    Criar um componente melhor, com mais dinamismo.
+                    Ex: Props de Nome, imagem, descrição e etc. */}
+                <CardProp></CardProp>
+                <CardProp></CardProp>
+                <CardProp></CardProp>
+                <CardProp></CardProp>
+                <CardProp></CardProp>
+                <CardProp></CardProp>
+                </div>
+
+                    
+                </div>
             </body>
 
         </main>
