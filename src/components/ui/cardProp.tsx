@@ -1,19 +1,60 @@
 import * as React from "react"
 import FavIcon from '@assets/FavIcon.svg'
 import Image from 'next/image';
+import moradiaPH from '@assets/moradia_placeholder.svg'
+import { FunctionComponent } from "react";
+import calendarIcon from '@assets/calendarIcon.svg'
+import clockIcon from '@assets/clockIcon.svg'
+import mapIcon from '@assets/mapIcon.svg'
 
 
-function CardProp({ className, ...props }: React.ComponentProps<"div">) {
-    return (
-<div className="w-[175px] h-[167px] bg-[#D9D9D9] grid p-1.5 rounded-[10px] relative ">{/*Coisinho*/}
-    <Image src={FavIcon} alt="FavoriteIcon" className="absolute right-2 top-3 h-[12px]"></Image>
-    <div className="bg-white w-[163px] h-[107px] rounded-[10px] flex items-center justify-center"></div>
-    <div className="bg-white w-[163px] h-[11px] rounded-[5px] text-[10px] flex items-center justify-start pl-1 mt-1.5 mb-1"></div>
-    <div className="bg-white w-[95px] h-[11px] rounded-[5px] text-[10px] flex items-center justify-start pl-1 mb-1"></div>
-    <div className="bg-white w-[95px] h-[11px] rounded-[5px] text-[10px] flex items-center justify-start pl-1 mb-1"></div>
 
-</div>
-    )
+interface cardProps{
+    title: string
+    deadline: string
+    launch: string
+    address: string
 }
 
+type Props = cardProps & React.ComponentPropsWithoutRef<'div'>;
+
+function CardProp({ title, deadline, launch, address, ...props }: Props) {
+  return (
+    <div className="w-[262px] bg-white grid grid-rows-[160px_auto] p-2 rounded-xl relative shadow-lg border border-gray-100">
+      
+      {/* Icone favorito */}
+      <div className="absolute right-4 top-4 bg-white/70 backdrop-blur-sm p-1.5 rounded-full cursor-pointer hover:scale-110 transition-transform z-10">
+          <Image src={FavIcon} alt="Favorite Icon" className="h-4 w-4 text-gray-500" />
+      </div>
+      
+      {/* IMAGEM IMOVEL, atualmente placeholder, eventualmente fazer conexão com Firebase ou sla como vai ser*/}
+      <Image src={moradiaPH} alt="Moradia Placeholder" className="w-full h-full object-cover rounded-lg" />
+
+      {/* Container dos textos */}
+      <div className="flex flex-col pt-2 overflow-hidden">
+        
+        {/* Titulo */}
+        <div className="text-base font-semibold leading-tight text-gray-800 truncate" title={title}>
+            {title}
+        </div>
+
+        {/* Detalhes (Prazo,lançamento e endereço) */}
+        <div className="flex flex-col mt-1.5 space-y-1">
+          <div className="text-xs text-gray-500 flex gap-1.5 items-center">
+            <Image src={clockIcon} alt="Clock Icon" className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Prazo: {deadline}</span>
+          </div>
+          <div className="text-xs text-gray-500 flex gap-1.5 items-center">
+            <Image src={calendarIcon} alt="Calendar Icon" className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Lançamento: {launch}</span>
+          </div>
+          <div className="text-xs text-gray-500 flex gap-1.5 items-start">
+            <Image src={mapIcon} alt="Map Icon" className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+            <span>{address}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 export{CardProp}

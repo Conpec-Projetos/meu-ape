@@ -40,14 +40,14 @@ export default function PropertySearch(){
     return(
     
         
-        <main className="">
+        <main className="bg-[#F2F2F2] overflow-hidden flex flex-col h-screen">
             <header className="w-screen h-20 bg-gray-500 flex justify-center items-center">HEADER PLACEHOLDER</header>
 
             <body>
                {/*
                Adicionar a logica de filtro e pesquisa
                */}
-                <div className="flex p-3">
+                <div className="flex p-3 pl-10 gap-10">
                     <div className="relative">
                     <Image src={SearchIcon} alt="SearchIcon" className="absolute w-6 h-6 top-1.5 left-2"/>
                     <Input/>
@@ -81,33 +81,42 @@ export default function PropertySearch(){
                 </div>
                             
 
+    
 
-                <div className="flex p-5">{/*
+
+                <div className="flex p-5 flex-grow overflow-hidden">{/*
                 Todo o body não relacionado a filtros e pesquisa abaixo:
                 Colocar a logica de imagem e pá, nem sei exatamente oq é pra aparecer aqui, perguntar*/}
-                <div className="h-[335px] w-[335px] bg-[#D9D9D9] rounded-[15px] flex justify-center items-center">
+                <div className="h-[502px] w-[502px] bg-[#D9D9D9] rounded-[15px] flex justify-center items-center">
                     <Image src={MapVector} alt="MapVector" className="h-[62px]"></Image></div>
-                            
                             {/*
                             Fazer um scroll funcional nékkkkkk
                             */}
-                <div className="w-[11px] h-[371px] bg-[#D9D9D9] rounded-[7px] flex justify-center items-start pt-2 m-1"> 
-                    <div className="h-[82px] w-[8px] bg-white rounded-[7px]">
+                <div className="w-[16px] h-[556px] bg-[#D9D9D9] rounded-[7px] flex justify-center items-start pt-2 m-1"> 
+                    <div className="h-[123px] w-[12px] bg-white rounded-[7px]">
 
 
                     </div>
                 </div>
                 
+
+                <div className="h-full overflow-y-auto">
+
                 <div className="grid grid-cols-2 grid-rows-3 gap-1.5">
                     {/*
                     Criar um componente melhor, com mais dinamismo.
                     Ex: Props de Nome, imagem, descrição e etc. */}
-                <CardProp></CardProp>
-                <CardProp></CardProp>
-                <CardProp></CardProp>
-                <CardProp></CardProp>
-                <CardProp></CardProp>
-                <CardProp></CardProp>
+                    {Array.from({ length: 12 }).map((_, index) => (
+                        <CardProp 
+                        key={index}
+                        title={`Moradia estudantil - Bloco ${index + 1}`}
+                        deadline="10/09/2028"
+                        launch="10/09/2025"
+                        address="Av. Santa Isabel, 1125 - Vila Santa Isabel - Campinas"
+                        />
+                    ))}
+                    </div>
+
                 </div>
 
                     
