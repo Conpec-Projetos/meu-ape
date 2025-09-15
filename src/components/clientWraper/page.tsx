@@ -12,8 +12,8 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
 
   return (
     <SidebarProvider open={open} onOpenChange={setOpen} className='min-h-screen flex flex-col'>
-        <AppSidebar variant="admin" />
-        <Header variant="admin" />
+        <AppSidebar variant="guest" />
+        <Header variant="guest" />
         <main className='flex-grow'>{children}</main>
         <Footer />
     </SidebarProvider>
