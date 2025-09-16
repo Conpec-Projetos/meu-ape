@@ -1,16 +1,17 @@
 import { AgentFormData, agentSchema, agentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { db, storage } from "@/firebase/firebase-config";
 import {
-  collection,
-  addDoc,
   Timestamp,
   updateDoc,
+  doc,
+  setDoc,
 } from "firebase/firestore";
 import {
   ref,
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
+import { createAgentUser } from "../user/user";
 
 
 export async function createAgentRegistrationRequest(request: AgentFormData): Promise<string> {
@@ -20,12 +21,14 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
     throw new Error("Invalid request data");
   }
 
+  // criar usuário no auth
+  const userId = await createAgentUser(validation.data);
+
   // Criação da solicitação de registro de agente no banco de dados
   const { email, fullName, cpf, rg, address, city, creci, phone, password, creciCardPhoto, creciCert } = validation.data;
-  const parsedPhone = phone.replace(/\D/g, ''); // Remove todos os caracteres não numéricos
 
-
-  const docRef = await addDoc( collection(db, "agentRegistrationRequests"), {
+  const docRef = doc(db, "agentRegistrationRequests", userId);
+  await setDoc(docRef, {
     status: "pending",
     applicantData: {
       email,
@@ -35,12 +38,12 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
       address,
       city,
       creci,
-      phone: "+55" + parsedPhone,
+      phone: "+55" + phone.replace(/\D/g, ''), // Remove todos os caracteres não numéricos
       creciCardPhoto: [],
       creciCert: [],
     },
     submittedAt: Timestamp.now(),
-    requesterId: "to-be-defined", // ID temporário
+    requesterId: userId,
 
   } as agentRegistrationRequest);
 
@@ -56,9 +59,13 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
     "applicantData.creciCert": urlsCert[0] ? urlsCert : [],
   });
 
-  // Criação do usuário no Firebase Authentication (simulado aqui, ajuste conforme necessário)
-  // const userCredential = await auth.createUserWithEmailAndPassword(auth, email, password);
-  // const userId = userCredential.user.uid;
+  // Atualização do perfil do agente com as URLs dos documentos
+  const userDocRef = doc(db, "users", userId);
+  await updateDoc(userDocRef, {
+    "agentProfile.documents.creciCard": urlsCard[0] ? urlsCard : [],
+    "agentProfile.documents.creciCert": urlsCert[0] ? urlsCert : [],
+  });
+
 
   // Retornar o ID da solicitação criada
   return docRef.id;
