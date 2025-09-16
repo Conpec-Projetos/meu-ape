@@ -126,3 +126,20 @@
     background-image: url('/register/background.png');
   }
 }
+
+.bg-cinza {
+  background-color: #DEDEDE;
+}
+
+.bg-roxo {
+  background-color: #332475;
+}
+
+.bor-roxo {
+  border-color: #332475;
+  border-width: 3px;
+}
+
+.text-roxo {
+  color: #332475;
+}
