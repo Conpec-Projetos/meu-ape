@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import {CircleUserRound, Settings, LogOut, Heart, Calendar, Home, Inbox, Search, LogIn, UserRound} from "lucide-react"
+import {CircleUserRound, Settings, LogOut, Heart} from "lucide-react"
 import { useRouter } from "next/navigation";
 
 import {
