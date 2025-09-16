@@ -43,7 +43,7 @@ const profileSidebar: Record<Variant, SidebarItem[]> = {
 const menuSidebar: Record<Variant, SidebarItem[]> = {
   guest: [
     { label: 'Buscar Imóveis', href: '/', icon: Home },
-    { label: 'Sou corretor(a)', href: '/', icon: Search },
+    { label: 'Sou corretor(a)', href: '/agent-signup', icon: Search },
   ],
   client: [
     { label: 'Buscar Imóveis', href: '/', icon: Home },

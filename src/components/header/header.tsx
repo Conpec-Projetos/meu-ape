@@ -27,7 +27,7 @@ type NavItem = {
 const navConfig: Record<Variant, NavItem[]> = {
   guest: [
     { label: 'Buscar Imóveis', href: '/' },
-    { label: 'Sou corretor(a)', href: '/' },
+    { label: 'Sou corretor(a)', href: '/agent-signup' },
   ],
   client: [
     { label: 'Buscar Imóveis', href: '/' },
