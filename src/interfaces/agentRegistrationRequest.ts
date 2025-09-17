@@ -48,8 +48,7 @@ export const agentSchema = z.object({
             .nonempty("Cidade é obrigatória")
             .min(2, "Cidade muito curta"),
     creci: z.string()
-            .nonempty("CRECI é obrigatório")
-            .regex(/CRECI\s?[A-Z]{2}[-\S]?[\d]{6}-?[FJ]/, "CRECI inválido"),
+            .nonempty("CRECI é obrigatório"),
     creciCardPhoto: z.any()
                       .refine((files) => (files instanceof FileList || Array.isArray(files)) && files.length >= 1, {
                         message: "Carteirinha do CRECI obrigatória",

@@ -18,7 +18,7 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
   // Validação do formulário com Zod
   const validation = agentSchema.safeParse(request);
   if (!validation.success) {
-    throw new Error("Invalid request data");
+    throw new Error("dados inválidos");
   }
 
   // criar usuário no auth

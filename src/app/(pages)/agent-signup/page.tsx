@@ -20,9 +20,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { resolve } from "path";
 import { agentSchema, AgentFormData } from "@/interfaces/agentRegistrationRequest";
 import { createAgentRegistrationRequest } from "@/firebase/agentRegistrationRequest/service";
+import { useRouter } from "next/navigation";
 
 
 export default function RegisterPage() {
+  const router = useRouter();
+
   // States para visibilidade das senhas
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
@@ -33,6 +36,9 @@ export default function RegisterPage() {
 
   // Status do upload
   const [isUploading, setIsUploading] = useState(false);
+
+  // Status erro do firebase
+  const [firebaseError, setFirebaseError] = useState<{message: string, path: string} | null>(null);
 
   
   const {register, handleSubmit, setValue, control, watch, formState: { errors }} = useForm<AgentFormData>( { 
@@ -45,15 +51,24 @@ export default function RegisterPage() {
   // Função de submissão do formulário
   const onSubmit = (data:any) => {
     console.log(data)
+    setFirebaseError(null);
     setIsUploading(true);
     createAgentRegistrationRequest(data)
       .then((res) => {
-        alert("Solicitação enviada com sucesso! Aguarde a aprovação do administrador.");
-        // Redirecionar ou limpar o formulário, se necessário
+        router.push('/agent-signup/accepted');
       })
       .catch((err) => {
         console.error(err);
-        alert("Erro ao enviar solicitação. Tente novamente.");
+
+        if(typeof err === "object" &&
+            err !== null &&
+            "message" in err &&
+            "path" in err
+        ) {
+            setFirebaseError(err);
+        } else {
+            alert("Erro ao enviar solicitação. Tente novamente.");
+        }
       })
       .finally(() => {
         setIsUploading(false);
@@ -125,6 +140,7 @@ export default function RegisterPage() {
                   disabled={isUploading}
                 />
                 {errors.email && <span className="text-sm text-red-600">*{errors.email.message}</span>}
+                {firebaseError?.path === "email" && <span className="text-sm text-red-600">*{firebaseError.message}</span>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
@@ -142,6 +158,7 @@ export default function RegisterPage() {
                   disabled={isUploading}
                 />
                 {errors.password && <span className="text-sm text-red-600">*{errors.password.message}</span>}
+                {firebaseError?.path === "password" && <span className="text-sm text-red-600">*{firebaseError.message}</span>}
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
