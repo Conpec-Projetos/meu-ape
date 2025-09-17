@@ -11,7 +11,19 @@ async function createUser(email: string, password: string): Promise<string> {
         return userCredential.user.uid;
     } catch (error) {
         console.error("Erro ao criar usuário:", error);
-        throw new Error("Não foi possível criar o usuário.");
+        if(error instanceof Error && 'code' in error) {
+            if(error.code === 'auth/email-already-in-use') {
+                throw {message: "Email já cadastrado", path: "email"};
+            } else if (error.code === 'auth/invalid-email') {
+                throw {message: "Email inválido", path: "email"};
+            } else if (error.code === 'auth/weak-password') {
+                throw {message: "Senha muito fraca. Deve ter no mínimo 6 caracteres.", path: "password"};
+            } else {
+                throw {message: "Não foi possível criar o usuário.", path: "unknown"};
+            }
+        } else {
+            throw new Error("Não foi possível criar o usuário.");
+        }
     }
 }
 
