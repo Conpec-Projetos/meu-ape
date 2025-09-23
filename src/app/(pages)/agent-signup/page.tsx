@@ -41,7 +41,7 @@ export default function RegisterPage() {
   const [firebaseError, setFirebaseError] = useState<{message: string, path: string} | null>(null);
 
   
-  const {register, handleSubmit, setValue, control, watch, formState: { errors }} = useForm<AgentFormData>( { 
+  const {register, handleSubmit, setValue, watch, formState: { errors }} = useForm<AgentFormData>( { 
     mode: "onSubmit",       // validação ao enviar
     reValidateMode: "onSubmit", // revalida apenas ao enviar
     resolver: zodResolver(agentSchema)
@@ -49,12 +49,12 @@ export default function RegisterPage() {
 
 
   // Função de submissão do formulário
-  const onSubmit = (data:any) => {
+  const onSubmit = (data:AgentFormData) => {
     console.log(data)
     setFirebaseError(null);
     setIsUploading(true);
     createAgentRegistrationRequest(data)
-      .then((res) => {
+      .then(() => {
         router.push('/agent-signup/accepted');
       })
       .catch((err) => {
