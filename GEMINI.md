@@ -31,11 +31,11 @@ When generating code, always adhere to the APIs and conventions of the following
 Adhere to the established file structure to maintain organization and predictability.
 
 -   `src/app/`: Next.js App Router pages.
-    -   `/(admin)/`, `/(auth)/`, `/(public)/`: Route groups for access control and layouts.
+    -   `(admin)`, `(auth)`, `(public)`: Route groups for access control and layouts.
     -   `/api/`: API route handlers for server-side logic (e.g., Resend integration).
 -   `src/components/`: Reusable React components.
     -   `/ui/`: Unmodified `shadcn/ui` components.
-    -   `/layout/header/`, `/layout/footer/`: Specific components for the main layout.
+    -   `/layout/Header/`, `/layout/Footer/`: Specific components for the main layout.
 -   `src/firebase/`: Firebase configuration (`firebase-config.ts` and `firebase-admin-config.ts`) and service functions (e.g., `/properties/service.ts`, `/users/service.ts`). **All direct database/storage calls must be placed here.**
 -   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useProperties`).
 -   `src/interfaces/`: TypeScript type definitions for all data models (e.g., `property.ts`, `user.ts`).
@@ -80,14 +80,14 @@ Adhere to the established file structure to maintain organization and predictabi
 
 #### Custom Components
 
--   **`Header` (`src/components/header/header.tsx`):**
+-   **`Header` (`src/components/layout/Header/Header.tsx`):**
     -   The `Header` component's appearance and navigation links are determined by the `variant` prop, which can be `'guest'`, `'client'`, `'agent'`, or `'admin'`.
     -   It includes a `SidebarTrigger` for mobile view.
--   **`Footer` (`src/components/footer/footer.tsx`):**
+-   **`Footer` (`src/components/layout/Footer/Footer.tsx`):**
     -   A static component with links to policies and social media.
--   **`AppSidebar` (`src/components/header/app-sidebar.tsx`):**
+-   **`AppSidebar` (`src/components/layout/Header/app-sidebar.tsx`):**
     -   The sidebar's content also changes based on the `variant` prop. It's used for mobile navigation.
--   **`ClientWrapper` (`src/components/clientWraper/page.tsx`):**
+-   **`ClientWrapper` (`src/components/layout/ClientWraper/page.tsx`):**
     -   This component wraps the main layout, providing the `SidebarProvider` and including the `Header` and `Footer`.
 
 ## Firebase Usage Rules
