@@ -1,4 +1,4 @@
-import admin from "firebase-admin";
+import admin, { auth } from "firebase-admin";
 import { getStorage } from "firebase-admin/storage";
 
 if (!admin.apps.length) {
@@ -15,6 +15,16 @@ if (!admin.apps.length) {
         console.error("Firebase admin initialization error", error);
     }
 }
+
+export const verifySessionCookie = async (sessionCookie: string) => {
+    try {
+        const decodedClaims = await auth().verifySessionCookie(sessionCookie, true);
+        return decodedClaims;
+    } catch (error) {
+        console.error("Error verifying session cookie:", error);
+        return null;
+    }
+};
 
 export const adminAuth = admin.auth();
 export const adminDb = admin.firestore();
