@@ -1,26 +1,81 @@
-"use client";
+'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Image from "next/image";
-import Link from "next/link";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { signupSchema } from '@/schemas/signupSchema';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/firebase/firebase-config';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { User } from '@/interfaces/user';
 
 export default function RegisterPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const form = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  async function onSubmit(values: z.infer<typeof signupSchema>) {
+    setIsLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      const db = getFirestore();
+      const userRef = doc(db, 'users', user.uid);
+
+      const newUser: Omit<User, 'id'> = {
+        fullName: values.fullName,
+        email: values.email,
+        role: 'client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        favorited: [],
+      };
+
+      await setDoc(userRef, newUser);
+
+      toast.success('Conta criada com sucesso! Redirecionando...');
+      router.push('/');
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Ocorreu um erro desconhecido.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="absolute inset-0 z-0">
         <Image
           src="/register/background.png"
@@ -29,8 +84,8 @@ export default function RegisterPage() {
           objectFit="cover"
         />
       </div>
-      <div className="relative z-10 w-full max-w-4xl p-4">
-        <Card className="bg-white/90 dark:bg-black/80 backdrop-blur-sm">
+      <div className="relative z-10 w-full max-w-md p-4">
+        <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <Image src="/logo.png" alt="Logo" width={150} height={50} />
@@ -41,113 +96,102 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome completo</Label>
-                <Input id="name" placeholder="Ex: Peter Parker" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input id="phone" placeholder="(DD) X XXXXX-XXXX" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Input id="address" placeholder="Rua, Nº" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
-                <Input id="cpf" placeholder="XXX.XXX.XXX-XX" />
-              </div>
-              <div className="col-span-1 md:col-span-2 space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="endereço@domínio"
-                />
-              </div>
-              <div className="relative space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type={passwordVisible ? "text" : "password"}
-                  placeholder="******"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
-                  onClick={() => setPasswordVisible(!passwordVisible)}
-                >
-                  {passwordVisible ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome completo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Peter Parker" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </button>
-              </div>
-              <div className="relative space-y-2">
-                <Label htmlFor="confirm-password">Confirmar senha</Label>
-                <Input
-                  id="confirm-password"
-                  type={confirmPasswordVisible ? "text" : "password"}
-                  placeholder="******"
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
-                  onClick={() =>
-                    setConfirmPasswordVisible(!confirmPasswordVisible)
-                  }
-                >
-                  {confirmPasswordVisible ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="endereço@domínio" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </button>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 mt-4">
-                <Label className="text-lg">Documentos</Label>
-                <p className="text-sm text-gray-500 mb-4">
-                  Obs: Os documentos podem ser enviados posteriormente na aba da
-                  conta do site
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="flex flex-col items-center space-y-2 border rounded-lg p-4 border-dashed">
-                    <Image src="/file.svg" alt="Upload" width={40} height={40} />
-                    <span className="text-center text-sm">
-                      Comprovante de Endereço
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2 border rounded-lg p-4 border-dashed">
-                    <Image src="/file.svg" alt="Upload" width={40} height={40} />
-                    <span className="text-center text-sm">
-                      Comprovante de renda
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2 border rounded-lg p-4 border-dashed">
-                    <Image src="/file.svg" alt="Upload" width={40} height={40} />
-                    <span className="text-center text-sm">RG ou CIN</span>
-                  </div>
-                  <div className="flex flex-col items-center space-y-2 border rounded-lg p-4 border-dashed">
-                    <Image src="/file.svg" alt="Upload" width={40} height={40} />
-                    <span className="text-center text-sm">
-                      Certidão de casamento
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 mt-6">
-                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                  Cadastrar
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Senha</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={passwordVisible ? 'text' : 'password'}
+                            placeholder="******"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                            onClick={() => setPasswordVisible(!passwordVisible)}
+                          >
+                            {passwordVisible ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmar senha</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={confirmPasswordVisible ? 'text' : 'password'}
+                            placeholder="******"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                            onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
+                          >
+                            {confirmPasswordVisible ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
+                  {isLoading ? 'Carregando...' : 'Cadastrar'}
                 </Button>
-              </div>
-            </form>
+              </form>
+            </Form>
             <div className="mt-4 text-center text-sm">
               Já possui uma conta?{" "}
-              <Link href="/login" className="underline text-indigo-600">
+              <Link href="/login" className="underline text-primary">
                 Entrar
               </Link>
             </div>
