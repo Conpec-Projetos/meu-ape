@@ -1,10 +1,18 @@
 "use client";
 
 import blurImgPlaceholder from "@/assets/img_placeholder.jpg";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/features/Buttons/DefaultButton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/Cards/DefaultCard";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/features/Forms/DefaultForm";
+import { Input } from "@/components/features/Inputs/DefaultInput";
 import { atualizarPropriedade, buscarPropriedadePorId } from "@/firebase/properties/service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";

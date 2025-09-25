@@ -16,7 +16,7 @@ import {
     size,
     suite,
 } from "@/assets";
-import Unidade from "@/components/ui/units";
+import Unidade from "@/components/features/Specifics/ViewPropertyBlock";
 import Image from "next/image";
 import { useState } from "react";
 

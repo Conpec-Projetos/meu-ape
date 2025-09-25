@@ -1,5 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/features/Buttons/DefaultButton";
 import { useRouter } from "next/navigation";
 
 export default function Home() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/features/Cards/DefaultCard";
 import { countProperties } from "@/firebase/properties/service";
 import { Building } from "lucide-react";
 import Link from "next/link";
