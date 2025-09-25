@@ -20,6 +20,10 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/firebase/firebase-config';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { User } from '@/interfaces/user';
 
 export default function RegisterPage() {
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -40,19 +44,22 @@ export default function RegisterPage() {
   async function onSubmit(values: z.infer<typeof signupSchema>) {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values),
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
 
-      const data = await response.json();
+      const db = getFirestore();
+      const userRef = doc(db, 'users', user.uid);
 
-      if (!response.ok) {
-        throw new Error(data.message || 'Algo deu errado');
-      }
+      const newUser: Omit<User, 'id'> = {
+        fullName: values.fullName,
+        email: values.email,
+        role: 'client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        favorited: [],
+      };
+
+      await setDoc(userRef, newUser);
 
       toast.success('Conta criada com sucesso! Redirecionando...');
       router.push('/');
