@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import Header from '@/components/header/header';
-import Footer from '@/components/footer/footer';
-import { AppSidebar } from '@/components/header/app-sidebar';
+import Header from '@/components/layout/header/header';
+import Footer from '@/components/layout/footer/footer';
+import { AppSidebar } from '@/components/layout/header/app-sidebar';
 
 export default function ClientWrapper({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
