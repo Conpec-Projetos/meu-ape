@@ -35,13 +35,13 @@ Adhere to the established file structure to maintain organization and predictabi
     -   `/api/`: API route handlers for server-side logic (e.g., Resend integration).
 -   `src/components/`: Reusable React components.
     -   `/ui/`: Unmodified `shadcn/ui` components.
-    -   `/header/`, `/footer/`: Specific components for the main layout.
--   `src/firebase/`: Firebase configuration (`config.ts`) and service functions (e.g., `properties.ts`, `users.ts`). **All direct database/storage calls must be placed here.**
+    -   `/layout/header/`, `/layout/footer/`: Specific components for the main layout.
+-   `src/firebase/`: Firebase configuration (`firebase-config.ts` and `firebase-admin-config.ts`) and service functions (e.g., `/properties/service.ts`, `/users/service.ts`). **All direct database/storage calls must be placed here.**
 -   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useProperties`).
 -   `src/interfaces/`: TypeScript type definitions for all data models (e.g., `property.ts`, `user.ts`).
--   `src/lib/`: Utility functions (e.g., `utils.ts` for general helpers, `validators.ts` for Zod schemas).
+-   `src/lib/`: Utility functions (e.g., `cpfValidation.ts` for general helpers).
 -   `src/providers/`: React Context providers (e.g., `SidebarProvider`).
--   `src/schemas/`: Zod schema definitions for form validation.
+-   `src/schemas/`: Zod schema definitions.
 
 ### 2.2. Code Style & Conventions
 
