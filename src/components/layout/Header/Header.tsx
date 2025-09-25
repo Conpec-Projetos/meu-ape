@@ -63,12 +63,12 @@ function Header({variant}: HeaderProps) {
 
       
 
-      <header className="w-full h-[80px] py-4 px-6 bg-[#332475] flex justify-start gap-1.5 lg:gap-0 lg:justify-between items-center">
+      <header className="w-full h-[80px] py-4 px-6 bg-primary flex justify-start gap-1.5 lg:gap-0 lg:justify-between items-center">
 
-        <SidebarTrigger className="lg:hidden text-white" />
+        <SidebarTrigger className="lg:hidden text-primary-foreground" />
 
         <div>
-            <h1 className="text-3xl text-white select-none w-[200px]">Meu Apê</h1>
+            <h1 className="text-3xl text-primary-foreground select-none w-[200px]">Meu Apê</h1>
         </div>
 
         <div className="justify-end items-center w-full gap-10 hidden lg:flex">
@@ -76,7 +76,7 @@ function Header({variant}: HeaderProps) {
                 {links.map((link) => (
                     <a 
                         key={link.label}
-                        className="text-white cursor-pointer font-bold relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-white after:transition-all after:duration-500 hover:after:w-full"
+                        className="text-primary-foreground cursor-pointer font-bold relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary-foreground after:transition-all after:duration-500 hover:after:w-full"
                         onClick={() => router.push(link.href)}>
                         {link.label}
                     </a>
@@ -126,8 +126,8 @@ function Header({variant}: HeaderProps) {
                     <DropdownMenuCheckboxItem
                       onClick={() => router.push('/')}
                     >
-                      <LogOut className="mr-1 text-red-500" />
-                      <span className="text-red-500">Sair</span>
+                      <LogOut className="mr-1 text-destructive" />
+                      <span className="text-destructive">Sair</span>
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

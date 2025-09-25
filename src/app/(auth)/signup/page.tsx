@@ -20,7 +20,7 @@ export default function RegisterPage() {
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="absolute inset-0 z-0">
         <Image
           src="/register/background.png"
@@ -30,7 +30,7 @@ export default function RegisterPage() {
         />
       </div>
       <div className="relative z-10 w-full max-w-4xl p-4">
-        <Card className="bg-white/90 dark:bg-black/80 backdrop-blur-sm">
+        <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <Image src="/logo.png" alt="Logo" width={150} height={50} />
@@ -75,7 +75,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   onClick={() => setPasswordVisible(!passwordVisible)}
                 >
                   {passwordVisible ? (
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
                   onClick={() =>
                     setConfirmPasswordVisible(!confirmPasswordVisible)
                   }
@@ -109,7 +109,7 @@ export default function RegisterPage() {
 
               <div className="col-span-1 md:col-span-2 mt-4">
                 <Label className="text-lg">Documentos</Label>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Obs: Os documentos podem ser enviados posteriormente na aba da
                   conta do site
                 </p>
@@ -140,14 +140,14 @@ export default function RegisterPage() {
               </div>
 
               <div className="col-span-1 md:col-span-2 mt-6">
-                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                   Cadastrar
                 </Button>
               </div>
             </form>
             <div className="mt-4 text-center text-sm">
               Já possui uma conta?{" "}
-              <Link href="/login" className="underline text-indigo-600">
+              <Link href="/login" className="underline text-primary">
                 Entrar
               </Link>
             </div>

@@ -16,9 +16,9 @@ export default function Unidade({ tipo = "middle" }: UnidadeProps) {
 
   return (
     <div
-      className={`h-14 w-full ${borderClass} flex justify-between items-center bg-cinza border-white`}
+      className={`h-14 w-full ${borderClass} flex justify-between items-center bg-secondary border-white`}
     >
-      <div className="rounded-4xl w-6 ml-4 h-6 border-2 border-[#332475]"></div>
+      <div className="rounded-4xl w-6 ml-4 h-6 border-2 border-primary"></div>
       <Image
         src={purplearrow}
         alt="seta roxa"
