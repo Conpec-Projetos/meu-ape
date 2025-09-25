@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/features/Buttons/DefaultButton";
 import { CircleUserRound, Heart, LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -9,9 +9,9 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/features/Dropdowns/DefaultDropdownMenu";
 
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/features/Sidebars/HeaderSideBar";
 
 type Variant = "guest" | "client" | "agent" | "admin";
 
