@@ -1,4 +1,4 @@
-import ClientWrapper from "@/components/layout/clientWraper/page";
+import ClientWrapper from "@/components/layout/ClientWraper/page";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
