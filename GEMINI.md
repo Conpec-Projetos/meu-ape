@@ -38,7 +38,7 @@ Adhere to the established file structure to maintain organization and predictabi
     -   `/layout/Header/`, `/layout/Footer/`: Specific components for the main layout.
 -   `src/firebase/`: Firebase configuration (`firebase-config.ts` and `firebase-admin-config.ts`) and service functions (e.g., `/properties/service.ts`, `/users/service.ts`). **All direct database/storage calls must be placed here.**
 -   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useProperties`).
--   `src/interfaces/`: TypeScript type definitions for all data models (e.g., `property.ts`, `user.ts`).
+-   `src/interfaces/`: TypeScript type definitions for all adata models (e.g., `property.ts`, `user.ts`).
 -   `src/lib/`: Utility functions (e.g., `cpfValidation.ts` for general helpers).
 -   `src/providers/`: React Context providers (e.g., `SidebarProvider`).
 -   `src/schemas/`: Zod schema definitions.
@@ -61,7 +61,6 @@ Adhere to the established file structure to maintain organization and predictabi
 -   **Utility-First:** Use Tailwind CSS utility classes for all styling. Avoid writing custom CSS files unless absolutely necessary.
 -   **Thematic Styling:** The project uses a monochromatic (grayscale) color palette defined via CSS variables in `src/app/globals.css`.
     -   **DO:** Use semantic utility classes that map to these variables (e.g., `bg-primary`, `text-primary-foreground`, `bg-secondary`, `border`, `ring`). This is crucial for consistency and theme support.
-    -   **DO NOT:** Use deprecated custom color classes like `.bg-roxo` or `.text-roxo`. These must be refactored to use the semantic theme classes (e.g., `bg-primary`).
     -   **DO NOT:** Add new one-off color classes. For a specific shade not in the theme, use Tailwind's arbitrary value syntax (e.g., `bg-[#222]`). If a color will be reused, add it as a new CSS variable in `globals.css`.
 -   **Responsiveness:** All components and pages must be responsive. Use Tailwind's responsive prefixes (e.g., md:, lg:) to adapt layouts for different screen sizes.
 

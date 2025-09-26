@@ -1,8 +1,8 @@
 "use client";
 
 import blurImgUrl from "@/assets/blur_img_placeholder.jpg";
-import { Button } from "@/components/features/Buttons/DefaultButton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/Cards/DefaultCard";
+import { Button } from "@/components/features/buttons/default-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import { buscarPropriedadesPaginado, excluirPropriedade } from "@/firebase/properties/service";
 import { Property } from "@/interfaces/propertyOld";
 import { QueryDocumentSnapshot } from "firebase/firestore";
