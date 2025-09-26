@@ -1,27 +1,5 @@
-import { Timestamp } from "firebase/firestore";
+import { DocumentReference, Timestamp } from "firebase/firestore";
 import { z } from "zod";
-
-export interface agentRegistrationRequest {
-  requesterId: string;
-  status: "pending" | "approved" | "denied";
-  submittedAt: Timestamp;
-  resolvedAt?: Timestamp;
-  resolvedBy?: string; // ID do administrador que resolveu a solicitação
-  applicantData: {
-    email: string;
-    fullName: string;
-    cpf: string;
-    rg: string;
-    address: string;
-    city: string;
-    creci: string;
-    phone: string;
-    creciCardPhoto: string[];
-    creciCert: string[];
-  }
-  adminMsg?: string; // Mensagem opcional do administrador ao resolver a solicitação
-
-}
 
 // Validação do formulário com Zod
 export const agentSchema = z.object({
@@ -81,3 +59,25 @@ export const agentSchema = z.object({
   });
 
 export type AgentFormData = z.infer<typeof agentSchema>;
+interface ApplicantData {
+    email: string;
+    fullName: string;
+    cpf: string;
+    rg: string;
+    address: string;
+    city: string;
+    creci: string;
+    creciCardPhoto: string[];
+    creciCert: string[];
+}
+
+export interface AgentRegistrationRequest {
+    id?: string;
+    requesterId: DocumentReference; // ou string
+    status: "pending" | "approved" | "denied";
+    submittedAt: Date | Timestamp;
+    resolvedAt?: Date | Timestamp;
+    resolvedBy?: DocumentReference; // ou string
+    applicantData: ApplicantData;
+    adminMsg?: string;
+}

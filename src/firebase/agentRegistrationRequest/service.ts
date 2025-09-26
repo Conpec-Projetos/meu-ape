@@ -1,4 +1,4 @@
-import { AgentFormData, agentSchema, agentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
+import { AgentFormData, agentSchema, AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { db, storage } from "@/firebase/firebase-config";
 import {
   Timestamp,
@@ -32,6 +32,8 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
   const { email, fullName, cpf, rg, address, city, creci, phone, password, creciCardPhoto, creciCert } = validation.data;
 
   const docRef = doc(db, "agentRegistrationRequests", userId);
+  const userDocRef = doc(db, "users", userId);
+
   await setDoc(docRef, {
     status: "pending",
     applicantData: {
@@ -47,11 +49,9 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
       creciCert: [],
     },
     submittedAt: Timestamp.now(),
-    requesterId: userId,
+    requesterId: userDocRef,
 
-  } as agentRegistrationRequest);
-
-  await updateDoc(docRef, { requesterId: docRef.id });
+  } as AgentRegistrationRequest);
 
   // Upload dos arquivos para o Firebase Storage
   const urlsCard = await uploadFiles(Array.from(creciCardPhoto) as File[], docRef.id);
@@ -64,7 +64,6 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
   });
 
   // Atualização do perfil do agente com as URLs dos documentos
-  const userDocRef = doc(db, "users", userId);
   await updateDoc(userDocRef, {
     "agentProfile.documents.creciCard": urlsCard[0] ? urlsCard : [],
     "agentProfile.documents.creciCert": urlsCert[0] ? urlsCert : [],
