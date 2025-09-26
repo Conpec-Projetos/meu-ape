@@ -1,9 +1,9 @@
 "use client";
 
+import { SidebarProvider } from "@/components/features/sidebars/header-sidebar";
 import Footer from "@/components/layout/footer/footer";
 import { AppSidebar } from "@/components/layout/header/app-sidebar";
 import Header from "@/components/layout/header/header";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { useState } from "react";
 
 export default function ClientWrapper({ children }: { children: React.ReactNode }) {
