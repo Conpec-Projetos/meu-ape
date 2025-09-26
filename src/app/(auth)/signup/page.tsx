@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Button } from "@/components/features/buttons/default-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
