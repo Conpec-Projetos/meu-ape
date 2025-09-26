@@ -5,6 +5,10 @@ import {
   updateDoc,
   doc,
   setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 import {
   ref,
@@ -66,6 +70,35 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
     "agentProfile.documents.creciCert": urlsCert[0] ? urlsCert : [],
   });
 
+  // Enviar email de notificação para admins
+  const emails = await getAdminEmails();
+  for(let i = 0; i < emails.length; i+=50){
+    const batch = emails.slice(i, i + 50);
+    try {
+        const res = await fetch('/api/send', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+            emailTo: emails,
+            agentName: fullName,
+            }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+            console.log('Erro ao enviar: ' + (result.error?.message || JSON.stringify(result.error)));
+        } else {
+            console.log('Email enviado com sucesso!');
+        }
+
+
+        } catch (err) {
+            console.log('Erro de conexão com a API');
+        }
+  }
 
   // Retornar o ID da solicitação criada
   return docRef.id;
@@ -80,4 +113,15 @@ async function uploadFiles(files: File[], agentId: string): Promise<string[]> {
     urls.push(url);
   }
   return urls;
+}
+
+async function getAdminEmails(): Promise<string[]> {
+  let q = query(collection(db, "users"), where("role", "==", "admin"));
+
+  const querySnapshot = await getDocs(q);
+  const emails: string[] = [];
+
+  querySnapshot.forEach(doc => emails.push(doc.data().email));
+
+  return emails;
 }
