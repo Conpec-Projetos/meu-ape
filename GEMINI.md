@@ -35,7 +35,7 @@ Adhere to the established file structure to maintain organization and predictabi
     -   `/api/`: API route handlers for server-side logic (e.g., Resend integration).
 -   `src/components/`: Reusable React components.
     -   `/ui/`: Unmodified `shadcn/ui` components.
-    -   `/layout/Header/`, `/layout/Footer/`: Specific components for the main layout.
+    -   `/layout/header/`, `/layout/footer/`: Specific components for the main layout.
 -   `src/firebase/`: Firebase configuration (`firebase-config.ts` and `firebase-admin-config.ts`) and service functions (e.g., `/properties/service.ts`, `/users/service.ts`). **All direct database/storage calls must be placed here.**
 -   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useProperties`).
 -   `src/interfaces/`: TypeScript type definitions for all adata models (e.g., `property.ts`, `user.ts`).
@@ -79,14 +79,14 @@ Adhere to the established file structure to maintain organization and predictabi
 
 #### Custom Components
 
--   **`Header` (`src/components/layout/Header/Header.tsx`):**
-    -   The `Header` component's appearance and navigation links are determined by the `variant` prop, which can be `'guest'`, `'client'`, `'agent'`, or `'admin'`.
+-   **`Header` (`src/components/layout/header/header.tsx`):**
+    -   The `header` component's appearance and navigation links are determined by the `variant` prop, which can be `'guest'`, `'client'`, `'agent'`, or `'admin'`.
     -   It includes a `SidebarTrigger` for mobile view.
--   **`Footer` (`src/components/layout/Footer/Footer.tsx`):**
+-   **`Footer` (`src/components/layout/footer/footer.tsx`):**
     -   A static component with links to policies and social media.
--   **`AppSidebar` (`src/components/layout/Header/app-sidebar.tsx`):**
+-   **`AppSidebar` (`src/components/layout/header/app-sidebar.tsx`):**
     -   The sidebar's content also changes based on the `variant` prop. It's used for mobile navigation.
--   **`ClientWrapper` (`src/components/layout/ClientWraper/page.tsx`):**
+-   **`ClientWrapper` (`src/components/layout/client-wrapper/page.tsx`):**
     -   This component wraps the main layout, providing the `SidebarProvider` and including the `Header` and `Footer`.
 
 ## Firebase Usage Rules
