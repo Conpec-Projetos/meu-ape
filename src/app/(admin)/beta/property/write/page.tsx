@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "@/components/features/Buttons/DefaultButton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/Cards/DefaultCard";
+import { Button } from "@/components/features/buttons/default-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import {
     Form,
     FormControl,
@@ -10,8 +10,8 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@/components/features/Forms/DefaultForm";
-import { Input } from "@/components/features/Inputs/DefaultInput";
+} from "@/components/features/forms/default-form";
+import { Input } from "@/components/features/inputs/default-input";
 import { criarPropriedade } from "@/firebase/properties/service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
