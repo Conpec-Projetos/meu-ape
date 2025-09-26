@@ -13,11 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, FileCheck, FileText, FileWarning } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod"
-import { resolve } from "path";
 import { agentSchema, AgentFormData } from "@/interfaces/agentRegistrationRequest";
 import { createAgentRegistrationRequest } from "@/firebase/agentRegistrationRequest/service";
 import { useRouter } from "next/navigation";
