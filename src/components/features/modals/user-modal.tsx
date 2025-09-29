@@ -34,12 +34,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Eye, EyeOff } from "lucide-react"; // ADDED Eye and EyeOff imports
 
-// Define a unified schema for the form that includes all possible fields
-const formSchema = userSchema.extend({
+// Define a schema for adding a new user with required password fields.
+const addSchema = userSchema.extend({
+  password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), // Password is required for ADD
+  confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."), // Confirm Password is required for ADD
   adminMsg: z.string().optional(),
+})
+.refine(data => data.password === data.confirmPassword, {
+    message: "As senhas não correspondem.",
+    path: ["confirmPassword"],
 });
-type FormValues = z.infer<typeof formSchema>;
+
+// Define a schema for editing a user, omitting the password fields.
+const editSchema = userSchema.omit({ password: true }).extend({
+    adminMsg: z.string().optional(),
+});
+
+// Define a schema for reviewing a user, omitting the password fields.
+const reviewSchema = z.object({
+  adminMsg: z.string().min(1, "Motivo da recusa é obrigatório"),
+});
+
+// A base type for form values (use the most inclusive schema type for hooks)
+type FormValues = z.infer<typeof addSchema>;
 
 interface UserModalProps {
   isOpen: boolean;
@@ -52,10 +71,6 @@ interface UserModalProps {
   onDeny?: (request: AgentRegistrationRequest, reason: string) => void;
 }
 
-const reviewSchema = z.object({
-  adminMsg: z.string().min(1, "Motivo da recusa é obrigatório"),
-});
-
 export function UserModal({
   isOpen,
   onClose,
@@ -66,8 +81,14 @@ export function UserModal({
   onApprove,
   onDeny,
 }: UserModalProps) {
+  const [passwordVisible, setPasswordVisible] = useState(false); // ADDED state
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false); // ADDED state
+  const [showDenialReason, setShowDenialReason] = useState(false);
+
+  const currentSchema = mode === "add" ? addSchema : editSchema; // Use dynamic schema
+
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(currentSchema as unknown as z.ZodTypeAny),
     defaultValues: {
       fullName: "",
       email: "",
@@ -75,6 +96,8 @@ export function UserModal({
       phone: "",
       address: "",
       role: "client",
+      password: "", // ADDED default value
+      confirmPassword: "", // ADDED default value
       agentProfile: {
         creci: "",
         city: "",
@@ -82,22 +105,29 @@ export function UserModal({
       adminMsg: "",
     },
   });
-  const [showDenialReason, setShowDenialReason] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      let defaultValues: Partial<FormValues> = { role: "client" };
+      let defaultValues: Partial<FormValues> = { 
+        role: "client",
+        password: "", // Clear password fields
+        confirmPassword: "", // Clear password fields
+      };
       if (mode === "edit" || mode === "view") {
         defaultValues = userData || {};
+        defaultValues.password = "";
+        defaultValues.confirmPassword = "";
       } else if (mode === "review" && requestData?.applicantData) {
         const { creci, city, ...rest } = requestData.applicantData;
         defaultValues = {
           ...rest,
           role: "agent",
           agentProfile: { creci: creci || "", city: city || "" },
+          password: "",
+          confirmPassword: "",
         };
       }
-      form.reset(defaultValues);
+      form.reset(defaultValues as FormValues);
       setShowDenialReason(false);
     }
   }, [isOpen, mode, userData, requestData, form]);
@@ -201,7 +231,77 @@ export function UserModal({
             </FormItem>
           )}
         />
-        {(role === "agent" || mode === "review") && (
+
+        {mode === "add" && ( // ADDED: Password fields only for 'add' mode
+          <>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={passwordVisible ? "text" : "password"}
+                        placeholder="******"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                        onClick={() => setPasswordVisible(!passwordVisible)}
+                      >
+                        {passwordVisible ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirmar Senha</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={confirmPasswordVisible ? "text" : "password"}
+                        placeholder="******"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground"
+                        onClick={() =>
+                          setConfirmPasswordVisible(!confirmPasswordVisible)
+                        }
+                      >
+                        {confirmPasswordVisible ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        {(role === "agent" || (mode === "review" && requestData)) && (
           <FormField
             control={form.control}
             name="agentProfile.creci"
