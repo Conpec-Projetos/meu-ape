@@ -1,7 +1,5 @@
-import { doc, getDoc } from "firebase/firestore";
 import { NextResponse, type NextRequest } from "next/server";
-import { verifySessionCookie } from "./firebase/firebase-admin-config";
-import { db } from "./firebase/firebase-config";
+import { adminDb, verifySessionCookie } from "./firebase/firebase-admin-config";
 
 export const runtime = 'nodejs';
 
@@ -28,14 +26,22 @@ export async function middleware(request: NextRequest) {
             return response;
         }
 
-        const userDoc = await getDoc(doc(db, "users", decodedClaims.uid));
-        if (!userDoc.exists()) {
+        // Correct way to fetch a document using the Firebase Admin SDK
+        const userDoc = await adminDb.collection("users").doc(decodedClaims.uid).get();
+
+        if (!userDoc.exists) {
             const response = NextResponse.redirect(new URL("/login", request.url));
             response.cookies.delete("session");
             return response;
         }
 
         const user = userDoc.data();
+
+        if (!user) {
+            const response = NextResponse.redirect(new URL("/login", request.url));
+            response.cookies.delete("session");
+            return response;
+        }
 
         if (isAuthPage) {
             return NextResponse.redirect(new URL("/", request.url));
