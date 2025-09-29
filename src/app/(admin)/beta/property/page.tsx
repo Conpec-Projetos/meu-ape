@@ -83,7 +83,7 @@ export default function PropertiesListPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="pt-15 min-h-screen bg-gray-50 flex flex-col">
             <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
                 <Button variant="outline" className="cursor-pointer" onClick={() => router.push("/")}>
                     Voltar ao Início
