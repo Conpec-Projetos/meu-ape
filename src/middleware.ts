@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { adminDb, verifySessionCookie } from "./firebase/firebase-admin-config";
+import { verifySessionCookie } from "./firebase/firebase-admin-config";
 
 export const runtime = 'nodejs';
 
 export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("session")?.value;
-
     const { pathname } = request.nextUrl;
 
     const isAuthPage = ["/login", "/signup", "/forgot-password"].some(path => pathname.startsWith(path));
@@ -26,33 +25,19 @@ export async function middleware(request: NextRequest) {
             return response;
         }
 
-        const userDoc = await adminDb.collection("users").doc(decodedClaims.uid).get();
-
-        if (!userDoc.exists) {
-            const response = NextResponse.redirect(new URL("/login", request.url));
-            response.cookies.delete("session");
-            return response;
-        }
-
-        const user = userDoc.data();
-
-        if (!user) {
-            const response = NextResponse.redirect(new URL("/login", request.url));
-            response.cookies.delete("session");
-            return response;
-        }
+        const { role, uid } = decodedClaims;
 
         if (isAuthPage) {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
-        if (isAdminPage && user.role !== "admin") {
+        if (isAdminPage && role !== "admin") {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
         const requestHeaders = new Headers(request.headers);
-        requestHeaders.set("x-user-role", user.role);
-        requestHeaders.set("x-user-uid", decodedClaims.uid);
+        requestHeaders.set("x-user-role", role);
+        requestHeaders.set("x-user-uid", uid);
 
         return NextResponse.next({
             request: {
