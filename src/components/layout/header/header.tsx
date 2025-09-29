@@ -1,5 +1,7 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -12,20 +14,24 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import {
+    BarChart,
+    Book,
+    Building,
+    Calendar,
     CircleUserRound,
     Heart,
+    Home,
+    LayoutDashboard,
     LogOut,
     Menu,
     Search,
     Settings,
     Users,
-    Home,
-    Calendar,
-    Book,
-    BarChart
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type Variant = "guest" | "client" | "agent" | "admin";
 
@@ -36,20 +42,19 @@ type NavItem = {
 };
 
 const navConfig: Record<Variant, NavItem[]> = {
-    guest: [
-        { label: "Buscar Imóveis", href: "/search", icon: Search },
-    ],
+    guest: [{ label: "Buscar Imóveis", href: "/property-search", icon: Search }],
     client: [
-        { label: "Buscar Imóveis", href: "/search", icon: Search },
+        { label: "Buscar Imóveis", href: "/property-search", icon: Search },
         { label: "Meus Favoritos", href: "/my-favorites", icon: Heart },
-        { label: "Minhas Requisições", href: "/my-requests", icon: Book },
+        { label: "Minhas Visitas", href: "/my-requests", icon: Calendar },
     ],
     agent: [
         { label: "Minha Agenda", href: "/my-schedule", icon: Calendar },
-        { label: "Reservas Associadas", href: "/associated-bookings", icon: Book },
+        { label: "Reservas", href: "/associated-bookings", icon: Book },
+        { label: "Imóveis", href: "/property-search", icon: Building },
     ],
     admin: [
-        { label: "Dashboard", href: "/admin/dashboard", icon: BarChart },
+        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { label: "Imóveis", href: "/admin/properties", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
@@ -60,147 +65,224 @@ interface HeaderProps {
     variant: Variant;
 }
 
+const getInitials = (name: string) => {
+    return name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase();
+};
+
 function Header({ variant }: HeaderProps) {
     const links = navConfig[variant];
     const router = useRouter();
+    const pathname = usePathname();
     const { logout, user } = useAuth();
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const isScrolled = window.scrollY > 15;
+            setScrolled(isScrolled);
+        };
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
     const handleLogout = async () => {
         await logout();
+        router.push("/login");
     };
 
+    // Define styles based on scroll state
+    const isTransparent = !scrolled;
+    const headerBaseStyle = "fixed top-0 left-0 w-full h-15 py-4 px-6 flex justify-between items-center z-50 transition-all duration-300";
+
+    const headerStyle = `${headerBaseStyle} ${isTransparent
+            ? "bg-transparent"
+            : "bg-primary shadow-md"
+        }`;
+
+    const navLinkColor = isTransparent ? "text-primary" : "text-primary-foreground";
+    const navLinkHover = isTransparent ? "hover:bg-primary/5" : "hover:bg-white/10";
+
+
     return (
-        <header className={`w-full h-[80px] py-4 px-6 bg-primary flex justify-between items-center ${variant === 'admin' ? 'bg-gray-800' : 'bg-primary'}`}>
+        <header className={headerStyle}>
             <div className="flex items-center gap-4">
                 <Image
                     src="/logo.png"
                     alt="Meu Apê Logo"
-                    width={60}
-                    height={60}
+                    width={120}
+                    height={120}
                     className="cursor-pointer"
                     onClick={() => router.push("/")}
                 />
+                {variant === "admin" && <Badge variant="secondary">Admin</Badge>}
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex justify-end items-center w-full gap-10">
-                <div className="flex gap-6">
-                    {links.map((link) => (
-                        <a
-                            key={link.label}
-                            className="text-primary-foreground cursor-pointer font-bold relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary-foreground after:transition-all after:duration-500 hover:after:w-full"
-                            onClick={() => router.push(link.href)}
-                        >
-                            {link.label}
-                        </a>
-                    ))}
+            <nav className="hidden lg:flex justify-end items-center w-full gap-4">
+                <div className="flex items-center gap-2">
+                    {links.map((link) => {
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.label}
+                                href={link.href}
+                                className={`flex items-center gap-2 font-medium px-3 py-2 rounded-md transition-colors ${navLinkColor} ${navLinkHover} ${isActive ? "font-bold" : ""
+                                    }`}
+                            >
+                                <link.icon className="h-5 w-5" />
+                                <span>{link.label}</span>
+                            </Link>
+                        );
+                    })}
                 </div>
+
 
                 <div>
                     {variant === "guest" ? (
-                        <div className="flex gap-2">
+                        <div className="flex">
                             <Button
-                                variant="outline"
-                                className="cursor-pointer"
+                                className={`cursor-pointer text-md bg-transparent hover:bg-primary/90 transition-colors ${navLinkColor} ${navLinkHover}`}
                                 onClick={() => router.push("/login")}
                             >
-                                <span className="font-semibold">Entrar</span>
-                            </Button>
-                            <Button
-                                className="cursor-pointer bg-secondary hover:bg-secondary/90"
-                                onClick={() => router.push("/signup")}
-                            >
-                                <span className="font-semibold">Cadastrar</span>
+                                Login
                             </Button>
                         </div>
                     ) : (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline">
-                                    <CircleUserRound className="mr-2" />
-                                    <span className="font-semibold">{user?.fullName || "Conta"}</span>
+                                <Button
+                                    variant="ghost"
+                                    className={`flex cursor-pointer items-center gap-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-primary`}
+                                >
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src={undefined} alt={user?.fullName} />
+                                        <AvatarFallback>
+                                            {user?.fullName ? getInitials(user.fullName) : <CircleUserRound />}
+                                        </AvatarFallback>
+                                    </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 mr-4">
-                                <DropdownMenuLabel>Meu Perfil</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
+                            <DropdownMenuContent className="w-64 mr-4" align="end">
+                                {user && (
+                                    <>
+                                        <DropdownMenuLabel className="font-normal">
+                                            <div className="flex flex-col space-y-1">
+                                                <p className="text-sm font-medium leading-none">{user.fullName}</p>
+                                                <p className="text-xs leading-none text-muted-foreground">
+                                                    {user.email}
+                                                </p>
+                                            </div>
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
                                 <DropdownMenuItem onClick={() => router.push("/settings")}>
-                                    <Settings className="mr-2" />
-                                    Configurações
+                                    <Settings className="mr-2 h-4 w-4" />
+                                    <span>Configurações</span>
                                 </DropdownMenuItem>
                                 {variant === "client" && (
                                     <DropdownMenuItem onClick={() => router.push("/my-favorites")}>
-                                        <Heart className="mr-2" />
-                                        Favoritos
+                                        <Heart className="mr-2 h-4 w-4" />
+                                        <span>Favoritos</span>
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout}>
-                                    <LogOut className="mr-2 text-destructive" />
-                                    <span className="text-destructive">Sair</span>
+                                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Sair</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
                 </div>
-            </div>
+            </nav>
 
             {/* Mobile Navigation */}
             <div className="lg:hidden">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button variant="outline" size="icon">
+                        <Button size="icon" className="text-primary-foreground">
                             <Menu className="h-6 w-6" />
                         </Button>
                     </SheetTrigger>
-                    <SheetContent>
-                        <div className="flex flex-col gap-6 mt-8">
-                            {links.map((link) => (
-                                <a
-                                    key={link.label}
-                                    className="text-foreground cursor-pointer font-bold flex items-center gap-2"
-                                    onClick={() => router.push(link.href)}
-                                >
-                                    <link.icon className="h-5 w-5" />
-                                    {link.label}
-                                </a>
-                            ))}
-                            <DropdownMenuSeparator />
-                             {variant === "guest" ? (
-                                <div className="flex flex-col gap-4">
+                    <SheetContent className="flex flex-col p-4">
+                        <div className="flex items-center gap-4 border-b pb-4">
+                            {user ? (
+                                <>
+                                    <Avatar className="cursor-pointer h-12 w-12">
+                                        <AvatarImage src={undefined} alt={user.fullName} />
+                                        <AvatarFallback className="text-lg">
+                                            {getInitials(user.fullName)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-semibold">{user.fullName}</p>
+                                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex w-full gap-2">
                                     <Button
                                         variant="outline"
-                                        className="cursor-pointer"
+                                        className="w-full"
                                         onClick={() => router.push("/login")}
                                     >
-                                        <span className="font-semibold">Entrar</span>
+                                        Entrar
                                     </Button>
                                     <Button
-                                        className="cursor-pointer bg-secondary hover:bg-secondary/90"
+                                        className="w-full bg-secondary hover:bg-secondary/90"
                                         onClick={() => router.push("/signup")}
                                     >
-                                        <span className="font-semibold">Cadastrar</span>
+                                        Cadastrar
                                     </Button>
                                 </div>
-                            ) : (
-                                <>
-                                    <a
-                                        className="text-foreground cursor-pointer font-bold flex items-center gap-2"
-                                        onClick={() => router.push("/settings")}
-                                    >
-                                        <Settings className="h-5 w-5" />
-                                        Configurações
-                                    </a>
-                                    <a
-                                        className="text-destructive cursor-pointer font-bold flex items-center gap-2"
-                                        onClick={handleLogout}
-                                    >
-                                        <LogOut className="h-5 w-5" />
-                                        Sair
-                                    </a>
-                                </>
                             )}
                         </div>
+
+                        <nav className="flex-grow mt-6">
+                            <ul className="flex flex-col gap-4">
+                                {links.map((link) => (
+                                    <li key={link.label}>
+                                        <Link
+                                            href={link.href}
+                                            className="flex items-center gap-3 p-2 rounded-md text-lg font-medium hover:bg-muted"
+                                        >
+                                            <link.icon className="h-6 w-6" />
+                                            {link.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+
+                        {user && (
+                            <div className="mt-auto border-t pt-4">
+                                <ul className="flex flex-col gap-2">
+                                    <li>
+                                        <Link
+                                            href="/settings"
+                                            className="flex items-center gap-3 p-2 rounded-md font-medium hover:bg-muted"
+                                        >
+                                            <Settings className="h-5 w-5" />
+                                            Configurações
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="w-full flex items-center gap-3 p-2 rounded-md font-medium text-destructive hover:bg-muted"
+                                        >
+                                            <LogOut className="h-5 w-5" />
+                                            Sair
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        )}
                     </SheetContent>
                 </Sheet>
             </div>
