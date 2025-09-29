@@ -29,7 +29,11 @@ export function useUsers(role: 'client' | 'agent' | 'admin', page: number, limit
       setUsers(data.users || []);
       setTotalPages(data.totalPages || 1);
     } catch (err) {
-      setError(err.message);
+        if (err instanceof Error) {
+            setError(err.message);
+        } else {
+            setError('An unknown error occurred.');
+        }
     }
     setIsLoading(false);
   }, [role, page, limit, status, enabled]);

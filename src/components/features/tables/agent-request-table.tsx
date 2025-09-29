@@ -28,6 +28,13 @@ interface AgentRequestTableProps {
 }
 
 export function AgentRequestTable({ requests, page, totalPages, onPageChange, onReview }: AgentRequestTableProps) {
+    const formatDate = (date: Date | import("firebase/firestore").Timestamp) => {
+        if (date instanceof Date) {
+          return date.toLocaleDateString();
+        }
+        return new Date(date.seconds * 1000).toLocaleDateString();
+    };
+
   return (
     <div>
       <Table>
@@ -46,7 +53,7 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
               <TableCell>{request.applicantData.fullName}</TableCell>
               <TableCell>{request.applicantData.email}</TableCell>
               <TableCell>{request.applicantData.creci}</TableCell>
-              <TableCell>{new Date(request.submittedAt.seconds * 1000).toLocaleDateString()}</TableCell>
+              <TableCell>{formatDate(request.submittedAt)}</TableCell>
               <TableCell className="text-right">
                 <Button variant="outline" onClick={() => onReview(request)}>Analisar</Button>
               </TableCell>
