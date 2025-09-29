@@ -11,8 +11,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/features/dropdowns/default-dropdown-menu";
 
-import { SidebarTrigger } from "@/components/features/sidebars/header-sidebar";
-
 type Variant = "guest" | "client" | "agent" | "admin";
 
 type NavItem = {
@@ -54,7 +52,6 @@ function Header({ variant }: HeaderProps) {
 
     return (
         <header className="w-full h-[80px] py-4 px-6 bg-primary flex justify-start gap-1.5 lg:gap-0 lg:justify-between items-center">
-            <SidebarTrigger className="lg:hidden text-primary-foreground" />
 
             <div>
                 <h1 className="text-3xl text-primary-foreground select-none w-[200px]">Meu Apê</h1>
