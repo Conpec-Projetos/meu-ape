@@ -18,6 +18,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, X, Eye } from "lucide-react";
 
 interface AgentRequestTableProps {
   requests: AgentRegistrationRequest[];
@@ -25,10 +27,12 @@ interface AgentRequestTableProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   onReview: (request: AgentRegistrationRequest) => void;
+  onApprove: (request: AgentRegistrationRequest) => void;
+  onDeny: (request: AgentRegistrationRequest) => void;
 }
 
-export function AgentRequestTable({ requests, page, totalPages, onPageChange, onReview }: AgentRequestTableProps) {
-    const formatDate = (date: Date | import("firebase/firestore").Timestamp) => {
+export function AgentRequestTable({ requests, page, totalPages, onPageChange, onReview, onApprove, onDeny }: AgentRequestTableProps) {
+  const formatDate = (date: Date | import("firebase/firestore").Timestamp) => {
         if (date instanceof Date) {
           return date.toLocaleDateString();
         }
@@ -36,69 +40,103 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
     };
 
   return (
-    <div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome do Solicitante</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>CRECI</TableHead>
-            <TableHead>Data da Solicitação</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <TooltipProvider>
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome do Solicitante</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>CRECI</TableHead>
+              <TableHead>Data da Solicitação</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
           {requests.map((request) => (
-            <TableRow key={request.id}>
+            <TableRow key={request.id} onClick={() => onReview(request)} className="cursor-pointer">
               <TableCell>{request.applicantData.fullName}</TableCell>
               <TableCell>{request.applicantData.email}</TableCell>
               <TableCell>{request.applicantData.creci}</TableCell>
               <TableCell>{formatDate(request.submittedAt)}</TableCell>
-              <TableCell className="text-right">
-                <Button variant="outline" onClick={() => onReview(request)}>Analisar</Button>
+              <TableCell className="text-right space-x-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    {/* The View button click is suppressed as the row click handles the review/view */}
+                    <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); onReview(request); }}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Visualizar Detalhes</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onApprove(request); }}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Aprovar</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onDeny(request); }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Negar</p>
+                  </TooltipContent>
+                </Tooltip>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <Pagination className="mt-4">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onPageChange(page - 1);
-              }}
-              className={page <= 1 ? "pointer-events-none opacity-50" : ""}
-            />
-          </PaginationItem>
-          {[...Array(totalPages)].map((_, i) => (
-            <PaginationItem key={i}>
-              <PaginationLink
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onPageChange(i + 1);
-                }}
-                isActive={page === i + 1}
-              >
-                {i + 1}
-              </PaginationLink>
-            </PaginationItem>
-          ))}
-          <PaginationItem>
-            <PaginationNext
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onPageChange(page + 1);
-              }}
-              className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-    </div>
+        {totalPages > 1 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onPageChange(page - 1);
+                  }}
+                  className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              {[...Array(totalPages)].map((_, i) => (
+                <PaginationItem key={i}>
+                  <PaginationLink
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onPageChange(i + 1);
+                    }}
+                    isActive={page === i + 1}
+                  >
+                    {i + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onPageChange(page + 1);
+                  }}
+                  className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

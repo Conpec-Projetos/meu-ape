@@ -4,6 +4,7 @@ import { User } from '@/interfaces/user';
 export function useUsers(role: 'client' | 'agent' | 'admin', page: number, limit: number, status?: string, enabled: boolean = true) {
   const [users, setUsers] = useState<User[]>([]);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,6 +12,7 @@ export function useUsers(role: 'client' | 'agent' | 'admin', page: number, limit
     if (!enabled) {
       setUsers([]);
       setTotalPages(1);
+      setTotal(0);
       return;
     }
     setIsLoading(true);
@@ -28,10 +30,12 @@ export function useUsers(role: 'client' | 'agent' | 'admin', page: number, limit
       const data = await response.json();
       setUsers(data.users || []);
       setTotalPages(data.totalPages || 1);
+      setTotal(data.total || 0);
     } catch (err) {
         if (err instanceof Error) {
             setError(err.message);
-        } else {
+        }
+        else {
             setError('An unknown error occurred.');
         }
     }
@@ -42,5 +46,5 @@ export function useUsers(role: 'client' | 'agent' | 'admin', page: number, limit
     fetchUsers();
   }, [fetchUsers]);
 
-  return { users, totalPages, isLoading, error, refresh: fetchUsers };
+  return { users, total, totalPages, isLoading, error, refresh: fetchUsers };
 }

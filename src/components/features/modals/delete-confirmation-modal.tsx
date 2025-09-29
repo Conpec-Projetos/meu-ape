@@ -15,22 +15,24 @@ interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  userName?: string;
 }
 
-export function DeleteConfirmationModal({ isOpen, onClose, onConfirm }: DeleteConfirmationModalProps) {
+export function DeleteConfirmationModal({ isOpen, onClose, onConfirm, userName }: DeleteConfirmationModalProps) {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
           <AlertDialogDescription>
-            Essa ação não pode ser desfeita. Isso irá deletar permanentemente o usuário.
+            Essa ação não pode ser desfeita. Isso irá deletar permanentemente o usuário{" "}
+            <span className="font-bold">{userName || 'selecionado'}</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
-            Deletar
+            Sim, deletar usuário
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -20,8 +20,23 @@ const listPaginated = async (col: CollectionReference<DocumentData>, page: numbe
 
   const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  return { items, totalPages };
+  return { items, totalPages, total };
 }
+
+export const getUserCounts = async () => {
+  const usersCollection = db.collection('users');
+  const clientCountPromise = usersCollection.where('role', '==', 'client').count().get();
+  const agentCountPromise = usersCollection.where('role', '==', 'agent').count().get();
+  const adminCountPromise = usersCollection.where('role', '==', 'admin').count().get();
+
+  const [clientSnapshot, agentSnapshot, adminSnapshot] = await Promise.all([clientCountPromise, agentCountPromise, adminCountPromise]);
+
+  return {
+    client: clientSnapshot.data().count,
+    agent: agentSnapshot.data().count,
+    admin: adminSnapshot.data().count,
+  };
+};
 
 export const listUsers = async (role: string, page: number, limitSize: number, status?: string) => {
   const usersCollection = db.collection('users');
@@ -29,15 +44,15 @@ export const listUsers = async (role: string, page: number, limitSize: number, s
   if (status) {
     conditions.push(['status', '==', status]);
   }
-  const { items, totalPages } = await listPaginated(usersCollection, page, limitSize, conditions);
-  return { users: items as User[], totalPages };
+  const { items, totalPages, total } = await listPaginated(usersCollection, page, limitSize, conditions);
+  return { users: items as User[], totalPages, total };
 };
 
 export const listAgentRequests = async (status: string, page: number, limitSize: number) => {
   const requestsCollection = db.collection('agentRegistrationRequests');
   const conditions: [string, FirebaseFirestore.WhereFilterOp, string | number | boolean][] = [['status', '==', status]];
-  const { items, totalPages } = await listPaginated(requestsCollection, page, limitSize, conditions);
-  return { requests: items as AgentRegistrationRequest[], totalPages };
+  const { items, totalPages, total } = await listPaginated(requestsCollection, page, limitSize, conditions);
+  return { requests: items as AgentRegistrationRequest[], totalPages, total };
 };
 
 export const createUser = async (userData: Partial<User> & {password?: string}) => {
