@@ -3,26 +3,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar } from "@/components/ui/calendar"
 import {useState} from "react"
 import React from "react"
+import CardReservation from '@/components/ui/cardreservation'
 
 let cards = 5
+const requests =   [{ status: "Aguardo", empreendimento: "Loja", nome: "Bruno" },
+  { status: "Confirmado", empreendimento: "Shopping", nome: "Maria" },
+  { status: "Recusado", empreendimento: "Centro", nome: "Carlos" },
+  { status: "Confirmado", empreendimento: "AAAAAA", nome: "BBBBB" }
+];
 
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 
-}
 
 export default function Reserve() {
   const [date, setDate] = React.useState<Date | undefined>(new Date()) 
 
-  const dataFormatada = date
-    ? capitalize(
-        date.toLocaleDateString("pt-BR", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      )
-    : undefined;
+
     
     return(
       <>
@@ -36,20 +31,25 @@ export default function Reserve() {
         {/* Visitas */}
           <TabsContent value="visitas">
             <div className="flex flex-row justify-around items-center  w-full h-fit mb-8">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-lg border w-200"
-              />
-              <div className="w-95 h-171 rounded-lg bg-cinza"></div>    
+              <div className="w-[90%] h-fit rounded-lg bg-cinza py-2 px-4 ">
+                 {/*  CARD */}
+                  {requests.map((request, index) => (
+                    <CardReservation
+                      key={index}
+                      status={request.status}
+                      empreendimento={request.empreendimento}
+                      nome={request.nome}></CardReservation>))}
+
+                </div>    
             </div>   
           </TabsContent>
           
         
 
         {/* Reservas */}
-        <TabsContent value="reservas"></TabsContent>
+        <TabsContent value="reservas">
+          
+        </TabsContent>
       </Tabs>
       </div>
       
