@@ -54,7 +54,7 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
           </TableHeader>
           <TableBody>
           {requests.map((request) => (
-            <TableRow key={request.id} onClick={() => onReview(request)} className="cursor-pointer">
+            <TableRow key={request.id} onClick={() => onReview(request)}>
               <TableCell>{request.applicantData.fullName}</TableCell>
               <TableCell>{request.applicantData.email}</TableCell>
               <TableCell>{request.applicantData.creci}</TableCell>
@@ -63,7 +63,7 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
                 <Tooltip>
                   <TooltipTrigger asChild>
                     {/* The View button click is suppressed as the row click handles the review/view */}
-                    <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); onReview(request); }}>
+                    <Button variant="outline" size="icon" className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onReview(request); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -73,7 +73,7 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onApprove(request); }}>
+                    <Button variant="outline" size="icon" className="cursor-pointer border-green-500 text-green-500 hover:bg-green-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onApprove(request); }}>
                       <Check className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
@@ -83,7 +83,7 @@ export function AgentRequestTable({ requests, page, totalPages, onPageChange, on
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onDeny(request); }}>
+                    <Button variant="outline" size="icon" className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onDeny(request); }}>
                       <X className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>

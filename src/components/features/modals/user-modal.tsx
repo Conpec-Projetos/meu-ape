@@ -314,7 +314,7 @@ export function UserModal({
                 </Button>
               )}
               {(mode === "add" || mode === "edit") && (
-                <Button type="submit">Salvar</Button>
+                <Button type="submit" className="cursor-pointer">Salvar</Button>
               )}
             </DialogFooter>
           </form>

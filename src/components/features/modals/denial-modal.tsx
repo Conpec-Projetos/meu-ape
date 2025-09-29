@@ -42,8 +42,8 @@ export function DenialModal({ isOpen, onClose, onConfirm }: DenialModalProps) {
           />
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={() => onConfirm(reason)} disabled={!reason.trim()}>
+          <AlertDialogCancel onClick={onClose} className="cursor-pointer">Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => onConfirm(reason)} className="cursor-pointer" disabled={!reason.trim()}>
             Confirmar Negação
           </AlertDialogAction>
         </AlertDialogFooter>

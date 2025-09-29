@@ -30,8 +30,8 @@ export function DeleteConfirmationModal({ isOpen, onClose, onConfirm, userName }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onClose}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+          <AlertDialogCancel onClick={onClose} className="cursor-pointer">Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} className="cursor-pointer bg-red-600 hover:bg-red-700">
             Sim, deletar usuário
           </AlertDialogAction>
         </AlertDialogFooter>
