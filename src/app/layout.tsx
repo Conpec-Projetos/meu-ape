@@ -19,6 +19,8 @@ export const metadata: Metadata = {
     description: "Sem descrição por enquanto.",
 };
 
+import { AuthProvider } from "@/providers/auth-provider";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -27,7 +29,9 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                <ClientWrapper>{children}</ClientWrapper>
+                <AuthProvider>
+                    <ClientWrapper>{children}</ClientWrapper>
+                </AuthProvider>
                 <Toaster position="bottom-right" richColors closeButton theme="light" />
             </body>
         </html>

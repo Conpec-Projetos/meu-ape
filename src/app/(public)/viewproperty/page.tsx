@@ -31,13 +31,6 @@ export default function ViewPropertyPage() {
     const [expanded, setExpanded] = useState(false);
     const [favorite, setFavorite] = useState(false);
 
-    const prevSlide = () => {
-        setCurrent(current === 0 ? slides.length - 1 : current - 1);
-    };
-
-    const nextSlide = () => {
-        setCurrent(current === slides.length - 1 ? 0 : current + 1);
-    };
 
     return (
         <main className="min-h-screen w-full bg-white flex flex-col items-center gap-12 px-4 py-6">
