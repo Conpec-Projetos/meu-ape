@@ -13,9 +13,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Role parameter is required' }, { status: 400 });
     }
 
-    const { users, totalPages } = await listUsers(role, page, limit, status);
+    const { users, totalPages, total } = await listUsers(role, page, limit, status);
 
-    return NextResponse.json({ users, totalPages });
+    return NextResponse.json({ users, totalPages, total });
   } catch (error) {
     console.error('Error fetching users:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -27,6 +27,7 @@ export interface User {
     cpf?: string;
     address?: string;
     phone?: string;
+    photoUrl?: string;
     documents?: UserDocuments;
     favorited?: DocumentReference[]; // ou string[] se preferir armazenar os IDs
     agentProfile?: AgentProfile;
