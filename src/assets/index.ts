@@ -1,4 +1,3 @@
-import Image from "next/image";
 import setaesq from "./setaesq.png";
 import setadir from "./setadir.png"
 import ban from './ban.png'

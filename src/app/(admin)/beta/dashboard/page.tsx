@@ -31,7 +31,7 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <div className="h-screen w-screen bg-gray-50 p-6">
+        <div className="pt-15 h-screen w-screen bg-gray-50 p-6">
             <div className="w-full mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-600 mt-2">Visão geral do Meu Apê</p>
