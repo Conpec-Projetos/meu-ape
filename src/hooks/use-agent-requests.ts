@@ -25,7 +25,11 @@ export function useAgentRequests(status: 'pending' | 'approved' | 'denied', page
       setRequests(data.requests || []);
       setTotalPages(data.totalPages || 1);
     } catch (err) {
-      setError(err.message);
+        if (err instanceof Error) {
+            setError(err.message);
+        } else {
+            setError('An unknown error occurred.');
+        }
     }
     setIsLoading(false);
   }, [status, page, limit, enabled]);

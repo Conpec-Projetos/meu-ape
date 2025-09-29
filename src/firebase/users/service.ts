@@ -1,9 +1,10 @@
 import { adminDb as db, adminAuth } from '@/firebase/firebase-admin-config';
 import { User } from '@/interfaces/user';
 import { AgentRegistrationRequest } from '@/interfaces/agentRegistrationRequest';
-import { CollectionReference, DocumentData, Timestamp } from 'firebase-admin/firestore';
+import { CollectionReference, DocumentData, Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
+import { Timestamp as ClientTimestamp, DocumentReference as ClientDocumentReference } from 'firebase/firestore';
 
-const listPaginated = async (col: CollectionReference<DocumentData>, page: number, limitSize: number, conditions: [string, FirebaseFirestore.WhereFilterOp, any][]) => {
+const listPaginated = async (col: CollectionReference<DocumentData>, page: number, limitSize: number, conditions: [string, FirebaseFirestore.WhereFilterOp, string | number | boolean][]) => {
   let q: FirebaseFirestore.Query<DocumentData> = col;
   
   conditions.forEach(([field, op, value]) => {
@@ -24,7 +25,7 @@ const listPaginated = async (col: CollectionReference<DocumentData>, page: numbe
 
 export const listUsers = async (role: string, page: number, limitSize: number, status?: string) => {
   const usersCollection = db.collection('users');
-  const conditions: [string, FirebaseFirestore.WhereFilterOp, any][] = [['role', '==', role]];
+  const conditions: [string, FirebaseFirestore.WhereFilterOp, string | number | boolean][] = [['role', '==', role]];
   if (status) {
     conditions.push(['status', '==', status]);
   }
@@ -34,7 +35,7 @@ export const listUsers = async (role: string, page: number, limitSize: number, s
 
 export const listAgentRequests = async (status: string, page: number, limitSize: number) => {
   const requestsCollection = db.collection('agentRegistrationRequests');
-  const conditions: [string, FirebaseFirestore.WhereFilterOp, any][] = [['status', '==', status]];
+  const conditions: [string, FirebaseFirestore.WhereFilterOp, string | number | boolean][] = [['status', '==', status]];
   const { items, totalPages } = await listPaginated(requestsCollection, page, limitSize, conditions);
   return { requests: items as AgentRegistrationRequest[], totalPages };
 };
@@ -47,12 +48,12 @@ export const createUser = async (userData: Partial<User> & {password?: string}) 
   const userRecord = await adminAuth.createUser({ email, password, displayName: profileData.fullName });
   
   const user: Omit<User, 'id'> = {
-    uid: userRecord.uid,
+    id: userRecord.uid,
     email,
     role: profileData.role || 'client',
     fullName: profileData.fullName || '',
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+    createdAt: AdminTimestamp.now() as unknown as ClientTimestamp,
+    updatedAt: AdminTimestamp.now() as unknown as ClientTimestamp,
     ...profileData,
   };
 
@@ -62,7 +63,7 @@ export const createUser = async (userData: Partial<User> & {password?: string}) 
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
   const userRef = db.collection('users').doc(userId);
-  await userRef.update({ ...userData, updatedAt: Timestamp.now() });
+  await userRef.update({ ...userData, updatedAt: AdminTimestamp.now() });
   const updatedDoc = await userRef.get();
   return { id: updatedDoc.id, ...updatedDoc.data() } as User;
 };
@@ -72,12 +73,12 @@ export const deleteUser = async (userId: string) => {
     const userDoc = await userRef.get();
     const userData = userDoc.data() as User | undefined;
 
-    if (userData && userData.uid) {
+    if (userData && userData.id) {
         try {
-            await adminAuth.deleteUser(userData.uid);
-        } catch (error: any) {
+            await adminAuth.deleteUser(userData.id);
+        } catch (error: unknown) {
             // It's possible the auth user was already deleted.
-            if (error.code !== 'auth/user-not-found') {
+            if (error instanceof Error && 'code' in error && (error as {code: string}).code !== 'auth/user-not-found') {
                 throw error;
             }
         }
@@ -102,7 +103,7 @@ export const approveAgentRequest = async (requestId: string) => {
 
   // The requesterId field can be a string (UID) or a DocumentReference object.
   // We need to get the user's document ID (which is the UID) from it.
-  const userId = (requesterId as FirebaseFirestore.DocumentReference).id || (requesterId as string);
+  const userId = typeof requesterId === 'string' ? requesterId : (requesterId as ClientDocumentReference).id;
 
   if (!userId) {
       throw new Error("Could not determine User ID from requesterId.");
@@ -128,12 +129,12 @@ export const approveAgentRequest = async (requestId: string) => {
     cpf: applicantData.cpf,
     rg: applicantData.rg,
     address: applicantData.address,
-    updatedAt: Timestamp.now()
+    updatedAt: AdminTimestamp.now()
   });
 
   await requestRef.update({
     status: 'approved',
-    resolvedAt: Timestamp.now(),
+    resolvedAt: AdminTimestamp.now(),
   });
 };
 
@@ -150,13 +151,13 @@ export const denyAgentRequest = async (requestId: string, adminMsg: string) => {
 
   if (requesterId) {
     // The requesterId field can be a string (UID) or a DocumentReference object.
-    const userId = (requesterId as FirebaseFirestore.DocumentReference).id || (requesterId as string);
+    const userId = typeof requesterId === 'string' ? requesterId : (requesterId as ClientDocumentReference).id;
     
     if (userId) {
         const userRef = db.collection('users').doc(userId);
         await userRef.update({
             status: 'denied',
-            updatedAt: Timestamp.now()
+            updatedAt: AdminTimestamp.now()
         });
     }
   }
@@ -164,7 +165,6 @@ export const denyAgentRequest = async (requestId: string, adminMsg: string) => {
   await requestRef.update({
     status: 'denied',
     adminMsg,
-    resolvedAt: Timestamp.now(),
+    resolvedAt: AdminTimestamp.now(),
   });
 };
-

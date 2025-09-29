@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { approveAgentRequest, denyAgentRequest } from '@/firebase/users/service';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{id: string}>}) {
   try {
-    const { id } = await params;
+    const params = await context.params;
+    const { id } = params
     const { action, adminMsg } = await req.json();
 
     if (!action || (action === 'deny' && !adminMsg)) {
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error(`Error processing agent request ${params.id}:`, error);
+    console.error(`Error processing agent request ${req}:`, error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

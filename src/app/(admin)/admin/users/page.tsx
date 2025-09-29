@@ -93,7 +93,7 @@ function UserManagementContent() {
     }
   };
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: Partial<User>) => {
     try {
       if (modalMode === 'add') {
         await fetch('/api/admin/users', {

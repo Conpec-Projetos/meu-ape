@@ -10,8 +10,8 @@ interface UserDocuments {
 interface AgentProfile {
     creci: string;
     city: string;
-    groups: string[];
-    documents: {
+    groups?: string[];
+    documents?: {
         creciCardPhoto: string[];
         creciCert: string[];
     };
