@@ -49,7 +49,7 @@ export function UserTable({ users, page, totalPages, onPageChange, onView, onEdi
         <Users className="h-16 w-16 text-gray-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2">Nenhum usuário encontrado</h3>
         <p className="text-gray-500 mb-4">Parece que não há usuários para exibir no momento.</p>
-        <Button onClick={onAddUser}>Adicionar Novo Usuário</Button>
+        <Button className="cursor-pointer" onClick={onAddUser}>Adicionar Novo Usuário</Button>
       </div>
     );
   }
@@ -68,7 +68,7 @@ export function UserTable({ users, page, totalPages, onPageChange, onView, onEdi
           </TableHeader>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id} onClick={() => onView(user)} className="cursor-pointer">
+              <TableRow key={user.id} onClick={() => onView(user)}>
                 <TableCell className="py-4 font-medium">
                   <div className="flex items-center gap-3">
                     <Avatar>
@@ -83,7 +83,7 @@ export function UserTable({ users, page, totalPages, onPageChange, onView, onEdi
                 <TableCell className="py-4 text-right space-x-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); onView(user); }}>
+                      <Button variant="outline" size="icon" className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onView(user); }}>
                         <View className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
@@ -93,7 +93,7 @@ export function UserTable({ users, page, totalPages, onPageChange, onView, onEdi
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(user); }}>
+                      <Button variant="outline" size="icon" className="cursor-pointer" onClick={(e) => { e.stopPropagation(); onEdit(user); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
@@ -103,7 +103,7 @@ export function UserTable({ users, page, totalPages, onPageChange, onView, onEdi
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="icon" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onDelete(user); }}>
+                      <Button variant="outline" size="icon" className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white" onClick={(e) => { e.stopPropagation(); onDelete(user); }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
