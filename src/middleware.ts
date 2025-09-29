@@ -26,7 +26,6 @@ export async function middleware(request: NextRequest) {
             return response;
         }
 
-        // Correct way to fetch a document using the Firebase Admin SDK
         const userDoc = await adminDb.collection("users").doc(decodedClaims.uid).get();
 
         if (!userDoc.exists) {
