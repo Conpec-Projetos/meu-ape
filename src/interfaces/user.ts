@@ -21,6 +21,7 @@ export interface User {
     id?: string;
     email: string;
     role: "client" | "agent" | "admin";
+    status?: "approved" | "pending" | "denied";
     fullName: string;
     rg?: string;
     cpf?: string;
