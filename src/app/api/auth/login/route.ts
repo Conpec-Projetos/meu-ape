@@ -1,4 +1,4 @@
-import { adminAuth } from "@/firebase/firebase-admin-config";
+import { adminAuth, adminDb } from "@/firebase/firebase-admin-config";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -9,8 +9,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "ID token not provided" }, { status: 400 });
         }
 
-        const expiresIn = 60 * 60 * 24 * 14 * 1000; // 14 days in milliseconds
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
+        const { uid } = decodedToken;
 
+        const userDoc = await adminDb.collection("users").doc(uid).get();
+        const user = userDoc.data();
+
+        if (user) {
+            await adminAuth.setCustomUserClaims(uid, { role: user.role });
+        }
+
+        const expiresIn = 60 * 60 * 24 * 14 * 1000; // 14 days in milliseconds
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
         const options = {
@@ -22,7 +31,6 @@ export async function POST(req: NextRequest) {
         };
 
         const response = NextResponse.json({ status: "success" }, { status: 200 });
-
         response.cookies.set(options);
 
         return response;
