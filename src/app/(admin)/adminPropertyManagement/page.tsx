@@ -4,20 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
+import { Check } from "lucide-react";
 import { z } from "zod";
 import { useState } from "react";
-import PropertyTable from "./PropertyTable";
+import PropertyTable from "@/components/features/tables/PropertyTable"
 
-const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const propertySchema = z.object({
   nome: z.string().min(1, "Nome obrigatório"),
   localizacao: z.string().min(1, "Localização obrigatória"),
   dataLancamento: z.string().refine(val => dateRegex.test(val), {
-    message: "Data deve estar no formato DD/MM/AAAA"  
+    message: "Data deve estar no formato AAAA-MM-DD"
   }),
   dataEntrega: z.string().refine(val => dateRegex.test(val), {
-    message: "Data deve estar no formato DD/MM/AAAA"
+    message: "Data deve estar no formato AAAA-MM-DD"
   }),
 });
 
@@ -85,12 +86,12 @@ export default function AdminPropertyManagementPage() {
             <div className="flex gap-2">
               <div className="flex-1">
                 <Label htmlFor="dataLancamento">Data de lançamento</Label>
-                <Input id="dataLancamento" value={form.dataLancamento} onChange={handleChange} onBlur={handleBlur} type="text" placeholder="DD/MM/AAAA" />
+                <Input id="dataLancamento" value={form.dataLancamento} onChange={handleChange} onBlur={handleBlur} type="date" placeholder="Data de lançamento" />
                 {errors.dataLancamento && <span className="text-red-500 text-sm">{errors.dataLancamento}</span>}
               </div>
               <div className="flex-1">
                 <Label htmlFor="dataEntrega">Data de entrega</Label>
-                <Input id="dataEntrega" value={form.dataEntrega} onChange={handleChange} onBlur={handleBlur} type="text" placeholder="DD/MM/AAAA" />
+                <Input id="dataEntrega" value={form.dataEntrega} onChange={handleChange} onBlur={handleBlur} type="date" placeholder="Data de entrega" />
                 {errors.dataEntrega && <span className="text-red-500 text-sm">{errors.dataEntrega}</span>}
               </div>
             </div>
@@ -115,11 +116,11 @@ export default function AdminPropertyManagementPage() {
           </div>
         </form>
         <div className="flex flex-col md:flex-row justify-center items-center mt-10 gap-4 gap-x-12">
-          <Button variant="outline" className="flex items-center gap-2 px- py-4 text-lg">
-            <span role="img" aria-label="delete">🗑️</span> Excluir imóvel
+          <Button variant="outline" className="flex items-center gap-2 px-4 py-4 text-lg">
+            <X className="w-5 h-5" /> Excluir imóvel
           </Button>
-          <Button type="submit" form="" className="flex items-center gap-2 px-8 py-4 text-lg bg-[#332475] text-white">
-            <span role="img" aria-label="save">💾</span> Salvar
+          <Button type="submit" form="" className="flex items-center gap-2 px-8 py-4 text-lg bg-black text-white">
+            <Check className="w-5 h-5" /> Salvar
           </Button>
         </div>
       </div>

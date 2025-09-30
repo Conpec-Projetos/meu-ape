@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, Trash } from "lucide-react";
+import { Edit, Trash, Image as ImageIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AddUnitModal from "./AddUnitModal";
+import AddUnitModal from "../../../components/features/modals/AddUnitModal";
+import EditImagesModal from "../../../components/features/modals/EditImagesModal";
 
 interface Property {
   id: string;
@@ -13,6 +14,7 @@ interface Property {
   quartos: number;
   banheiros: number;
   garagem: number;
+  images?: string[];
 }
 
 export default function PropertyTable({ onEdit, onDelete }: {
@@ -22,6 +24,7 @@ export default function PropertyTable({ onEdit, onDelete }: {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
+  const [showEditImagesModal, setShowEditImagesModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
@@ -39,58 +42,76 @@ export default function PropertyTable({ onEdit, onDelete }: {
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 1,
+          images: ["/assets/img_placeholder.jpg"],
         },
         {
           id: "2",
-          identificador: "1200",
-          preco: 3000,
+          identificador: "0002",
+          preco: 3800,
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 2,
+          images: [],
         },
         {
           id: "3",
-          identificador: "1023",
-          preco: 3000,
+          identificador: "0003",
+          preco: 3800,
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 2,
+          images: [],
         },
         {
           id: "4",
-          identificador: "0034",
-          preco: 3000,
+          identificador: "0004",
+          preco: 3800,
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 2,
+          images: [],
         },
         {
           id: "5",
-          identificador: "0234",
-          preco: 3000,
+          identificador: "0005",
+          preco: 3800,
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 2,
+          images: [],
         },
         {
           id: "6",
-          identificador: "4000",
-          preco: 3000,
+          identificador: "0006",
+          preco: 3800,
           tamanho: 30,
           quartos: 2,
           banheiros: 2,
-          garagem: 5,
+          garagem: 2,
+          images: [],
         },
+        
+        // ...restante dos mocks
       ]);
       setTotalPages(3);
       setLoading(false);
     }, 1000);
   }, [page]);
+  function handleEditImages(id: string) {
+    setShowEditImagesModal({ open: true, id });
+  }
+
+  function handleSaveImages(imgs: string[]) {
+    if (showEditImagesModal.id) {
+      setProperties(prev => prev.map(p => p.id === showEditImagesModal.id ? { ...p, images: imgs } : p));
+    }
+    setShowEditImagesModal({ open: false, id: null });
+  }
 
   function handlePageChange(newPage: number) {
     router.push(`?page=${newPage}`);
@@ -113,11 +134,12 @@ export default function PropertyTable({ onEdit, onDelete }: {
         <thead className="bg-gray-100">
           <tr>
             <th className="p-3 text-left">Id</th>
-            <th className="p-3 text-left">Preço total</th>
-            <th className="p-3 text-left">Tamanho</th>
+            <th className="p-3 text-left">Valor</th>
+            <th className="p-3 text-left">Espaço</th>
             <th className="p-3 text-left">Quartos</th>
             <th className="p-3 text-left">Banheiros</th>
             <th className="p-3 text-center">Vagas de garagem</th>
+            <th className="p-3 text-center">Fotos</th>
             <th className="p-3 text-center">Ações</th>
           </tr>
         </thead>
@@ -139,6 +161,11 @@ export default function PropertyTable({ onEdit, onDelete }: {
                 <td className="p-3 text-center">{property.quartos}</td>
                 <td className="p-3 text-center">{property.banheiros}</td>
                 <td className="p-3 text-center">{property.garagem}</td>
+                <td className="p-3 text-center">
+                  <Button size="icon" variant="ghost" onClick={() => handleEditImages(property.id)}>
+                    <ImageIcon className="w-5 h-5" />
+                  </Button>
+                </td>
                 <td className="p-3 text-center flex gap-2 justify-center">
                   <Button size="icon" variant="ghost" onClick={() => onEdit(property)}>
                     <Edit className="w-5 h-5" />
@@ -156,6 +183,13 @@ export default function PropertyTable({ onEdit, onDelete }: {
         <AddUnitModal
           onClose={() => setShowAddModal(false)}
           onSave={handleAddUnit}
+        />
+      )}
+      {showEditImagesModal.open && (
+        <EditImagesModal
+          onClose={() => setShowEditImagesModal({ open: false, id: null })}
+          onSave={handleSaveImages}
+          images={properties.find(p => p.id === showEditImagesModal.id)?.images || []}
         />
       )}
       <div className="flex justify-center items-center gap-2 mt-6">
