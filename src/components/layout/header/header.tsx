@@ -14,7 +14,6 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import {
-    BarChart,
     Book,
     Building,
     Calendar,
@@ -54,8 +53,8 @@ const navConfig: Record<Variant, NavItem[]> = {
         { label: "Imóveis", href: "/property-search", icon: Building },
     ],
     admin: [
-        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { label: "Imóveis", href: "/admin/properties", icon: Home },
+        { label: "Dashboard", href: "/beta/dashboard", icon: LayoutDashboard },
+        { label: "Imóveis", href: "/admin/property-management", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
     ],
@@ -111,11 +110,11 @@ function Header({ variant }: HeaderProps) {
         <header className={headerStyle}>
             <div className="flex items-center gap-4">
                 <Image
-                    src="/logo.png"
+                    src={isTransparent ? "/logo.png" : "/invlogo.png"}
                     alt="Meu Apê Logo"
                     width={120}
                     height={120}
-                    className="cursor-pointer"
+                    className="cursor-pointer transition-all duration-300"
                     onClick={() => router.push("/")}
                 />
                 {variant === "admin" && <Badge variant="secondary">Admin</Badge>}
