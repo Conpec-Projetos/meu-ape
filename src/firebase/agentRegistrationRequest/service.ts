@@ -15,7 +15,7 @@ import {
   uploadBytes,
   getDownloadURL,
 } from "firebase/storage";
-import { createAgentUser } from "../user/user";
+import { createAgentUser } from "../signup/service";
 
 
 export async function createAgentRegistrationRequest(request: AgentFormData): Promise<string> {
@@ -29,7 +29,7 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
   const userId = await createAgentUser(validation.data);
 
   // Criação da solicitação de registro de agente no banco de dados
-  const { email, fullName, cpf, rg, address, city, creci, phone, password, creciCardPhoto, creciCert } = validation.data;
+  const { email, fullName, cpf, rg, address, city, creci, phone, creciCardPhoto, creciCert } = validation.data;
 
   const docRef = doc(db, "agentRegistrationRequests", userId);
   const userDocRef = doc(db, "users", userId);
@@ -72,7 +72,6 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
   // Enviar email de notificação para admins
   const emails = await getAdminEmails();
   for(let i = 0; i < emails.length; i+=50){
-    const batch = emails.slice(i, i + 50);
     try {
         const res = await fetch('/api/send', {
             method: 'POST',
@@ -95,7 +94,7 @@ export async function createAgentRegistrationRequest(request: AgentFormData): Pr
 
 
         } catch (err) {
-            console.log('Erro de conexão com a API');
+            console.log('Erro de conexão com a API', err);
         }
   }
 
@@ -115,7 +114,7 @@ async function uploadFiles(files: File[], agentId: string): Promise<string[]> {
 }
 
 async function getAdminEmails(): Promise<string[]> {
-  let q = query(collection(db, "users"), where("role", "==", "admin"));
+  const q = query(collection(db, "users"), where("role", "==", "admin"));
 
   const querySnapshot = await getDocs(q);
   const emails: string[] = [];

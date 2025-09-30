@@ -1,8 +1,8 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase/firebase-config";
-import { user } from "@/interfaces/users";
+import { User } from "@/interfaces/user";
 import { db } from "@/firebase/firebase-config";
-import { collection, addDoc, Timestamp, doc, setDoc } from "firebase/firestore";
+import { Timestamp, doc, setDoc } from "firebase/firestore";
 import { AgentFormData } from "@/interfaces/agentRegistrationRequest";
 
 async function createUser(email: string, password: string): Promise<string> {
@@ -34,10 +34,11 @@ export async function createAgentUser(agentData: AgentFormData): Promise<string>
     const userId = await createUser(email, password);
 
     // Criação do perfil do agente no Firestore
-    const newUser: user = {
-        userId,
+    const newUser: User = {
+        id: userId,
         email,
         role: "agent",
+        status: "pending",
         fullName,
         rg: rg.replace(/\./g, "").replace(/-/g, ""),
         cpf: cpf.replace(/\./g, "").replace(/-/g, ""),
@@ -50,7 +51,7 @@ export async function createAgentUser(agentData: AgentFormData): Promise<string>
             creci,
             city,
             documents: {
-                creciCard: [],
+                creciCardPhoto: [],
                 creciCert: [],
             }
         }

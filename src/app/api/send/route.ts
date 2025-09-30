@@ -24,10 +24,11 @@ export async function POST(req: Request) {
     }
 
     return new Response(JSON.stringify({ success: true, data }), { status: 200 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Erro inesperado:', err);
+    const message = err instanceof Error ? err.message : String(err);
     return new Response(
-      JSON.stringify({ success: false, error: err.message || err }),
+      JSON.stringify({ success: false, error: message }),
       { status: 500 }
     );
   }
