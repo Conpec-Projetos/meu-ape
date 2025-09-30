@@ -7,7 +7,6 @@ export async function middleware(request: NextRequest) {
     const isAuthPage = ["/login", "/signup", "/forgot-password"].some(path => pathname.startsWith(path));
     const isAdminPage = ["/admin", "/beta"].some(path => pathname.startsWith(path));
 
-    // If there's no session cookie and the user is not on an auth page, redirect to login.
     if (!sessionCookie) {
         if (isAuthPage) {
             return NextResponse.next();
@@ -15,17 +14,32 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Call the internal API to verify the session
+    // Call the internal API to verify the session using POST
     const verifyUrl = new URL("/api/auth/verify-session", request.url);
     const response = await fetch(verifyUrl, {
+        method: "POST", // Use POST
         headers: {
-            Cookie: `session=${sessionCookie}`,
+            "Content-Type": "application/json",
         },
+        body: JSON.stringify({ session: sessionCookie }), // Send cookie in the body
     });
+
+    // Check if the response is ok before parsing JSON
+    if (!response.ok) {
+        // If the status is 401, it means unauthenticated.
+        if (response.status === 401) {
+            const loginUrl = new URL("/login", request.url);
+            const redirectResponse = NextResponse.redirect(loginUrl);
+            redirectResponse.cookies.delete("session");
+            return redirectResponse;
+        }
+         // For other errors, you might want to handle them differently or just redirect
+        console.error("API error:", response.status, response.statusText);
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
 
     const data = await response.json();
 
-    // If the session is not valid, redirect to login and clear the cookie
     if (!data.isAuthenticated) {
         const loginUrl = new URL("/login", request.url);
         const redirectResponse = NextResponse.redirect(loginUrl);
@@ -35,17 +49,14 @@ export async function middleware(request: NextRequest) {
 
     const { role, uid } = data.decodedClaims;
 
-    // If the user is authenticated and tries to access an auth page, redirect to home.
     if (isAuthPage) {
         return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // If a non-admin user tries to access an admin page, redirect to home.
     if (isAdminPage && role !== "admin") {
         return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Add user data to the request headers for use in server components
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-user-role", role);
     requestHeaders.set("x-user-uid", uid);
