@@ -4,7 +4,7 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("session")?.value;
     const { pathname } = request.nextUrl;
 
-    const isAuthPage = ["/login", "/signup", "/forgot-password"].some(path => pathname.startsWith(path));
+    const isAuthPage = ["/login", "/signup", "/forgot-password", "/agent-signup"].some(path => pathname.startsWith(path));
     const isAdminPage = ["/admin", "/beta"].some(path => pathname.startsWith(path));
 
     if (!sessionCookie) {
