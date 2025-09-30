@@ -14,7 +14,7 @@ import { Eye, EyeOff, FileCheck, FileText, FileWarning } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"
 import { agentSchema, AgentFormData } from "@/interfaces/agentRegistrationRequest";
 import { createAgentRegistrationRequest } from "@/firebase/agentRegistrationRequest/service";
