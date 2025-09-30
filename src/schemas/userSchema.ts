@@ -1,13 +1,16 @@
-import { z } from "zod";
+import { z } from 'zod';
 
-// Schema mock de usuário
 export const userSchema = z.object({
-    fullName: z.string().min(2),
-    email: z.string().email(),
-    role: z.enum(["client", "agent", "admin"]),
-    cpf: z.string().min(11).max(11).optional(),
-    // TODO: adicionar o resto dos campos necessários para validação
+  email: z.string().email(),
+  password: z.string().min(6).optional(),
+  role: z.enum(['client', 'agent', 'admin']),
+  fullName: z.string().min(3),
+  rg: z.string().optional(),
+  cpf: z.string().optional(),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  agentProfile: z.object({
+    creci: z.string(),
+    city: z.string(),
+  }).optional(),
 });
-
-// Inferindo o tipo a partir do schema
-export type User = z.infer<typeof userSchema>;
