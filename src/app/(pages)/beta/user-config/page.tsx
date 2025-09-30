@@ -78,22 +78,22 @@ export default function UserConfig() {
                                                                         </VisuallyHidden>
                                                                         <DialogTrigger className="underline cursor-pointer">Alterar Senha</DialogTrigger>
                                                                         <DialogOverlay></DialogOverlay>
-                                                                        <DialogContent className="fixed top-1/2 left-1/2 z-50 w-[468px] h-[401px] max-w-md -translate-x-[51%] -translate-y-2/3 rounded-xl bg-[#B0B0B0] p-6 shadow-[0px_5px_2px_rgba(0,0,0,0.45)]">
+                                                                        <DialogContent className="fixed top-1/2 left-1/2 z-50 w-[468px] h-[401px] max-w-md -translate-x-[50%] -translate-y-2/3 rounded-xl bg-blend-hard-light p-6 shadow-accent-foreground">
                                                                                 <div className="mt-4 flex flex-col gap-y-4 items-center">
                                                                                         <div>
-                                                                                                <h1 className=" text-black mb-1">Senha atual</h1>
-                                                                                                <Input className="w-[395px] rounded-lg bg-white" type="password" />
+                                                                                                <h1 className=" text-[#4D4D4D] mb-1">Senha atual</h1>
+                                                                                                <Input className="border-1 border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]" type="password" />
                                                                                         </div>
                                                                                         <div>
-                                                                                                <h1 className="text-black mb-1">Senha nova</h1>
-                                                                                                <Input className="w-[395px] rounded-lg bg-white" type="password" />
+                                                                                                <h1 className="text-[#4D4D4D] mb-1">Senha nova</h1>
+                                                                                                <Input className="border-1 border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]" type="password" />
                                                                                         </div>
                                                                                         <div>
-                                                                                                <h1 className="text-black mb-1">Confirmar senha nova</h1>
-                                                                                                <Input className="w-[395px] rounded-lg bg-white" type="password" />
+                                                                                                <h1 className="text-[#4D4D4D] mb-1">Confirmar senha nova</h1>
+                                                                                                <Input className="border-1 border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]" type="password" />
                                                                                         </div>
                                                                                         <div className="flex justify-center mt-4">
-                                                                                                <Button className=" w-[100px] cursor-pointer bg-[#332475] hover:bg-[#422d94]">Salvar</Button>
+                                                                                                <Button className="mt-2 mb-3 bg-black w-[340px] h-[50px] hover:bg-blend-color-burn cursor-pointer rounded-full">Salvar Nova Senha</Button>
                                                                                         </div>
                                                                                 </div>
                                                                         </DialogContent>
@@ -110,25 +110,25 @@ export default function UserConfig() {
                                         <div className="flex flex-col gap-5 pl-20 items-start justify-center h-full w-full">
                                                 <div className="relative">
                                                         <h1 className="pb-1 text-2xl text-[#4D4D4D]">RG ou CIN:</h1>
-                                                        <DownloadIcon className="ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
-                                                        <h2 className="absolute text-gray-600 text-[12px] bottom-[14px] right-6">RG ou CIN</h2>
+                                                        <DownloadIcon className="cursor-pointer ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
+                                                        <h2 className="cursor-pointer absolute text-gray-600 text-[12px] bottom-[14px] right-6">RG ou CIN</h2>
                                                 </div>
                                                 <div className="relative">
                                                         <h1 className="pb-1 text-2xl text-[#4D4D4D]">Comprovante de endereço:</h1>
-                                                        <DownloadIcon className="ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
-                                                        <h2 className="absolute text-gray-600 text-[12px] bottom-[5px] left-[50px]">Comprovante de<span className="flex justify-center">endereço</span></h2>
+                                                        <DownloadIcon className="cursor-pointer ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
+                                                        <h2 className="cursor-pointer absolute text-gray-600 text-[12px] bottom-[5px] left-[50px]">Comprovante de<span className="flex justify-center">endereço</span></h2>
                                                 </div>
 
                                                 <div className="relative">
                                                         <h1 className="pb-1 text-2xl text-[#4D4D4D]">Comprovante de renda:</h1>
-                                                        <DownloadIcon className="ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
-                                                        <h2 className="absolute text-gray-600 text-[12px] bottom-[5px] left-[50px]">Comprovante de <span className="flex justify-center">renda</span></h2>
+                                                        <DownloadIcon className="cursor-pointer ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
+                                                        <h2 className="cursor-pointer absolute text-gray-600 text-[12px] bottom-[5px] left-[50px]">Comprovante de <span className="flex justify-center">renda</span></h2>
 
                                                 </div>
                                                 <div className="relative ">
                                                         <h1 className="pb-1 text-2xl text-[#4D4D4D]">Certidão de casamento:</h1>
-                                                        <DownloadIcon className="ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
-                                                        <h2 className="absolute text-gray-600 text-[12px] bottom-[5px] left-[65px]">Certidão de<span className="flex justify-center">casamento</span></h2>
+                                                        <DownloadIcon className="cursor-pointer ml-10 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27" />
+                                                        <h2 className="cursor-pointer   absolute text-gray-600 text-[12px] bottom-[5px] left-[65px]">Certidão de<span className="flex justify-center">casamento</span></h2>
 
                                                 </div>
                                                 <div className="flex items-center justify-center w-screen h-auto pb-2">
