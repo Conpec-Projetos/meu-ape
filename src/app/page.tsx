@@ -15,6 +15,14 @@ export default function Home() {
                 <Button
                     variant={"default"}
                     className="cursor-pointer text-sm sm:text-base"
+                    onClick={() => router.push("/properties/1")}
+                    size={"fit"}
+                >
+                    (Beta) Visualizar Imóvel
+                </Button>
+                <Button
+                    variant={"default"}
+                    className="cursor-pointer text-sm sm:text-base"
                     onClick={() => router.push("/beta/property")}
                     size={"fit"}
                 >
