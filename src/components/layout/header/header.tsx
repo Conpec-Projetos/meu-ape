@@ -53,8 +53,8 @@ const navConfig: Record<Variant, NavItem[]> = {
         { label: "Imóveis", href: "/property-search", icon: Building },
     ],
     admin: [
-        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { label: "Imóveis", href: "/admin/properties", icon: Home },
+        { label: "Dashboard", href: "/beta/dashboard", icon: LayoutDashboard },
+        { label: "Imóveis", href: "/admin/property-management", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
     ],
