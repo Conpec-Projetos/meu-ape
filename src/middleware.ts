@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
             redirectResponse.cookies.delete("session");
             return redirectResponse;
         }
-        // For other errors, you might want to handle them differently or just redirect
+         // For other errors, you might want to handle them differently or just redirect
         console.error("API error:", response.status, response.statusText);
         return NextResponse.redirect(new URL("/login", request.url));
     }
