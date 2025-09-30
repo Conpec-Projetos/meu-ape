@@ -18,7 +18,6 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -26,7 +25,6 @@ import { toast } from "sonner";
 export default function LoginPage() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
 
     const form = useForm<LoginData>({
         resolver: zodResolver(loginSchema),
@@ -52,7 +50,10 @@ export default function LoginPage() {
 
             if (response.ok) {
                 toast.success("Login bem-sucedido! Redirecionando...");
-                router.push("/");
+                setTimeout(() => {
+                    window.location.assign("/");
+                    }, 3000);
+                ;
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || "Credenciais inválidas");
