@@ -157,7 +157,7 @@ export default function PropertyPage() {
     }
 
     return (
-        <div className="h-screen">
+        <div className="pt-15 h-screen">
             <div className="w-full flex justify-between items-center p-4 bg-white shadow-sm">
                 <Button variant="outline" className="cursor-pointer" onClick={() => router.push("/beta/property")}>
                     <LayoutGrid />
