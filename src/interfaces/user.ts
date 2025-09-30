@@ -10,8 +10,8 @@ interface UserDocuments {
 interface AgentProfile {
     creci: string;
     city: string;
-    groups: string[];
-    documents: {
+    groups?: string[];
+    documents?: {
         creciCardPhoto: string[];
         creciCert: string[];
     };
@@ -21,11 +21,13 @@ export interface User {
     id?: string;
     email: string;
     role: "client" | "agent" | "admin";
+    status?: "approved" | "pending" | "denied";
     fullName: string;
     rg?: string;
     cpf?: string;
     address?: string;
     phone?: string;
+    photoUrl?: string;
     documents?: UserDocuments;
     favorited?: DocumentReference[]; // ou string[] se preferir armazenar os IDs
     agentProfile?: AgentProfile;
