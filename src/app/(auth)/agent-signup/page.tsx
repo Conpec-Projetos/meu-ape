@@ -310,7 +310,7 @@ export default function RegisterPage() {
               <div className="col-span-1 md:col-span-2 mt-6">
                 <Button
                   type="submit" 
-                  className={`w-full bg-indigo-600 hover:bg-indigo-700 text-white ${isUploading ? "cursor-wait" : "cursor-pointer"}`}
+                  className={`w-full bg-primary hover:bg-primary/90 text-primary-foreground ${isUploading ? "cursor-wait" : "cursor-pointer"}`}
                   disabled={isUploading}
                 >
                   Solicitar cadastro
@@ -319,7 +319,7 @@ export default function RegisterPage() {
             </form>
             <div className="mt-4 text-center text-sm">
               Já possui uma conta?{" "}
-              <Link href="/login" className="underline text-indigo-600">
+              <Link href="/login" className="underline text-primary">
                 Entrar
               </Link>
             </div>
