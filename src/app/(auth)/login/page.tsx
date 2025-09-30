@@ -52,8 +52,7 @@ export default function LoginPage() {
                 toast.success("Login bem-sucedido! Redirecionando...");
                 setTimeout(() => {
                     window.location.assign("/");
-                    }, 3000);
-                ;
+                }, 3000);
             } else {
                 const errorData = await response.json();
                 toast.error(errorData.error || "Credenciais inválidas");
