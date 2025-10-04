@@ -51,9 +51,15 @@ export default function AdminPropertyManagementPage() {
         }
     }
 
+    const [construtoras] = useState([
+        "Construtora A",
+        "Construtora B",
+        "Construtora C",
+    ]);
+
     return (
         <div className="py-20 flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="relative w-full max-w-6xl bg-[#e5e5e5] dark:bg-[#222] rounded-xl shadow-lg p-10 flex flex-col">
+            <div className="relative w-full max-w-11/12 bg-[#e5e5e5] dark:bg-[#222] rounded-xl shadow-lg p-10 flex flex-col">
                 <button className="absolute top-8 right-8 text-gray-500 hover:text-gray-700" aria-label="Fechar">
                     <X size={32} />
                 </button>
@@ -79,6 +85,7 @@ export default function AdminPropertyManagementPage() {
                             placeholder="Endereço completo"
                         />
                         {errors.localizacao && <span className="text-red-500 text-sm">{errors.localizacao}</span>}
+
                         <Label>Imagens do empreendimento</Label>
                         <div className="flex items-center gap-2 mb-2">
                             <Button type="button" variant="outline" className="rounded-full p-2">
@@ -96,9 +103,6 @@ export default function AdminPropertyManagementPage() {
                                     type="date"
                                     placeholder="Data de lançamento"
                                 />
-                                {errors.dataLancamento && (
-                                    <span className="text-red-500 text-sm">{errors.dataLancamento}</span>
-                                )}
                             </div>
                             <div className="flex-1">
                                 <Label htmlFor="dataEntrega">Data de entrega</Label>
@@ -110,19 +114,37 @@ export default function AdminPropertyManagementPage() {
                                     type="date"
                                     placeholder="Data de entrega"
                                 />
-                                {errors.dataEntrega && (
-                                    <span className="text-red-500 text-sm">{errors.dataEntrega}</span>
-                                )}
                             </div>
                         </div>
                         <Label htmlFor="caracteristicas">Lista de características</Label>
                         <Input id="caracteristicas" placeholder="Ex: academia, espaço de lazer." />
+
+                        <Label>Imagens das áreas comuns ao predio</Label>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Button type="button" variant="outline" className="rounded-full p-2">
+                                +
+                            </Button>
+                        </div>
+
+                        <h2 className="font-semibold">Construtora</h2>
+                        <select className="w-full mb-2 border shadow rounded">
+                        <option value="">Selecione uma construtora</option>
+                        {construtoras.map((c) => (
+                            <option key={c} value={c}>
+                            {c}
+                            </option>
+                        ))}
+                        </select>
+
+
                         <Label htmlFor="pavimentos">Número de pavimentos</Label>
                         <Input id="pavimentos" placeholder="Número" />
                         <Label htmlFor="unidades-andar">Número de unidades por andar</Label>
                         <Input id="unidades-andar" placeholder="Número" />
                         <Label htmlFor="descricao">Descrição do empreendimento</Label>
                         <Input id="descricao" placeholder="Descrição" />
+                        <Label htmlFor="descricao">Scan 3D Matterport</Label>
+                        <Input id="descricao" placeholder="Link" />
                     </div>
                     {/* Separador vertical */}
                     <div className="hidden md:block w-px bg-gray-400 mx-4" />
