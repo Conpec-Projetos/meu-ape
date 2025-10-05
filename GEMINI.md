@@ -35,20 +35,251 @@ Adhere to the established file structure to maintain organization and predictabi
     -   `/api/`: API route handlers for server-side logic (e.g., Resend integration).
 -   `src/components/`: Reusable React components.
     -   `/ui/`: Unmodified `shadcn/ui` components.
-    -   `/layout/header/`, `/layout/footer/`: Specific components for the main layout.
+    -   `/features/`: Custom components that implement specific features (e.g., `property-search-filter`, `user-table`).
+    -   `/layout/`: Components that define the overall layout of the application (e.g., `header`, `footer`).
 -   `src/firebase/`: Firebase configuration (`firebase-config.ts` and `firebase-admin-config.ts`) and service functions (e.g., `/properties/service.ts`, `/users/service.ts`). **All direct database/storage calls must be placed here.**
--   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useProperties`).
--   `src/interfaces/`: TypeScript type definitions for all adata models (e.g., `property.ts`, `user.ts`).
--   `src/lib/`: Utility functions (e.g., `cpfValidation.ts` for general helpers).
--   `src/providers/`: React Context providers (e.g., `SidebarProvider`).
--   `src/schemas/`: Zod schema definitions.
+-   `src/hooks/`: Custom React hooks (e.g., `useAuth`, `useUsers`).
+-   `src/interfaces/`: TypeScript type definitions for all data models (e.g., `property.ts`, `user.ts`).
+-   `src/lib/`: Utility functions (e.g., `utils.ts`).
+-   `src/providers/`: React Context providers (e.g., `auth-provider.tsx`).
+-   `src/schemas/`: Zod schema definitions for form validation.
+
+```
+src/
+├───app/
+│   ├───(admin)/
+│   │   ├───admin/
+│   │   │   ├───dashboard/
+│   │   │   ├───property-management/
+│   │   │   │   └───page.tsx
+│   │   │   └───users/
+│   │   │       └───page.tsx
+│   │   └───beta/
+│   │       ├───dashboard/
+│   │       │   └───page.tsx
+│   │       └───property/
+│   │           ├───write/
+│   │           │   ├───[id]/
+│   │           │   │   └───page.tsx
+│   │           │   └───page.tsx
+│   │           └───page.tsx
+│   ├───(auth)/
+│   │   ├───agent-signup/
+│   │   │   ├───accepted/
+│   │   │   │   └───page.tsx
+│   │   │   └───page.tsx
+│   │   ├───forgot-password/
+│   │   ├───login/
+│   │   │   └───page.tsx
+│   │   └───signup/
+│   │       └───page.tsx
+│   ├───(public)/
+│   │   └───properties/
+│   │       └───[id]/
+│   │           └───page.tsx
+│   ├───api/
+│   │   ├───admin/
+│   │   │   ├───agent-requests/
+│   │   │   │   ├───[id]/
+│   │   │   │   │   └───action/
+│   │   │   │   │       └───route.ts
+│   │   │   │   └───route.ts
+│   │   │   └───users/
+│   │   │       ├───[id]/
+│   │   │       │   └───route.ts
+│   │   │       ├───counts/
+│   │   │       │   └───route.ts
+│   │   │       └───route.ts
+│   │   ├───auth/
+│   │   │   ├───login/
+│   │   │   │   └───route.ts
+│   │   │   ├───logout/
+│   │   │   │   └───route.ts
+│   │   │   └───verify-session/
+│   │   │       └───route.ts
+│   │   └───send/
+│   │       └───route.ts
+│   ├───favicon.ico
+│   ├───globals.css
+│   ├───layout.tsx
+│   └───page.tsx
+├───assets/
+├───components/
+│   ├───emailTemplate/
+│   │   └───agentRegisterRequest.tsx
+│   ├───features/
+│   │   ├───alerts/
+│   │   │   └───default-alert.tsx
+│   │   ├───avatars/
+│   │   │   └───default-avatar.tsx
+│   │   ├───badges/
+│   │   │   └───default-badge.tsx
+│   │   ├───buttons/
+│   │   │   └───default-button.tsx
+│   │   ├───calendars/
+│   │   │   └───default-calendar.tsx
+│   │   ├───cards/
+│   │   │   ├───default-card.tsx
+│   │   │   └───default-hover-card.tsx
+│   │   ├───carousels/
+│   │   │   └───default-carousel.tsx
+│   │   ├───charts/
+│   │   │   └───chart.tsx
+│   │   ├───checkboxes/
+│   │   │   └───default-checkbox.tsx
+│   │   ├───collapsibles/
+│   │   │   └───default-collapsible.tsx
+│   │   ├───dashboard/
+│   │   ├───dialogs/
+│   │   │   ├───default-alert-dialog.tsx
+│   │   │   └───default-dialog.tsx
+│   │   ├───drawers/
+│   │   │   └───default-drawer.tsx
+│   │   ├───dropdowns/
+│   │   │   └───default-dropdown-menu.tsx
+│   │   ├───filters/
+│   │   │   └───property-search-filter.tsx
+│   │   ├───forms/
+│   │   │   └───default-form.tsx
+│   │   ├───inputs/
+│   │   │   └───default-input.tsx
+│   │   ├───labels/
+│   │   │   └───default-label.tsx
+│   │   ├───menus/
+│   │   │   └───default-navigation-menu.tsx
+│   │   ├───modals/
+│   │   │   ├───add-unit-modal.tsx
+│   │   │   ├───delete-confirmation-modal.tsx
+│   │   │   ├───denial-modal.tsx
+│   │   │   ├───edit-images-modal.tsx
+│   │   │   └───user-modal.tsx
+│   │   ├───property/
+│   │   │   ├───matterport-viewer.tsx
+│   │   │   ├───property-header.tsx
+│   │   │   ├───property-image-gallery.tsx
+│   │   │   ├───property-map.tsx
+│   │   │   ├───unit-card.tsx
+│   │   │   ├───unit-list.tsx
+│   │   │   └───unit-selector.tsx
+│   │   ├───radios/
+│   │   │   └───default-radio-group.tsx
+│   │   ├───selects/
+│   │   │   └───default-select.tsx
+│   │   ├───separators/
+│   │   │   └───default-separator.tsx
+│   │   ├───sheets/
+│   │   │   └───default-sheet.tsx
+│   │   ├───skeletons/
+│   │   │   └───default-skeleton.tsx
+│   │   ├───sliders/
+│   │   │   └───default-slider.tsx
+│   │   ├───switches/
+│   │   │   └───default-switch.tsx
+│   │   ├───tables/
+│   │   │   ├───agent-request-table.tsx
+│   │   │   ├───default-table.tsx
+│   │   │   ├───PropertyTable.tsx
+│   │   │   └───user-table.tsx
+│   │   ├───tabs/
+│   │   │   └───tabs.tsx
+│   │   ├───toggles/
+│   │   │   ├───default-toggle-group.tsx
+│   │   │   └───default-toggle.tsx
+│   │   └───tooltips/
+│   │       └───default-tooltip.tsx
+│   ├───layout/
+│   │   ├───client-wrapper/
+│   │   │   └───page.tsx
+│   │   ├───footer/
+│   │   │   └───footer.tsx
+│   │   └───header/
+│   │       └───header.tsx
+│   └───ui/
+│       ├───alert-dialog.tsx
+│       ├───alert.tsx
+│       ├───avatar.tsx
+│       ├───badge.tsx
+│       ├───button.tsx
+│       ├───calendar.tsx
+│       ├───card.tsx
+│       ├───carousel.tsx
+│       ├───chart.tsx
+│       ├───checkbox.tsx
+│       ├───collapsible.tsx
+│       ├───dialog.tsx
+│       ├───drawer.tsx
+│       ├───dropdown-menu.tsx
+│       ├───form.tsx
+│       ├───hover-card.tsx
+│       ├───input.tsx
+│       ├───label.tsx
+│       ├───navigation-menu.tsx
+│       ├───pagination.tsx
+│       ├───popover.tsx
+│       ├───progress.tsx
+│       ├───radio-group.tsx
+│       ├───resizable.tsx
+│       ├───scroll-area.tsx
+│       ├───select.tsx
+│       ├───separator.tsx
+│       ├───sheet.tsx
+│       ├───sidebar.tsx
+│       ├───skeleton.tsx
+│       ├───slider.tsx
+│       ├───switch.tsx
+│       ├───table.tsx
+│       ├───tabs.tsx
+│       ├───textarea.tsx
+│       ├───toggle-group.tsx
+│       ├───toggle.tsx
+│       └───tooltip.tsx
+├───contexts/
+│   └───auth-context.tsx
+├───firebase/
+│   ├───agentRegistrationRequest/
+│   │   └───service.ts
+│   ├───properties/
+│   │   └───service.ts
+│   ├───signup/
+│   │   └───service.ts
+│   ├───users/
+│   │   └───service.ts
+│   ├───firebase-admin-config.ts
+│   └───firebase-config.ts
+├───hooks/
+│   ├───use-agent-requests.ts
+│   ├───use-auth.ts
+│   ├───use-mobile.ts
+│   ├───use-user-counts.ts
+│   └───use-users.ts
+├───interfaces/
+│   ├───agentRegistrationRequest.ts
+│   ├───developer.ts
+│   ├───property.ts
+│   ├───propertyOld.ts
+│   ├───reservationRequest.ts
+│   ├───unit.ts
+│   ├───user.ts
+│   └───visitRequest.ts
+├───lib/
+│   └───utils.ts
+├───providers/
+│   └───auth-provider.tsx
+├───schemas/
+│   ├───agentRegistrationRequestSchema.ts
+│   ├───loginSchema.ts
+│   ├───propertySchema.ts
+│   ├───signupSchema.ts
+│   └───userSchema.ts
+└───middleware.ts
+'''
 
 ### 2.2. Code Style & Conventions
 
 #### TypeScript and React
 
 -   **Functional Components:** All React components must be functional components using hooks.
--   **Typing:** Use TypeScript for all new code. Define interfaces for all data structures, especially for Firebase documents (see `src/interfaces/property.ts`).
+-   **Typing:** Use TypeScript for all new code. Define interfaces for all data structures in `src/interfaces/`, especially for Firebase documents (see `src/interfaces/property.ts`).
 -   **Naming Conventions:**
     -   Components: `PascalCase` (e.g., `PropertyCard`).
     -   Files: `kebab-case` for pages and components (e.g., `view-property`).
@@ -68,7 +299,7 @@ Adhere to the established file structure to maintain organization and predictabi
 
 #### `shadcn/ui` Components
 
--   **Usage:** The project heavily relies on `shadcn/ui`. When creating new UI elements, first check if a suitable component exists in `src/components/ui`.
+-   **Usage:** The project heavily relies on `shadcn/ui`. When creating new UI elements, first check if a suitable component exists in `src/components/ui` or in '`src/components/features'.
 -   **Key Components:**
     -   `Button`: Use for all clickable actions.
     -   `Card`: For structuring content sections.
@@ -81,15 +312,14 @@ Adhere to the established file structure to maintain organization and predictabi
 
 -   **`Header` (`src/components/layout/header/header.tsx`):**
     -   The `header` component's appearance and navigation links are determined by the `variant` prop, which can be `'guest'`, `'client'`, `'agent'`, or `'admin'`.
-    -   It includes a `SidebarTrigger` for mobile view.
+    -   It includes a `SheetTrigger` for mobile view.
 -   **`Footer` (`src/components/layout/footer/footer.tsx`):**
     -   A static component with links to policies and social media.
--   **`AppSidebar` (`src/components/layout/header/app-sidebar.tsx`):**
-    -   The sidebar's content also changes based on the `variant` prop. It's used for mobile navigation.
 -   **`ClientWrapper` (`src/components/layout/client-wrapper/page.tsx`):**
-    -   This component wraps the main layout, providing the `SidebarProvider` and including the `Header` and `Footer`.
-
-## Firebase Usage Rules
+    -   This component wraps the main layout, providing the `AuthProvider` and including the `Header` and `Footer`.
+-   **Feature Components (`src/components/features/`):**
+    -   These components are organized by feature (e.g., `property`, `tables`, `modals`).
+    -   They are the building blocks of the application's UI and should be used whenever possible to maintain consistency.
 
 ## 3. Backend & Data
 
@@ -102,10 +332,8 @@ Adhere to the established file structure to maintain organization and predictabi
     -   Use `Unit` for documents in the units sub-collection.
     -   Use `Developer` for documents in the developers collection.
     -   Use `VisitRequest`, `ReservationRequest`, and `AgentRegistrationRequest` for their respective collections.
--   **Pagination:** For fetching lists of data, always implement cursor-based pagination using startAfter() and limit(), as demonstrated in the buscarPropriedadesPaginado function. Avoid using offset() due to performance and cost issues.
--   **Timestamps:** Use Timestamp.fromDate() or Timestamp.now() from the Firebase SDK for writing date fields to Firestore. In the TypeScript interfaces, these fields can be typed as Date | Timestamp for flexibility.
-
-### Cloud Storage
+-   **Pagination:** For fetching lists of data, always implement cursor-based pagination using startAfter() and limit(), as demonstrated in the `buscarPropriedadesPaginado` function. Avoid using offset() due to performance and cost issues.
+-   **Timestamps:** Use `Timestamp.fromDate()` or `Timestamp.now()` from the Firebase SDK for writing date fields to Firestore. In the TypeScript interfaces, these fields can be typed as `Date | Timestamp` for flexibility.
 
 ### 3.2. Cloud Storage
 
@@ -131,9 +359,9 @@ Adhere to the established file structure to maintain organization and predictabi
 
 -   **Provider:** Authentication is managed by Firebase Authentication.
 -   **Flow:**
-    -   Authentication is managed by Firebase Authentication.
-    -   User sessions should be persisted.
-    -   Protected routes should redirect unauthenticated users to the login page.
+    -   User sessions are persisted via a session cookie.
+    -   Protected routes are handled by the `middleware.ts` file, which verifies the session cookie and user role.
+    -   Unauthenticated users are redirected to the login page.
 -   **Routing:**
     -   The project uses the Next.js App Router. File-based routing in the `src/app` directory defines the application's routes.
     -   Route groups (`(admin)`, `(auth)`, `(public)`) are used to apply different layouts and access control logic.

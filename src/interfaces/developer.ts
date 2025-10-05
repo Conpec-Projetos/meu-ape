@@ -6,12 +6,12 @@ interface ContactInfo {
 }
 
 export interface Developer {
-    id?: string;
+    id?: string; // id do documento no Firebase
     name: string;
-    logoUri: string;
-    website: string;
+    logoUrl: string; // URL da logo da construtora no Cloud Storage
+    website: string; // website da construtora
     contactInfo: ContactInfo;
-    properties: DocumentReference[]; // ou string[]
+    properties: DocumentReference[]; // referências às propriedades (na coleção properties) da construtora
     createdAt: Date | Timestamp;
     updatedAt: Date | Timestamp;
 }
