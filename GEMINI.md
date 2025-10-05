@@ -49,7 +49,6 @@ src/
 ├───app/
 │   ├───(admin)/
 │   │   ├───admin/
-│   │   │   ├───dashboard/
 │   │   │   ├───property-management/
 │   │   │   │   └───page.tsx
 │   │   │   └───users/
@@ -74,6 +73,10 @@ src/
 │   │   └───signup/
 │   │       └───page.tsx
 │   ├───(public)/
+│   │   ├───dashboard/
+│   │   │   └───page.tsx
+│   │   ├───profile/
+│   │   │   └───page.tsx
 │   │   └───properties/
 │   │       └───[id]/
 │   │           └───page.tsx
@@ -97,7 +100,7 @@ src/
 │   │   │   │   └───route.ts
 │   │   │   └───verify-session/
 │   │   │       └───route.ts
-│   │   └───send/
+│   │   ├───send/
 │   │       └───route.ts
 │   ├───favicon.ico
 │   ├───globals.css
@@ -105,8 +108,6 @@ src/
 │   └───page.tsx
 ├───assets/
 ├───components/
-│   ├───emailTemplate/
-│   │   └───agentRegisterRequest.tsx
 │   ├───features/
 │   │   ├───alerts/
 │   │   │   └───default-alert.tsx
@@ -119,6 +120,8 @@ src/
 │   │   ├───calendars/
 │   │   │   └───default-calendar.tsx
 │   │   ├───cards/
+│   │   │   ├───card-reservations.tsx
+│   │   │   ├───card-visits.tsx
 │   │   │   ├───default-card.tsx
 │   │   │   └───default-hover-card.tsx
 │   │   ├───carousels/
@@ -137,6 +140,8 @@ src/
 │   │   │   └───default-drawer.tsx
 │   │   ├───dropdowns/
 │   │   │   └───default-dropdown-menu.tsx
+│   │   ├───emails/
+│   │   │   └───agent-registration.tsx
 │   │   ├───filters/
 │   │   │   └───property-search-filter.tsx
 │   │   ├───forms/
@@ -152,6 +157,8 @@ src/
 │   │   │   ├───delete-confirmation-modal.tsx
 │   │   │   ├───denial-modal.tsx
 │   │   │   ├───edit-images-modal.tsx
+│   │   │   ├───input-modal.tsx
+│   │   │   ├───password-modal.tsx
 │   │   │   └───user-modal.tsx
 │   │   ├───property/
 │   │   │   ├───matterport-viewer.tsx
@@ -168,7 +175,11 @@ src/
 │   │   ├───separators/
 │   │   │   └───default-separator.tsx
 │   │   ├───sheets/
-│   │   │   └───default-sheet.tsx
+│   │   │   ├───default-sheet.tsx
+│   │   │   ├───sheet-reservations.tsx
+│   │   │   └───sheet-visits.tsx
+│   │   ├───sidebar/
+│   │   │   └───default-sidebar.tsx
 │   │   ├───skeletons/
 │   │   │   └───default-skeleton.tsx
 │   │   ├───sliders/
