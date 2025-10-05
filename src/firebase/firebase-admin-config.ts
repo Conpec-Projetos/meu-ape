@@ -1,4 +1,6 @@
-import admin, { auth } from "firebase-admin";
+import admin from "firebase-admin";
+import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 if (!admin.apps.length) {
@@ -16,16 +18,16 @@ if (!admin.apps.length) {
     }
 }
 
+export const adminAuth = getAuth();
+export const adminDb = getFirestore();
+export const adminStorage = getStorage();
+
 export const verifySessionCookie = async (sessionCookie: string) => {
     try {
-        const decodedClaims = await auth().verifySessionCookie(sessionCookie, true);
+        const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
         return decodedClaims;
     } catch (error) {
         console.error("Error verifying session cookie:", error);
         return null;
     }
 };
-
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
-export const adminStorage = getStorage();

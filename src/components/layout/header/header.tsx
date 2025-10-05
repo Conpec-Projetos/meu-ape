@@ -53,8 +53,8 @@ const navConfig: Record<Variant, NavItem[]> = {
         { label: "Imóveis", href: "/property-search", icon: Building },
     ],
     admin: [
-        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { label: "Imóveis", href: "/admin/properties", icon: Home },
+        { label: "Dashboard", href: "/beta/dashboard", icon: LayoutDashboard },
+        { label: "Imóveis", href: "/admin/property-management", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
     ],
@@ -67,7 +67,7 @@ interface HeaderProps {
 const getInitials = (name: string) => {
     return name
         .split(" ")
-        .map((n) => n[0])
+        .map(n => n[0])
         .join("")
         .toUpperCase();
 };
@@ -95,16 +95,13 @@ function Header({ variant }: HeaderProps) {
 
     // Define styles based on scroll state
     const isTransparent = !scrolled;
-    const headerBaseStyle = "fixed top-0 left-0 w-full h-15 py-4 px-6 flex justify-between items-center z-50 transition-all duration-300";
+    const headerBaseStyle =
+        "fixed top-0 left-0 w-full h-15 py-4 px-6 flex justify-between items-center z-50 transition-all duration-300";
 
-    const headerStyle = `${headerBaseStyle} ${isTransparent
-            ? "bg-transparent"
-            : "bg-primary shadow-md"
-        }`;
+    const headerStyle = `${headerBaseStyle} ${isTransparent ? "bg-transparent" : "bg-primary shadow-md"}`;
 
     const navLinkColor = isTransparent ? "text-primary" : "text-primary-foreground";
     const navLinkHover = isTransparent ? "hover:bg-primary/5" : "hover:bg-white/10";
-
 
     return (
         <header className={headerStyle}>
@@ -123,14 +120,15 @@ function Header({ variant }: HeaderProps) {
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex justify-end items-center w-full gap-4">
                 <div className="flex items-center gap-2">
-                    {links.map((link) => {
+                    {links.map(link => {
                         const isActive = pathname === link.href;
                         return (
                             <Link
                                 key={link.label}
                                 href={link.href}
-                                className={`flex items-center gap-2 font-medium px-3 py-2 rounded-md transition-colors ${navLinkColor} ${navLinkHover} ${isActive ? "font-bold" : ""
-                                    }`}
+                                className={`flex items-center gap-2 font-medium px-3 py-2 rounded-md transition-colors ${navLinkColor} ${navLinkHover} ${
+                                    isActive ? "font-bold" : ""
+                                }`}
                             >
                                 <link.icon className="h-5 w-5" />
                                 <span>{link.label}</span>
@@ -138,7 +136,6 @@ function Header({ variant }: HeaderProps) {
                         );
                     })}
                 </div>
-
 
                 <div>
                     {variant === "guest" ? (
@@ -225,11 +222,7 @@ function Header({ variant }: HeaderProps) {
                                 </>
                             ) : (
                                 <div className="flex w-full gap-2">
-                                    <Button
-                                        variant="outline"
-                                        className="w-full"
-                                        onClick={() => router.push("/login")}
-                                    >
+                                    <Button variant="outline" className="w-full" onClick={() => router.push("/login")}>
                                         Entrar
                                     </Button>
                                     <Button
@@ -244,7 +237,7 @@ function Header({ variant }: HeaderProps) {
 
                         <nav className="flex-grow mt-6">
                             <ul className="flex flex-col gap-4">
-                                {links.map((link) => (
+                                {links.map(link => (
                                     <li key={link.label}>
                                         <Link
                                             href={link.href}
