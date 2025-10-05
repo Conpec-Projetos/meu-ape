@@ -299,7 +299,7 @@ src/
 
 #### `shadcn/ui` Components
 
--   **Usage:** The project heavily relies on `shadcn/ui`. When creating new UI elements, first check if a suitable component exists in `src/components/ui`.
+-   **Usage:** The project heavily relies on `shadcn/ui`. When creating new UI elements, first check if a suitable component exists in `src/components/ui` or in '`src/components/features'.
 -   **Key Components:**
     -   `Button`: Use for all clickable actions.
     -   `Card`: For structuring content sections.
