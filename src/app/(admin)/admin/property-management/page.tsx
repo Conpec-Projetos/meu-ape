@@ -4,22 +4,10 @@ import PropertyTable from "@/components/features/tables/PropertyTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { propertySchema } from "@/schemas/propertySchema";
 import { Check, X } from "lucide-react";
 import { useState } from "react";
-import { z } from "zod";
-
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-const propertySchema = z.object({
-    nome: z.string().min(1, "Nome obrigatório"),
-    localizacao: z.string().min(1, "Localização obrigatória"),
-    dataLancamento: z.string().refine(val => dateRegex.test(val), {
-        message: "Data deve estar no formato AAAA-MM-DD",
-    }),
-    dataEntrega: z.string().refine(val => dateRegex.test(val), {
-        message: "Data deve estar no formato AAAA-MM-DD",
-    }),
-});
+import { ZodError } from "zod";
 
 export default function AdminPropertyManagementPage() {
     const [form, setForm] = useState({
@@ -41,7 +29,7 @@ export default function AdminPropertyManagementPage() {
             fieldSchema.parse(value);
             setErrors(prev => ({ ...prev, [id]: "" }));
         } catch (err) {
-            if (err instanceof z.ZodError) {
+            if (err instanceof ZodError) {
                 const message = err.errors?.[0]?.message ?? "Valor inválido";
                 setErrors(prev => ({ ...prev, [id]: message }));
             } else {
