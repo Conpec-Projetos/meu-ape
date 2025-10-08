@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import React from "react";
 import { toast } from "sonner";
 import { Unit } from "@/interfaces/unit";
+import { Loader } from "lucide-react";
 
 interface VisitModalProps {
     unit: Unit;
     propertyName: string;
-    onClose?: () => void;
+    onClose: () => void;
 }
 
 const getNextDays = (): string[] => {
@@ -47,7 +48,6 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
     const [selected, setSelected] = useState<Record<string, boolean>>({});
     const days = getNextDays();
 
-
     const toggleCell = (day: string, time: string) => {
         const key = `${day}-${time}`;
 
@@ -58,19 +58,20 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
         
     };
 
-      useEffect(() => {
-            const originalStyle = window.getComputedStyle(document.body).overflow;
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
 
-            // Lock scroll
-            document.body.style.overflow = "hidden";
+        // Lock scroll
+        document.body.style.overflow = "hidden";
 
-            // On cleanup, unlock scroll
-            return () => {
-            document.body.style.overflow = originalStyle;
-            };
-        }, []);
+        // On cleanup, unlock scroll
+        return () => {
+        document.body.style.overflow = originalStyle;
+        };
+    }, []);
 
-    const handleSave = () => {
+    const [loading, setLoading] = useState(false);
+    const handleSave = async () => {
         const selectedSlots = Object.entries(selected)
             .filter(([_, isSelected]) => isSelected)
             .map(([key, _]) => key);
@@ -78,9 +79,32 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
         if (selectedSlots.length === 0) {
             toast.error("Por favor, selecione ao menos um horário para a visita");
         } else {
-            console.log('Selected slots:', selectedSlots);
-            // Here you can handle the selected slots (e.g., send them to a server)
-            if (onClose) onClose();            
+            try {
+                setLoading(true);
+                const res = await fetch('/api/visitas', {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ horarios: selectedSlots, propertyId: unit.id }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    toast.success("Sua solicitação foi enviada!");
+                    onClose();            
+
+                } else {
+                    console.error(data);
+                    toast.error("Você já possui uma solicitação para este imóvel");
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error("Erro de conexão com o servidor");
+            } finally {
+                setLoading(false);
+            }
         }
 
     }
@@ -208,14 +232,27 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
                                     <Button
                                         onClick={prevStep}
                                         variant={"outline"}
+                                        disabled={loading}
                                     >
                                         Voltar
                                     </Button>
                                     <Button
                                         onClick={handleSave}
                                         variant={"default"}
+                                        disabled={loading}
                                     >
-                                        Enviar
+                                        {/* Texto sempre presente, invisível durante loading */}
+                                        <span className={loading ? "invisible" : "visible"}>
+                                            Enviar
+                                        </span>
+
+                                        {/* Loader aparece sobre o texto */}
+                                        {loading && (
+                                            <Loader
+                                            className="w-5 h-5 text-muted-foreground absolute"
+                                            style={{ animation: "spin 4s linear infinite" }}
+                                            />
+                                        )}
                                     </Button>
                                 </div>                                
                             )}
