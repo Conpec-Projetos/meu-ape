@@ -8,13 +8,14 @@ import { UnitCard } from "./unit-card";
 
 interface UnitListProps {
     units: Unit[];
+    propertyName: string;
     onLoadMore: () => void;
     hasNextPage: boolean;
     isLoading: boolean;
     onViewMatterport: (url: string) => void;
 }
 
-export function UnitList({ units, onLoadMore, hasNextPage, isLoading }: UnitListProps) {
+export function UnitList({ units, onLoadMore, hasNextPage, isLoading, propertyName }: UnitListProps) {
     const { ref, inView } = useInView({
         threshold: 0,
     });
@@ -28,7 +29,7 @@ export function UnitList({ units, onLoadMore, hasNextPage, isLoading }: UnitList
     return (
         <div className="space-y-4">
             {units.map(unit => (
-                <UnitCard key={unit.id} unit={unit} />
+                <UnitCard key={unit.id} unit={unit} propertyName={propertyName} />
             ))}
             {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
             <div ref={ref} />

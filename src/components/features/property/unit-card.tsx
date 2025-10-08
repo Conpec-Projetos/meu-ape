@@ -10,12 +10,14 @@ import { CompleteInfoModal } from "../modals/complete-info-modal";
 import { boolean } from "zod";
 import { useEffect, useState } from "react";
 import { set } from "date-fns";
+import { VisitModal } from "../modals/visit-modal";
 
 interface UnitCardProps {
     unit: Unit;
+    propertyName: string;
 }
 
-export function UnitCard({ unit }: UnitCardProps) {
+export function UnitCard({ unit, propertyName }: UnitCardProps) {
     const [completeInfoModal, setCompleteInfoModal] = useState<boolean>(false);
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [undefinedFields, setUndefinedFields] = useState<{
@@ -47,7 +49,6 @@ export function UnitCard({ unit }: UnitCardProps) {
             if (!hasMissingFields) {
                 // All fields are filled
                 setVisitModal(true);
-                alert("Todos os campos estão preenchidos. Você pode agendar a visita.");
             }
 
         } else {
@@ -122,6 +123,10 @@ export function UnitCard({ unit }: UnitCardProps) {
                     address={undefinedFields.address}
                     onClose={() => setCompleteInfoModal(false)}
                 />
+            )}
+
+            {visitModal && (
+                <VisitModal onClose={() => setVisitModal(false)} unit={unit} propertyName={propertyName} />
             )}
         </Card>
     );

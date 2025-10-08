@@ -230,6 +230,7 @@ export default function PropertyPage() {
                                 hasNextPage={hasNextPage}
                                 isLoading={isLoadingUnits}
                                 onViewMatterport={handleViewMatterport}
+                                propertyName={property.name}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full bg-secondary/30 rounded-xl p-8">
