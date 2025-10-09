@@ -20,12 +20,17 @@ interface UnitCardProps {
 export function UnitCard({ unit, propertyName }: UnitCardProps) {
     const [completeInfoModal, setCompleteInfoModal] = useState<boolean>(false);
     const [visitModal, setVisitModal] = useState<boolean>(false);
+    const [reservationModal, setReservationModal] = useState<boolean>(false);
     const [undefinedFields, setUndefinedFields] = useState<{
         fullName: boolean;
         phone: boolean;
         cpf: boolean;
         address: boolean;
-    }>({fullName: false, phone: false, cpf: false, address: false});
+        addressProof: boolean;
+        incomeProof: boolean;
+        identityDoc: boolean;
+        marriageCert: boolean;
+    }>({fullName: false, phone: false, cpf: false, address: false, addressProof: false, incomeProof: false, identityDoc: false, marriageCert: false });
 
     async function handleRequestVisitClick() {
         const user = auth.currentUser;
@@ -39,7 +44,11 @@ export function UnitCard({ unit, propertyName }: UnitCardProps) {
                 fullName: !userData?.fullName,
                 phone: !userData?.phone,
                 cpf: !userData?.cpf,
-                address: !userData?.address
+                address: !userData?.address,
+                addressProof: false,
+                incomeProof: false,
+                identityDoc: false,
+                marriageCert: false,
             };
 
             setUndefinedFields(missingFields);
@@ -60,15 +69,53 @@ export function UnitCard({ unit, propertyName }: UnitCardProps) {
 
     }
 
+    async function handleRequestReservationClick() {
+        const user = auth.currentUser;
+
+        const userDocRef = doc(db, "users", user?.uid || "");
+        await getDoc(userDocRef).then((docSnap) => {
+            if (docSnap.exists()) {
+            const userData = docSnap.data();
+
+            const missingFields = {
+                fullName: !userData?.fullName,
+                phone: !userData?.phone,
+                cpf: !userData?.cpf,
+                address: !userData?.address,
+                addressProof: !userData?.documents || !userData?.documents.addressProof || userData?.documents.addressProof.length === 0,
+                incomeProof: !userData?.documents || !userData?.documents.incomeProof || userData?.documents.incomeProof.length === 0,
+                identityDoc: !userData?.documents || !userData?.documents.identityDoc || userData?.documents.identityDoc.length === 0,
+                marriageCert: !userData?.documents || !userData?.documents.marriageCert || userData?.documents.marriageCert.length === 0,
+            };
+
+            setUndefinedFields(missingFields);
+
+            const hasMissingFields = Object.values(missingFields).some((field) => field === true);
+
+            if (!hasMissingFields) {
+                // All fields are filled
+                setReservationModal(true);
+            }
+
+        } else {
+                alert("Usuário não encontrado. Por favor, faça login novamente.");
+            }
+        }).catch((error: any) => {
+            console.error("Erro ao buscar dados do usuário:", error);
+        })
+
+    }
+
+
     useEffect(() => {
-        if ((undefinedFields.address || undefinedFields.fullName || undefinedFields.phone || undefinedFields.cpf) && !completeInfoModal) {
+        if ((undefinedFields.address || undefinedFields.fullName || undefinedFields.phone || undefinedFields.cpf || undefinedFields.addressProof || undefinedFields.incomeProof || undefinedFields.identityDoc || undefinedFields.marriageCert) && !completeInfoModal) {
             setCompleteInfoModal(true);
         } 
     }, [undefinedFields]);
 
     useEffect(() => {
         if (!completeInfoModal){
-            setUndefinedFields({fullName: false, phone: false, cpf: false, address: false});
+            setUndefinedFields({fullName: false, phone: false, cpf: false, address: false, addressProof: false, incomeProof: false, identityDoc: false, marriageCert: false });
         }
     }, [completeInfoModal]);
 
@@ -108,7 +155,7 @@ export function UnitCard({ unit, propertyName }: UnitCardProps) {
                         <Button variant="outline" size="sm" className="flex-1" onClick={handleRequestVisitClick}>
                             Agendar Visita
                         </Button>
-                        <Button size="sm" className="flex-1">
+                        <Button size="sm" className="flex-1" onClick={handleRequestReservationClick}>
                             Solicitar Reserva
                         </Button>
                     </div>
@@ -121,12 +168,20 @@ export function UnitCard({ unit, propertyName }: UnitCardProps) {
                     phone={undefinedFields.phone}
                     cpf={undefinedFields.cpf}
                     address={undefinedFields.address}
+                    addressProof={undefinedFields.addressProof}
+                    incomeProof={undefinedFields.incomeProof}
+                    identityDoc={undefinedFields.identityDoc}
+                    marriageCert={undefinedFields.marriageCert}
                     onClose={() => setCompleteInfoModal(false)}
                 />
             )}
 
             {visitModal && (
                 <VisitModal onClose={() => setVisitModal(false)} unit={unit} propertyName={propertyName} />
+            )}
+
+            {reservationModal && (
+                <div>Reservation Modal</div>
             )}
         </Card>
     );
