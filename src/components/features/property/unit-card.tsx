@@ -11,13 +11,15 @@ import { boolean } from "zod";
 import { useEffect, useState } from "react";
 import { set } from "date-fns";
 import { VisitModal } from "../modals/visit-modal";
+import { ReservationModal } from "../modals/reservation-modal";
+import { Property } from "@/interfaces/property";
 
 interface UnitCardProps {
     unit: Unit;
-    propertyName: string;
+    property: Property;
 }
 
-export function UnitCard({ unit, propertyName }: UnitCardProps) {
+export function UnitCard({ unit, property }: UnitCardProps) {
     const [completeInfoModal, setCompleteInfoModal] = useState<boolean>(false);
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [reservationModal, setReservationModal] = useState<boolean>(false);
@@ -177,11 +179,11 @@ export function UnitCard({ unit, propertyName }: UnitCardProps) {
             )}
 
             {visitModal && (
-                <VisitModal onClose={() => setVisitModal(false)} unit={unit} propertyName={propertyName} />
+                <VisitModal onClose={() => setVisitModal(false)} unit={unit} property={property} />
             )}
 
             {reservationModal && (
-                <div>Reservation Modal</div>
+                <ReservationModal onClose={() => setReservationModal(false)} unit={unit} property={property} />
             )}
         </Card>
     );

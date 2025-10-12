@@ -7,10 +7,11 @@ import React from "react";
 import { toast } from "sonner";
 import { Unit } from "@/interfaces/unit";
 import { Loader } from "lucide-react";
+import { Property } from "@/interfaces/property";
 
 interface VisitModalProps {
     unit: Unit;
-    propertyName: string;
+    property: Property;
     onClose: () => void;
 }
 
@@ -39,7 +40,7 @@ const times = Array.from({ length: 20 }, (_, i) => {
   return `${hour.toString().padStart(2, '0')}:${minutes}`;
 });
 
-export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
+export function VisitModal({ onClose, unit, property }: VisitModalProps) {
     const [step, setStep] = useState(1);
 
     const nextStep = () => setStep((prev) => Math.min(prev + 1, 2)); // assume 2 steps
@@ -86,7 +87,7 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
                     headers: {
                     'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ horarios: selectedSlots, propertyId: unit.id }),
+                    body: JSON.stringify({ horarios: selectedSlots, propertyId: property.id }),
                 });
 
                 const data = await res.json();
@@ -189,7 +190,7 @@ export function VisitModal({ onClose, unit, propertyName }: VisitModalProps) {
                     {/* Step 2: Review and Confirm */}
                     {step === 2 && (
                         <CardContent className="overflow-auto p-6 flex-1">
-                            <h3 className="text-md mb-5"> <span className="font-bold">{propertyName}</span> - {unit.block ? `Bloco ${unit.block}` : ''} Unidade {unit.identifier}</h3>
+                            <h3 className="text-md mb-5"> <span className="font-bold">{property.name}</span> - {unit.block ? `Bloco ${unit.block}` : ''} Unidade {unit.identifier}</h3>
                             <h3 className="text-md font-semibold mb-4">Horários Selecionados:</h3>
                             {Object.entries(selected).sort(compareDateTime).filter(([_, isSelected]) => isSelected).length === 0 ? (
                                 <p>Nenhum horário selecionado.</p>
