@@ -14,9 +14,10 @@ import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { doc, DocumentReference, GeoPoint, getDoc, Timestamp } from "firebase/firestore";
+import { doc, DocumentData, DocumentReference, GeoPoint, getDoc, Timestamp } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 // Mock data and functions to simulate Firebase calls
 const mockProperty: Property = {
@@ -87,6 +88,29 @@ export default function PropertyPage() {
     const [matterportUrl, setMatterportUrl] = useState("");
     const [isMatterportOpen, setIsMatterportOpen] = useState(false);
 
+    // User data
+    const [currentUser, setCurrentUser] = useState<DocumentData>();
+    const refetchUserData = async () => {
+        const user = auth.currentUser;
+
+        const userDocRef = doc(db, "users", user?.uid || "");
+        getDoc(userDocRef).then((docSnap) => {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                setCurrentUser(userData);
+            } else {
+                alert("Usuário não encontrado. Por favor, faça login novamente.");
+            }
+        }).catch((error: any) => {
+            console.error("Erro ao buscar dados do usuário:", error);
+        })
+    }
+
+    useEffect(() => {
+        refetchUserData();
+    }, [])
+
+
     // Request visit modal
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [unit, setUnit] = useState<Unit>();
@@ -103,50 +127,43 @@ export default function PropertyPage() {
     // Action guard
     const [isJitModalOpen, setIsJitModalOpen] = useState(false);
     const [missingFields, setMissingFields] = useState<string[]>([]);
+    const [lastAction, setLastAction] = useState<string>("");
 
     const handleGuardedAction = async (actionType: 'REQUEST_VISIT' | 'REQUEST_RESERVATION', unit: Unit) => {
         const required = actionRequirements[actionType];
         
-        const user = auth.currentUser;
+        await refetchUserData();
 
-        const userDocRef = doc(db, "users", user?.uid || "");
-        await getDoc(userDocRef).then((docSnap) => {
-            if (docSnap.exists()) {
-            const userData = docSnap.data();
-            const missingFields: string[] = [];
-            const requiredDocs = ['addressProof', 'incomeProof', 'identityDoc', 'marriageCert'];
+        const userData = currentUser;
+        const missingFields: string[] = [];
+        const requiredDocs = ['addressProof', 'incomeProof', 'identityDoc', 'marriageCert'];
 
 
-            required.forEach((field) => {
-                if (requiredDocs.includes(field)) {
-                    // Check if document is uploaded
-                    if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
-                        missingFields.push(field);
-                    }
-                } else if (!userData?.[field]) {
+        required.forEach((field) => {
+            if (requiredDocs.includes(field)) {
+                // Check if document is uploaded
+                if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
                     missingFields.push(field);
                 }
-            });
-
-            if (missingFields.length > 0) {
-                setMissingFields(missingFields);
-                setIsJitModalOpen(true);
-            } else {
-                // Prossiga com a ação original
-                setUnit(unit);
-                if (actionType === 'REQUEST_VISIT') {
-                    openVisitCalendarModal();
-                } else if (actionType === 'REQUEST_RESERVATION') {
-                    openReservationConfirmModal();
-                }
+            } else if (!userData?.[field]) {
+                missingFields.push(field);
             }
+        });
 
+        setUnit(unit);
+        setLastAction(actionType);
+        if (missingFields.length > 0) {
+            setMissingFields(missingFields);
+            setIsJitModalOpen(true);
         } else {
-                alert("Usuário não encontrado. Por favor, faça login novamente.");
+            // Prossiga com a ação original
+            if (actionType === 'REQUEST_VISIT') {
+                openVisitCalendarModal();
+            } else if (actionType === 'REQUEST_RESERVATION') {
+                openReservationConfirmModal();
             }
-        }).catch((error: any) => {
-            console.error("Erro ao buscar dados do usuário:", error);
-        })
+        }
+
     };
 
     // Initial data fetching for the property
@@ -323,7 +340,15 @@ export default function PropertyPage() {
                 onClose={() => setIsJitModalOpen(false)}
                 isOpen={isJitModalOpen}
                 onSubmit={() => {
+                    toast.success("Informações atualizadas com sucesso!");
                     setIsJitModalOpen(false);
+                    refetchUserData();
+
+                    if(lastAction === 'REQUEST_VISIT'){
+                        openVisitCalendarModal();
+                    } else if (lastAction === 'REQUEST_RESERVATION'){
+                        openReservationConfirmModal();
+                    }
                 }}
             />
 

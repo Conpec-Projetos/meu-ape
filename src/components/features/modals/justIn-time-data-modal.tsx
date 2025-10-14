@@ -80,59 +80,106 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         console.log("Dados do formulário:", data);
 
         setIsUploading(true);
-        const user = auth.currentUser;
+        // const user = auth.currentUser;
 
-        const userDocRef = doc(db, "users", user?.uid || "");
+        // const userDocRef = doc(db, "users", user?.uid || "");
 
-        // Upload files
-        const filesToUpload: { [key: string]: FileList | undefined } = {
-            addressProof: data.addressProof as FileList,
-            incomeProof: data.incomeProof as FileList,
-            identityDoc: data.identityDoc as FileList,
-            marriageCert: data.marriageCert as FileList,
-        };
-        const uploadPromises = Object.entries(filesToUpload).map(async ([key, fileList]) => {
-            if (fileList && fileList.length > 0) {
-                const urls: string[] = [];
-                const files: File[] = Array.from(fileList) as File[];
-                for (const file of files) {
-                    const storageRef = ref(storage, `clientFiles/${user?.uid}/${file.name}`);
-                    await uploadBytes(storageRef, file);
-                    const url = await getDownloadURL(storageRef);
-                    urls.push(url);
-                }
-                await updateDoc(userDocRef, { [`documents.${key}`]: urls });
+        // // Upload files
+        // const filesToUpload: { [key: string]: FileList | undefined } = {
+        //     addressProof: data.addressProof as FileList,
+        //     incomeProof: data.incomeProof as FileList,
+        //     identityDoc: data.identityDoc as FileList,
+        //     marriageCert: data.marriageCert as FileList,
+        // };
+        // const uploadPromises = Object.entries(filesToUpload).map(async ([key, fileList]) => {
+        //     if (fileList && fileList.length > 0) {
+        //         const urls: string[] = [];
+        //         const files: File[] = Array.from(fileList) as File[];
+        //         for (const file of files) {
+        //             const storageRef = ref(storage, `clientFiles/${user?.uid}/${file.name}`);
+        //             await uploadBytes(storageRef, file);
+        //             const url = await getDownloadURL(storageRef);
+        //             urls.push(url);
+        //         }
+        //         await updateDoc(userDocRef, { [`documents.${key}`]: urls });
+        //     }
+        // });
+
+        // // Upload data
+        // const userData = { ...data, updatedAt: serverTimestamp() };
+        // delete userData.addressProof;
+        // delete userData.incomeProof;
+        // delete userData.identityDoc;
+        // delete userData.marriageCert;
+
+        // const dataUpdatePromises = Object.entries(userData).map(([key, value]) => {
+        //     return updateDoc(userDocRef, { [key]: value });
+        // });
+
+        // // Wait for all data updates to finish
+        // const [dataUpdateResults, uploadResults] = await Promise.all([dataUpdatePromises, uploadPromises]);
+
+        // if (dataUpdateResults.some((res) => res instanceof Error)) {
+        //     toast.error("Erro ao atualizar informações. Por favor, tente novamente.");
+        //     setIsUploading(false);
+        //     return;
+        // }
+        // if (uploadResults.some((res) => res instanceof Error)) {
+        //     toast.error("Erro ao enviar documentos. Por favor, tente novamente.");
+        //     setIsUploading(false);
+        //     return;
+        // }
+
+        try {
+            // Update user data
+            const dataToUpdate = {... data};
+            delete dataToUpdate.addressProof;
+            delete dataToUpdate.incomeProof;
+            delete dataToUpdate.identityDoc;
+            delete dataToUpdate.marriageCert;
+            const responseData = await fetch("/api/user/profile", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ dataToUpdate }),
+            });
+
+            // Upload files
+            const filesToUpload: { [key: string]: FileList | undefined } = {
+                addressProof: data.addressProof as FileList,
+                incomeProof: data.incomeProof as FileList,
+                identityDoc: data.identityDoc as FileList,
+                marriageCert: data.marriageCert as FileList,
+            };
+            const responseFile = await fetch("/api/user/documents/upload", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ filesToUpload }),
+            });
+
+            const userData = await responseData.json();
+            const userFiles = await responseFile.json();
+
+            if(responseData.ok && responseFile.ok){
+                onSubmit();
+            } else if (responseFile.ok){
+                // Error in updating data
+                toast.error("Erro ao atualizar informações. Por favor, tente novamente.");
+            } else {
+                // Error in uploading files
+                toast.error("Erro ao enviar documentos. Por favor, tente novamente.");
+                
             }
-        });
-
-        // Upload data
-        const userData = { ...data, updatedAt: serverTimestamp() };
-        delete userData.addressProof;
-        delete userData.incomeProof;
-        delete userData.identityDoc;
-        delete userData.marriageCert;
-
-        const dataUpdatePromises = Object.entries(userData).map(([key, value]) => {
-            return updateDoc(userDocRef, { [key]: value });
-        });
-
-        // Wait for all data updates to finish
-        const [dataUpdateResults, uploadResults] = await Promise.all([dataUpdatePromises, uploadPromises]);
-
-        if (dataUpdateResults.some((res) => res instanceof Error)) {
-            toast.error("Erro ao atualizar informações. Por favor, tente novamente.");
+        } catch (err) {
+            console.error(err);
+            toast.error("Erro de conexão com o servidor");
+        } finally {
             setIsUploading(false);
-            return;
-        }
-        if (uploadResults.some((res) => res instanceof Error)) {
-            toast.error("Erro ao enviar documentos. Por favor, tente novamente.");
-            setIsUploading(false);
-            return;
         }
         
-        setIsUploading(false);
-        toast.success("Informações atualizadas com sucesso!");
-        onSubmit();
     }
 
     // Reset the forms

@@ -11,7 +11,6 @@ import { Property } from "@/interfaces/property";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebase-config";
 import { Checkbox } from "@/components/features/checkboxes/default-checkbox";
-import { set } from "date-fns";
 
 interface ReservationModalProps {
     unit: Unit;
