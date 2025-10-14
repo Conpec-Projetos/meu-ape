@@ -13,6 +13,8 @@ interface VisitModalProps {
     unit: Unit;
     property: Property;
     onClose: () => void;
+    onSubmit: () => void;
+    isOpen: boolean;
 }
 
 const getNextDays = (): string[] => {
@@ -40,7 +42,7 @@ const times = Array.from({ length: 20 }, (_, i) => {
   return `${hour.toString().padStart(2, '0')}:${minutes}`;
 });
 
-export function VisitModal({ onClose, unit, property }: VisitModalProps) {
+export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitModalProps) {
     const [step, setStep] = useState(1);
 
     const nextStep = () => setStep((prev) => Math.min(prev + 1, 2)); // assume 2 steps
@@ -60,16 +62,19 @@ export function VisitModal({ onClose, unit, property }: VisitModalProps) {
     };
 
     useEffect(() => {
-        const originalStyle = window.getComputedStyle(document.body).overflow;
+        if(isOpen){
+            const originalStyle = window.getComputedStyle(document.body).overflow;
 
-        // Lock scroll
-        document.body.style.overflow = "hidden";
+            // Lock scroll
+            document.body.style.overflow = "hidden";
 
-        // On cleanup, unlock scroll
-        return () => {
-        document.body.style.overflow = originalStyle;
-        };
-    }, []);
+            // On cleanup, unlock scroll
+            return () => {
+            document.body.style.overflow = originalStyle;
+            };            
+        }
+
+    }, [isOpen]);
 
     const [loading, setLoading] = useState(false);
     const handleSave = async () => {
@@ -94,7 +99,7 @@ export function VisitModal({ onClose, unit, property }: VisitModalProps) {
 
                 if (res.ok) {
                     toast.success("Sua solicitação foi enviada!");
-                    onClose();            
+                    onSubmit();
 
                 } else {
                     console.error(data);
@@ -132,6 +137,14 @@ export function VisitModal({ onClose, unit, property }: VisitModalProps) {
         return d1.minute - d2.minute;
     }
 
+    useEffect(() => {
+        if (!isOpen) {
+            setSelected({});            
+        }
+    }, [isOpen]);
+
+
+    if(!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 overflow-auto p-4">

@@ -5,18 +5,17 @@ import { Unit } from "@/interfaces/unit";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { UnitCard } from "./unit-card";
-import { Property } from "@/interfaces/property";
 
 interface UnitListProps {
     units: Unit[];
-    property: Property;
     onLoadMore: () => void;
     hasNextPage: boolean;
     isLoading: boolean;
     onViewMatterport: (url: string) => void;
+    handleGuardedAction: (actionType: 'REQUEST_VISIT' | 'REQUEST_RESERVATION', unit: Unit) => void;
 }
 
-export function UnitList({ units, onLoadMore, hasNextPage, isLoading, property }: UnitListProps) {
+export function UnitList({ units, onLoadMore, hasNextPage, isLoading, handleGuardedAction }: UnitListProps) {
     const { ref, inView } = useInView({
         threshold: 0,
     });
@@ -30,7 +29,7 @@ export function UnitList({ units, onLoadMore, hasNextPage, isLoading, property }
     return (
         <div className="space-y-4">
             {units.map(unit => (
-                <UnitCard key={unit.id} unit={unit} property={property} />
+                <UnitCard key={unit.id} unit={unit} handleGuardedAction={handleGuardedAction}/>
             ))}
             {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
             <div ref={ref} />

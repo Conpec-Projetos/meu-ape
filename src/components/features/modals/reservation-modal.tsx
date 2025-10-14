@@ -17,9 +17,11 @@ interface ReservationModalProps {
     unit: Unit;
     property: Property;
     onClose: () => void;
+    onSubmit: () => void;
+    isOpen: boolean;
 }
 
-export function ReservationModal({ onClose, unit, property }: ReservationModalProps) {
+export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: ReservationModalProps) {
     const [clientName, setClientName] = useState<string>("");
     const [haveFiles, setHaveFiles] = useState<{
         addressProof: boolean;
@@ -36,16 +38,25 @@ export function ReservationModal({ onClose, unit, property }: ReservationModalPr
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        const originalStyle = window.getComputedStyle(document.body).overflow;
+        if(isOpen){
+            const originalStyle = window.getComputedStyle(document.body).overflow;
 
-        // Lock scroll
-        document.body.style.overflow = "hidden";
+            // Lock scroll
+            document.body.style.overflow = "hidden";
 
-        // On cleanup, unlock scroll
-        return () => {
-        document.body.style.overflow = originalStyle;
-        };
-    }, []);
+            // On cleanup, unlock scroll
+            return () => {
+            document.body.style.overflow = originalStyle;
+            };            
+        }
+
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setTermsAccepted(false);
+        }
+    }, [isOpen]);   
 
     useEffect(() => {
         const user = auth.currentUser;
@@ -93,7 +104,7 @@ export function ReservationModal({ onClose, unit, property }: ReservationModalPr
 
             if (res.ok) {
                 toast.success("Sua solicitação de reserva foi enviada e está em análise!");
-                onClose();            
+                onSubmit();
 
             } else {
                 console.error(data);
@@ -106,6 +117,8 @@ export function ReservationModal({ onClose, unit, property }: ReservationModalPr
             setIsLoading(false);
         }
     };
+
+    if(!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 overflow-auto p-4">
