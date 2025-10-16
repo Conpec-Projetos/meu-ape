@@ -18,7 +18,7 @@ const mockProperty: Property = {
     id: "mock-property-id",
     name: "Residencial Elysian",
     address: "Rua Paraíso, 123, Arcádia",
-    images: ["/register/background.png", "/assets/background.png"],
+    propertyImages: ["/register/background.png", "/assets/background.png"],
     description:
         "Um empreendimento magnífico com muito a oferecer. Vistas deslumbrantes, lazer completo e a tranquilidade que você sempre sonhou.",
     deliveryDate: Timestamp.now(),
@@ -38,7 +38,7 @@ const mockProperty: Property = {
         minSize: 60,
         maxSize: 80,
     },
-    availableUnitsCount: 10,
+    availableUnits: 10,
     groups: [],
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -184,7 +184,7 @@ export default function PropertyPage() {
 
                 <div className="my-8 px-0 md:px-8 lg:px-16">
                     <div className="shadow-lg rounded-xl overflow-hidden">
-                        <PropertyImageGallery images={property.images || []} propertyName={property.name} />
+                        <PropertyImageGallery images={property.propertyImages || []} propertyName={property.name} />
                     </div>
                 </div>
 
