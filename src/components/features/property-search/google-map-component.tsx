@@ -1,26 +1,21 @@
 "use client";
 
-import { Skeleton } from "@/components/ui/skeleton";
 import { Property } from "@/interfaces/property";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { AdvancedMarker, Map, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import React from "react";
+import { useEffect } from "react";
 
-export function GoogleMapComponent({ properties, isLoading }: { properties: Property[]; isLoading: boolean }) {
+function MapEvents() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const map = useMap();
 
-    const { isLoaded, loadError } = useJsApiLoader({
-        id: "google-map-script",
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    });
+    useEffect(() => {
+        if (!map) return;
 
-    const mapRef = React.useRef<google.maps.Map | null>(null);
-
-    const onMapIdle = () => {
-        if (mapRef.current) {
-            const bounds = mapRef.current.getBounds();
+        const listener = map.addListener("idle", () => {
+            const bounds = map.getBounds();
             if (bounds) {
                 const ne = bounds.getNorthEast();
                 const sw = bounds.getSouthWest();
@@ -30,38 +25,43 @@ export function GoogleMapComponent({ properties, isLoading }: { properties: Prop
                 if (newBoundsString !== currentBoundsString) {
                     const params = new URLSearchParams(searchParams.toString());
                     params.set("bounds", newBoundsString);
-                    // Use replace to avoid polluting browser history on map move
                     router.replace(`${pathname}?${params.toString()}`);
                 }
             }
-        }
-    };
+        });
 
-    if (loadError) return <div>Error loading maps</div>;
-    if (!isLoaded) return <Skeleton className="w-full h-full" />;
+        return () => google.maps.event.removeListener(listener);
+    }, [map, router, pathname, searchParams]);
+
+    return null;
+}
+
+export function GoogleMapComponent({ properties, isLoading }: { properties: Property[]; isLoading: boolean }) {
+    const isLoaded = useApiIsLoaded();
+
+    if (!isLoaded) {
+        return <div className="w-full h-full bg-gray-200 animate-pulse" />;
+    }
 
     return (
-        <GoogleMap
-            mapContainerClassName="w-full h-full"
-            center={{ lat: -22.90556, lng: -47.06083 }}
-            zoom={12}
-            onLoad={map => {
-                mapRef.current = map;
-            }}
-            onIdle={onMapIdle}
-            options={{
-                disableDefaultUI: true,
-                zoomControl: true,
-            }}
-        >
-            {!isLoading &&
-                properties.map(prop => (
-                    <Marker
-                        key={prop.id}
-                        position={{ lat: prop.location.latitude, lng: prop.location.longitude }}
-                        title={prop.name}
-                    />
-                ))}
-        </GoogleMap>
+        <div className="w-full h-full">
+            <Map
+                defaultCenter={{ lat: -22.90556, lng: -47.06083 }}
+                defaultZoom={12}
+                disableDefaultUI={true}
+                zoomControl={true}
+                mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID!}
+            >
+                <MapEvents />
+                {!isLoading &&
+                    properties.map(prop => (
+                        <AdvancedMarker
+                            key={prop.id}
+                            position={{ lat: prop.location.latitude, lng: prop.location.longitude }}
+                            title={prop.name}
+                        />
+                    ))}
+            </Map>
+        </div>
     );
 }

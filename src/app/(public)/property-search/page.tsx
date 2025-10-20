@@ -1,25 +1,22 @@
 "use client";
 
-import {
-    GoogleMapComponent,
-    PropertyList,
-    SearchBar,
-} from "@/components/features/property-search";
+import { GoogleMapComponent, PropertyList, SearchBar } from "@/components/features/property-search";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
+import { MapProvider } from "@/providers/google-maps-provider";
 import { GeoPoint, Timestamp } from "firebase/firestore";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 // --- MOCK DATA (to be replaced with API calls) ---
 const mockProperties: Property[] = Array.from({ length: 8 }).map((_, i) => ({
     id: `prop-${i}`,
     name: `Residencial Vista do Vale ${i + 1}`,
     address: "Av. Brasil, 1234, Campinas - SP",
-    propertyImages: [`https://source.unsplash.com/random/800x600?apartment&sig=${i}`],
+    propertyImages: [], // placeholder for images in mock data; replace with actual fetch in real API call
     deliveryDate: Timestamp.now(),
     launchDate: Timestamp.now(),
     developerRef: {} as any,
@@ -43,7 +40,6 @@ const mockProperties: Property[] = Array.from({ length: 8 }).map((_, i) => ({
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
 }));
-
 
 // --- MAIN PAGE COMPONENT ---
 function PropertySearchPageContent() {
@@ -71,12 +67,6 @@ function PropertySearchPageContent() {
             <div className="pt-20 flex flex-col h-screen">
                 <SearchBar />
                 <Tabs defaultValue="list" className="flex-grow flex flex-col">
-                    <TabsContent value="list" className="flex-grow overflow-y-auto">
-                        <PropertyList properties={properties} isLoading={isLoading} />
-                    </TabsContent>
-                    <TabsContent value="map" className="flex-grow">
-                        <GoogleMapComponent properties={properties} isLoading={isLoading} />
-                    </TabsContent>
                     <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
                         <TabsTrigger value="list" className="text-base h-full">
                             <ListFilter className="mr-2" /> Lista
@@ -85,6 +75,12 @@ function PropertySearchPageContent() {
                             <Map className="mr-2" /> Mapa
                         </TabsTrigger>
                     </TabsList>
+                    <TabsContent value="list" className="flex-grow overflow-y-auto">
+                        <PropertyList properties={properties} isLoading={isLoading} />
+                    </TabsContent>
+                    <TabsContent value="map" className="flex-grow">
+                        <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                    </TabsContent>
                 </Tabs>
             </div>
         );
@@ -109,7 +105,9 @@ function PropertySearchPageContent() {
 export default function PropertySearchPage() {
     return (
         <Suspense fallback={<div>Carregando...</div>}>
-            <PropertySearchPageContent />
+            <MapProvider>
+                <PropertySearchPageContent />
+            </MapProvider>
         </Suspense>
     );
 }
