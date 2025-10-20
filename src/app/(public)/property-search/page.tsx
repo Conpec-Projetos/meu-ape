@@ -1,127 +1,115 @@
-import { Input } from "@/components/ui/input"
-import Image from 'next/image';
-import SearchIcon from '@assets/SearchIcon.svg'
-import { DropdownCheckboxes } from "@/components/features/dropdowns/dropdown-checkbox";
-import MapVector from '@assets/MapVector.svg'
-
-import { CardProp } from "@/components/features/cards/card-property-search";
+"use client";
 
 import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import React from "react";
+    GoogleMapComponent,
+    PropertyList,
+    SearchBar,
+} from "@/components/features/property-search";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Property } from "@/interfaces/property";
+import { GeoPoint, Timestamp } from "firebase/firestore";
+import { ListFilter, Map } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
 
-export default function PropertySearch(){
-
-{/*MUDANÇAS A FAZER:
-
-    -Organização do codigo
-
-    FUNCIONAIS:
-    1-Select com estado inicial correto, atualmente o placeholder não é igual ao selecionado
-    2-DropDown com nome que reflete a quantidade de filtros ativos
-    3- Filtros funcionais**
-
-    DESIGN:
-    1-Ajustar tamanhos e posições
-    2-Fidelidade visual (design igual e etc)
-    
-    
-    */}
-
-
-    return(
-    
-        
-        <main className="bg-[#F2F2F2] overflow-hidden flex flex-col h-screen">
-            <header className="w-screen h-20 bg-gray-500 flex justify-center items-center">HEADER PLACEHOLDER</header>
-
-            <body>
-               {/*
-               Adicionar a logica de filtro e pesquisa
-               */}
-                <div className="flex p-3 pl-10 gap-10">
-                    <div className="relative">
-                    <Image src={SearchIcon} alt="SearchIcon" className="absolute w-6 h-6 top-1.5 left-2"/>
-                    <Input/>
-                    </div>
-                        {/*
-                        Implementar toda a logica de filtro
-                        Adicionar Dinamismo pro name Filtros com Typescript
-                        Possivelmente só fechar quando o usuario clica fora?
-                        */}
-                        <DropdownCheckboxes label="Selecione seus filtros: " Name="Filtros (0)"/>
-                            {/*
-                            Implementar toda a logica de filtro
-                            Iniciar com o Mais Relevantes selecionado
-                            */}
-                         <Select>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Mais relevantes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                <SelectLabel>Filtros</SelectLabel>
-                                <SelectItem value="apple">Mais relevantes</SelectItem>
-                                <SelectItem value="banana">...</SelectItem>
-                                <SelectItem value="blueberry">....</SelectItem>
-                                <SelectItem value="grapes">.....</SelectItem>
-                                <SelectItem value="pineapple">......</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                    </Select>
-
-                </div>
-                            
-
-    
+// --- MOCK DATA (to be replaced with API calls) ---
+const mockProperties: Property[] = Array.from({ length: 8 }).map((_, i) => ({
+    id: `prop-${i}`,
+    name: `Residencial Vista do Vale ${i + 1}`,
+    address: "Av. Brasil, 1234, Campinas - SP",
+    propertyImages: [`https://source.unsplash.com/random/800x600?apartment&sig=${i}`],
+    deliveryDate: Timestamp.now(),
+    launchDate: Timestamp.now(),
+    developerRef: {} as any,
+    features: ["Piscina", "Academia"],
+    floors: 20,
+    unitsPerFloor: 4,
+    location: new GeoPoint(-22.90556 + (Math.random() - 0.5) * 0.05, -47.06083 + (Math.random() - 0.5) * 0.05),
+    searchableUnitFeats: {
+        minPrice: 500000 + i * 50000,
+        maxPrice: 1200000,
+        sizes: [60, 75, 90],
+        bedrooms: [2, 3],
+        baths: [1, 2],
+        garages: [1, 2],
+        minSize: 60,
+        maxSize: 90,
+    },
+    availableUnits: 10,
+    groups: [],
+    description: "Um empreendimento incrível.",
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+}));
 
 
-                <div className="flex p-5 flex-grow overflow-hidden">{/*
-                Todo o body não relacionado a filtros e pesquisa abaixo:
-                Colocar a logica de imagem e pá, nem sei exatamente oq é pra aparecer aqui, perguntar*/}
-                <div className="h-[502px] w-[502px] bg-[#D9D9D9] rounded-[15px] flex justify-center items-center">
-                    <Image src={MapVector} alt="MapVector" className="h-[62px]"></Image></div>
-                            {/*
-                            Fazer um scroll funcional nékkkkkk
-                            */}
-                <div className="w-[16px] h-[556px] bg-[#D9D9D9] rounded-[7px] flex justify-center items-start pt-2 m-1"> 
-                    <div className="h-[123px] w-[12px] bg-white rounded-[7px]">
+// --- MAIN PAGE COMPONENT ---
+function PropertySearchPageContent() {
+    const searchParams = useSearchParams();
+    const isMobile = useIsMobile();
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
+    useEffect(() => {
+        const fetchProperties = async () => {
+            setIsLoading(true);
+            // MOCK API CALL
+            // In a real app, you would call your Firebase function here, passing the searchParams
+            console.log("Fetching properties with params:", searchParams.toString());
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+            setProperties(mockProperties);
+            setIsLoading(false);
+        };
 
-                    </div>
-                </div>
-                
+        fetchProperties();
+    }, [searchParams]);
 
-                <div className="h-full overflow-y-auto">
+    if (isMobile) {
+        return (
+            <div className="pt-20 flex flex-col h-screen">
+                <SearchBar />
+                <Tabs defaultValue="list" className="flex-grow flex flex-col">
+                    <TabsContent value="list" className="flex-grow overflow-y-auto">
+                        <PropertyList properties={properties} isLoading={isLoading} />
+                    </TabsContent>
+                    <TabsContent value="map" className="flex-grow">
+                        <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                    </TabsContent>
+                    <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
+                        <TabsTrigger value="list" className="text-base h-full">
+                            <ListFilter className="mr-2" /> Lista
+                        </TabsTrigger>
+                        <TabsTrigger value="map" className="text-base h-full">
+                            <Map className="mr-2" /> Mapa
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+        );
+    }
 
-                <div className="grid grid-cols-2 grid-rows-3 gap-1.5">
-                    {/*
-                    Criar um componente melhor, com mais dinamismo.
-                    Ex: Props de Nome, imagem, descrição e etc. */}
-                    {Array.from({ length: 12 }).map((_, index) => (
-                        <CardProp 
-                        key={index}
-                        title={`Moradia estudantil - Bloco ${index + 1}`}
-                        deadline="10/09/2028"
-                        launch="10/09/2025"
-                        address="Av. Santa Isabel, 1125 - Vila Santa Isabel - Campinas"
-                        />
-                    ))}
-                    </div>
+    return (
+        <div className="pt-20 flex flex-col h-screen">
+            <SearchBar />
+            <ResizablePanelGroup direction="horizontal" className="flex-grow border-t">
+                <ResizablePanel defaultSize={55} minSize={30}>
+                    <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={45} minSize={30}>
+                    <PropertyList properties={properties} isLoading={isLoading} />
+                </ResizablePanel>
+            </ResizablePanelGroup>
+        </div>
+    );
+}
 
-                </div>
-
-                    
-                </div>
-            </body>
-
-        </main>
-
-);}
+export default function PropertySearchPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <PropertySearchPageContent />
+        </Suspense>
+    );
+}
