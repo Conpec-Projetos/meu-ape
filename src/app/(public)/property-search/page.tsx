@@ -19,6 +19,7 @@ const mockProperties: Property[] = Array.from({ length: 8 }).map((_, i) => ({
     propertyImages: [], // placeholder for images in mock data; replace with actual fetch in real API call
     deliveryDate: Timestamp.now(),
     launchDate: Timestamp.now(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     developerRef: {} as any,
     features: ["Piscina", "Academia"],
     floors: 20,

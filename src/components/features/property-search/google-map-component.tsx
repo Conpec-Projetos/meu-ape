@@ -3,7 +3,7 @@
 import { Property } from "@/interfaces/property";
 import { AdvancedMarker, Map, useApiIsLoaded, useMap } from "@vis.gl/react-google-maps";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function MapEvents() {
     const router = useRouter();
@@ -38,8 +38,17 @@ function MapEvents() {
 
 export function GoogleMapComponent({ properties, isLoading }: { properties: Property[]; isLoading: boolean }) {
     const isLoaded = useApiIsLoaded();
+    const [colorScheme, setColorScheme] = useState<google.maps.ColorScheme | null>(null);
 
-    if (!isLoaded) {
+    useEffect(() => {
+        if (isLoaded) {
+            google.maps.importLibrary("core").then(() => {
+                setColorScheme(google.maps.ColorScheme.DARK);
+            });
+        }
+    }, [isLoaded]);
+
+    if (!isLoaded || !colorScheme) {
         return <div className="w-full h-full bg-gray-200 animate-pulse" />;
     }
 
@@ -50,6 +59,7 @@ export function GoogleMapComponent({ properties, isLoading }: { properties: Prop
                 defaultZoom={12}
                 disableDefaultUI={true}
                 zoomControl={true}
+                colorScheme={colorScheme}
                 mapId={process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID!}
             >
                 <MapEvents />
