@@ -1,6 +1,7 @@
 import { DocumentReference, Timestamp } from "firebase/firestore";
 
-interface ClientDataSnapshot {
+interface Client {
+    ref: DocumentReference;
     fullName: string;
     address: string;
     phone: string;
@@ -15,21 +16,26 @@ interface ClientDataSnapshot {
 export interface ReservationRequest {
     id?: string; // id do documento no Firebase
     status: "pending" | "approved" | "denied";
-    clientRef: DocumentReference; // referência ao documento do cliente na coleção users
-    clientName: string; // nome do cliente
-    propertyRef: DocumentReference; // referência ao documento do imóvel na coleção properties
-    propertyName: string; // nome do imóvel
-    propertyBlock: string;
-    propertyUnit: string;
-    agentsRef?: DocumentReference[]; // referência ao corretores alocados (na coleção users)
-    agentsName: string[]; // nome do corretor
-    agentsCreci: string[]; // creci dos corretores
-    agentsEmail: string[]; // email dos 
-    message: string;
-    agentsPhone: string[]; // número dos corretores
-    requestedSlots: (Date | Timestamp)[]; // horários solicitados pelo cliente
-    scheduledSlot?: Date | Timestamp; // horário final agendado pelo administrador
-    adminMsg?: string; // mensagem para o cliente em caso de negação
+    client: Client; // referência e cópia dos dados e documentos do cliente no momento da solicitação
+    property: {
+        ref: DocumentReference; // referência ao imóvel pai na coleção properties
+        name: string; // nome do imóvel/empreendimento
+    };
+    unit: {
+        ref: DocumentReference; // referência à unidade específica em /properties/{id}/units/{id}
+        identifier: string; // identificador da unidade
+        block: string;
+    };
+    agents?: {
+        // array de map dos corretores associados/alocados para a solicitação
+        ref: DocumentReference; // referência a corretor alocado (na coleção users)
+        name: string; // nome do corretor associado/alocado para a solicitação
+        email: string; // email do corretor associado/alocado para a solicitação
+        phone: string; // telefone do corretor associado/alocado para a solicitação
+        creci: string; // creci do corretor
+    }[];
+    agentMsg?: string; // mensagem para o corretor
+    clientMsg?: string; // mensagem para o cliente
     createdAt: Date | Timestamp;
     updatedAt: Date | Timestamp;
 }
