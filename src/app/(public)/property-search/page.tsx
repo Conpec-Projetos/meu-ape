@@ -1,127 +1,131 @@
-import { Input } from "@/components/ui/input"
-import Image from 'next/image';
-import SearchIcon from '@assets/SearchIcon.svg'
-import { DropdownCheckboxes } from "@/components/features/dropdowns/dropdown-checkbox";
-import MapVector from '@assets/MapVector.svg'
+"use client";
 
-import { CardProp } from "@/components/features/cards/card-property-search";
+import { GoogleMapComponent, PropertyList, SearchBar } from "@/components/features/property-search";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Property } from "@/interfaces/property";
+import { MapProvider } from "@/providers/google-maps-provider";
+import { ListFilter, Map } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useInView } from "react-intersection-observer";
 
-import {
-    Select,
-    SelectContent,
-    SelectGroup,
-    SelectItem,
-    SelectLabel,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import React from "react";
+// --- MAIN PAGE COMPONENT ---
+function PropertySearchPageContent() {
+    const searchParams = useSearchParams();
+    const isMobile = useIsMobile();
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [nextPageCursor, setNextPageCursor] = useState<string | null>(null);
+    const [hasNextPage, setHasNextPage] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-export default function PropertySearch(){
+    const { ref, inView } = useInView({
+        threshold: 0,
+        triggerOnce: false,
+    });
 
-{/*MUDANÇAS A FAZER:
+    const fetchProperties = useCallback(
+        async (cursor: string | null) => {
+            if (!cursor) {
+                setIsLoading(true);
+            } else {
+                setIsFetchingMore(true);
+            }
+            setError(null);
 
-    -Organização do codigo
+            const params = new URLSearchParams(searchParams.toString());
+            if (cursor) {
+                params.set("cursor", cursor);
+            }
 
-    FUNCIONAIS:
-    1-Select com estado inicial correto, atualmente o placeholder não é igual ao selecionado
-    2-DropDown com nome que reflete a quantidade de filtros ativos
-    3- Filtros funcionais**
+            try {
+                const response = await fetch(`/api/properties?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch: ${response.statusText}`);
+                }
+                const data = await response.json();
 
-    DESIGN:
-    1-Ajustar tamanhos e posições
-    2-Fidelidade visual (design igual e etc)
-    
-    
-    */}
+                setProperties(prev => (cursor ? [...prev, ...data.properties] : data.properties));
+                setNextPageCursor(data.nextPageCursor);
+                setHasNextPage(data.hasNextPage);
+            } catch (e) {
+                setError(e instanceof Error ? e.message : "An unknown error occurred");
+            } finally {
+                setIsLoading(false);
+                setIsFetchingMore(false);
+            }
+        },
+        [searchParams]
+    );
 
+    // Effect for initial load and search param changes
+    useEffect(() => {
+        setProperties([]);
+        setNextPageCursor(null);
+        setHasNextPage(true);
+        fetchProperties(null);
+    }, [fetchProperties]);
 
-    return(
-    
-        
-        <main className="bg-[#F2F2F2] overflow-hidden flex flex-col h-screen">
-            <header className="w-screen h-20 bg-gray-500 flex justify-center items-center">HEADER PLACEHOLDER</header>
+    // Effect for infinite scroll
+    useEffect(() => {
+        if (inView && hasNextPage && !isLoading && !isFetchingMore && nextPageCursor) {
+            fetchProperties(nextPageCursor);
+        }
+    }, [inView, hasNextPage, isLoading, isFetchingMore, nextPageCursor, fetchProperties]);
 
-            <body>
-               {/*
-               Adicionar a logica de filtro e pesquisa
-               */}
-                <div className="flex p-3 pl-10 gap-10">
-                    <div className="relative">
-                    <Image src={SearchIcon} alt="SearchIcon" className="absolute w-6 h-6 top-1.5 left-2"/>
-                    <Input/>
-                    </div>
-                        {/*
-                        Implementar toda a logica de filtro
-                        Adicionar Dinamismo pro name Filtros com Typescript
-                        Possivelmente só fechar quando o usuario clica fora?
-                        */}
-                        <DropdownCheckboxes label="Selecione seus filtros: " Name="Filtros (0)"/>
-                            {/*
-                            Implementar toda a logica de filtro
-                            Iniciar com o Mais Relevantes selecionado
-                            */}
-                         <Select>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Mais relevantes" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                <SelectLabel>Filtros</SelectLabel>
-                                <SelectItem value="apple">Mais relevantes</SelectItem>
-                                <SelectItem value="banana">...</SelectItem>
-                                <SelectItem value="blueberry">....</SelectItem>
-                                <SelectItem value="grapes">.....</SelectItem>
-                                <SelectItem value="pineapple">......</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                    </Select>
+    if (isMobile) {
+        return (
+            <div className="pt-20 flex flex-col h-screen">
+                <SearchBar />
+                <Tabs defaultValue="list" className="flex-grow flex flex-col">
+                    <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
+                        <TabsTrigger value="list" className="text-base h-full">
+                            <ListFilter className="mr-2" /> Lista
+                        </TabsTrigger>
+                        <TabsTrigger value="map" className="text-base h-full">
+                            <Map className="mr-2" /> Mapa
+                        </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="list" className="flex-grow overflow-y-auto">
+                        <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
+                        {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                        {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
+                    </TabsContent>
+                    <TabsContent value="map" className="flex-grow">
+                        <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                    </TabsContent>
+                </Tabs>
+            </div>
+        );
+    }
 
-                </div>
-                            
+    return (
+        <div className="pt-20 flex flex-col h-screen">
+            <SearchBar />
+            <ResizablePanelGroup direction="horizontal" className="flex-grow border-t">
+                <ResizablePanel defaultSize={55} minSize={30}>
+                    <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={45} minSize={30}>
+                    <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
+                    {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                    {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
+                </ResizablePanel>
+            </ResizablePanelGroup>
+        </div>
+    );
+}
 
-    
-
-
-                <div className="flex p-5 flex-grow overflow-hidden">{/*
-                Todo o body não relacionado a filtros e pesquisa abaixo:
-                Colocar a logica de imagem e pá, nem sei exatamente oq é pra aparecer aqui, perguntar*/}
-                <div className="h-[502px] w-[502px] bg-[#D9D9D9] rounded-[15px] flex justify-center items-center">
-                    <Image src={MapVector} alt="MapVector" className="h-[62px]"></Image></div>
-                            {/*
-                            Fazer um scroll funcional nékkkkkk
-                            */}
-                <div className="w-[16px] h-[556px] bg-[#D9D9D9] rounded-[7px] flex justify-center items-start pt-2 m-1"> 
-                    <div className="h-[123px] w-[12px] bg-white rounded-[7px]">
-
-
-                    </div>
-                </div>
-                
-
-                <div className="h-full overflow-y-auto">
-
-                <div className="grid grid-cols-2 grid-rows-3 gap-1.5">
-                    {/*
-                    Criar um componente melhor, com mais dinamismo.
-                    Ex: Props de Nome, imagem, descrição e etc. */}
-                    {Array.from({ length: 12 }).map((_, index) => (
-                        <CardProp 
-                        key={index}
-                        title={`Moradia estudantil - Bloco ${index + 1}`}
-                        deadline="10/09/2028"
-                        launch="10/09/2025"
-                        address="Av. Santa Isabel, 1125 - Vila Santa Isabel - Campinas"
-                        />
-                    ))}
-                    </div>
-
-                </div>
-
-                    
-                </div>
-            </body>
-
-        </main>
-
-);}
+export default function PropertySearchPage() {
+    return (
+        <Suspense fallback={<div>Carregando...</div>}>
+            <MapProvider>
+                <PropertySearchPageContent />
+            </MapProvider>
+        </Suspense>
+    );
+}
