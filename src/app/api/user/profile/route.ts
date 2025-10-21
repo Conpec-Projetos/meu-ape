@@ -1,61 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { profileUpdateSchema } from "@/schemas/profileUpdateSchema";
-import { verifySessionCookie, adminDb as db, admin } from "@/firebase/firebase-admin-config";
+import { verifySessionCookie } from "@/firebase/firebase-admin-config"; // For getting user ID
+import { updateUserProfileData } from "@/firebase/users/service"; // We'll create this function
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function PUT(request: NextRequest) {
+    try {
+        // 1. Verify user session
+        const sessionCookie = request.cookies.get("session")?.value;
+        if (!sessionCookie) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const decodedClaims = await verifySessionCookie(sessionCookie);
+        if (!decodedClaims) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const userId = decodedClaims.uid;
 
-    const session = req.cookies.get("session")?.value;
-  if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+        // 2. Get data from request body
+        const dataToUpdate = await request.json();
 
-  const decoded = await verifySessionCookie(session);
-  if (!decoded?.uid) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+        // Basic validation (optional, Zod handles stricter validation on client)
+        if (!dataToUpdate || Object.keys(dataToUpdate).length === 0) {
+            return NextResponse.json({ error: "No data provided" }, { status: 400 });
+        }
 
-  const uid = decoded.uid as string;
-  const userRef = db.collection("users").doc(uid);
-  const userDoc = await userRef.get();
-  if (!userDoc.exists) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        // 3. Call service function to update Firestore
+        await updateUserProfileData(userId, dataToUpdate);
 
-  const userData = userDoc.data();
-  return NextResponse.json({ user: { id: userDoc.id, ...userData } });
-}
-
-export async function PUT(req: NextRequest) {
-  const session = req.cookies.get("session")?.value;
-  if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-
-  const decoded = await verifySessionCookie(session);
-  if (!decoded?.uid) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
-  const uid = decoded.uid as string;
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  const parsed = profileUpdateSchema.safeParse(body);
-  if (!parsed.success) {
-    const issues = parsed.error.errors.map((e) => ({ field: e.path.join("."), message: e.message }));
-    return NextResponse.json({ error: "Invalid input", issues }, { status: 400 });
-  }
-
-  const update = parsed.data as Record<string, any>;
-
-  try {
-    const userRef = db.collection("users").doc(uid);
-    await userRef.update({
-      ...update,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    const updatedDoc = await userRef.get();
-    const data = updatedDoc.data() || {};
-    const updatedAtIso = (data.updatedAt && typeof data.updatedAt.toDate === "function") ? data.updatedAt.toDate().toISOString() : (data.updatedAt ?? null);
-
-    return NextResponse.json({ user: { id: updatedDoc.id, ...data, updatedAt: updatedAtIso } });
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
-  }
+        // 4. Return success response
+        return NextResponse.json({ success: true, message: "Profile updated successfully" });
+    } catch (error) {
+        console.error("Error updating user profile:", error);
+        const message = error instanceof Error ? error.message : "Internal Server Error";
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
 }

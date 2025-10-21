@@ -12,9 +12,12 @@ import {
     FormMessage,
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
+import { db } from "@/firebase/firebase-config";
 import { criarPropriedade } from "@/firebase/properties/service";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
+import { GeoPoint, doc } from "firebase/firestore";
 import { LayoutGrid, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,16 +27,16 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 const formSchema = z.object({
-    nomeEmpreendimento: z.string().min(1, {
+    name: z.string().min(1, {
         message: "Nome do empreendimento é obrigatório.",
     }),
-    enderecoCompleto: z.string().min(1, {
+    address: z.string().min(1, {
         message: "Endereço completo é obrigatório.",
     }),
-    prazoEntrega: z.string().min(1, {
+    deliveryDate: z.string().min(1, {
         message: "Prazo de entrega é obrigatório.",
     }),
-    dataLancamento: z.string().min(1, {
+    launchDate: z.string().min(1, {
         message: "Data de lançamento é obrigatória.",
     }),
 });
@@ -50,10 +53,10 @@ export default function PropertyPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            nomeEmpreendimento: "",
-            enderecoCompleto: "",
-            prazoEntrega: "",
-            dataLancamento: "",
+            name: "",
+            address: "",
+            deliveryDate: "",
+            launchDate: "",
         },
     });
 
@@ -108,7 +111,7 @@ export default function PropertyPage() {
                 setSelectedImages(prev => [...prev, ...compressedFiles]);
             } catch (error) {
                 console.error("Error processing images:", error);
-                toast.error("Erro ao processar imagens. Tente novamente.");
+                notifyError("Erro ao processar imagens. Tente novamente.");
             } finally {
                 setIsUploadingImages(false);
             }
@@ -125,9 +128,28 @@ export default function PropertyPage() {
 
         try {
             const propertyData = {
-                ...values,
-                dataLancamento: new Date(values.dataLancamento),
-                prazoEntrega: new Date(values.prazoEntrega),
+                name: values.name,
+                address: values.address,
+                deliveryDate: new Date(values.deliveryDate),
+                launchDate: new Date(values.launchDate),
+                developerRef: doc(db, "developers", "default"), // Add a default developer reference
+                developerName: "Construtora Teste",
+                location: new GeoPoint(0, 0),
+                features: [],
+                floors: 0,
+                unitsPerFloor: 0,
+                description: "",
+                searchableUnitFeats: {
+                    sizes: [],
+                    bedrooms: [],
+                    baths: [],
+                    garages: [],
+                    minPrice: 0,
+                    maxPrice: 0,
+                    minSize: 0,
+                    maxSize: 0,
+                },
+                groups: [],
             };
 
             if (selectedImages.length > 0) {
@@ -143,14 +165,14 @@ export default function PropertyPage() {
             await criarPropriedade(propertyData, selectedImages);
 
             toast.dismiss("upload-progress");
-            toast.success("Empreendimento cadastrado com sucesso! 🎉");
+            notifySuccess("Empreendimento cadastrado com sucesso! 🎉");
 
             form.reset();
             setSelectedImages([]);
             setImagePreviews([]);
         } catch {
             toast.dismiss("upload-progress");
-            toast.error("Erro ao cadastrar empreendimento. Verifique sua conexão e tente novamente.");
+            notifyError("Erro ao cadastrar empreendimento. Verifique sua conexão e tente novamente.");
         } finally {
             setIsLoading(false);
         }
@@ -177,7 +199,7 @@ export default function PropertyPage() {
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                 <FormField
                                     control={form.control}
-                                    name="nomeEmpreendimento"
+                                    name="name"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Nome do Empreendimento</FormLabel>
@@ -192,7 +214,7 @@ export default function PropertyPage() {
 
                                 <FormField
                                     control={form.control}
-                                    name="enderecoCompleto"
+                                    name="address"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Endereço Completo</FormLabel>
@@ -212,7 +234,7 @@ export default function PropertyPage() {
 
                                 <FormField
                                     control={form.control}
-                                    name="dataLancamento"
+                                    name="launchDate"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Data de Lançamento</FormLabel>
@@ -229,7 +251,7 @@ export default function PropertyPage() {
 
                                 <FormField
                                     control={form.control}
-                                    name="prazoEntrega"
+                                    name="deliveryDate"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Prazo de Entrega</FormLabel>

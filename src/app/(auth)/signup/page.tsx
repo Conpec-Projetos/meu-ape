@@ -14,6 +14,7 @@ import { Input } from "@/components/features/inputs/default-input";
 import { auth } from "@/firebase/firebase-config";
 import { User } from "@/interfaces/user";
 import { signupSchema } from "@/schemas/signupSchema";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, getFirestore, setDoc } from "firebase/firestore";
@@ -23,7 +24,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import * as z from "zod";
 
 export default function RegisterPage() {
@@ -62,13 +62,13 @@ export default function RegisterPage() {
 
             await setDoc(userRef, newUser);
 
-            toast.success("Conta criada com sucesso! Redirecionando...");
+            notifySuccess("Conta criada com sucesso! Redirecionando...");
             router.push("/");
         } catch (error) {
             if (error instanceof Error) {
-                toast.error(error.message);
+                notifyError(error.message);
             } else {
-                toast.error("Ocorreu um erro desconhecido.");
+                notifyError("Ocorreu um erro desconhecido.");
             }
         } finally {
             setIsLoading(false);

@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import { countProperties } from "@/firebase/properties/service";
+import { notifyError } from "@/services/notificationService";
 import { Building } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 export default function DashboardPage() {
     const [propertiesNum, setPropertiesNum] = useState<number>(0);
@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
                 console.log(`Successfully fetched ${num} properties`);
             } catch {
-                toast.error("Erro ao carregar dados do dashboard");
+                notifyError("Erro ao carregar dados do dashboard");
             } finally {
                 setLoading(false);
             }
