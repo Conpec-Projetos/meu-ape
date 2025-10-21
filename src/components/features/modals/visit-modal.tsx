@@ -87,12 +87,12 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
         } else {
             try {
                 setLoading(true);
-                const res = await fetch('/api/visitas', {
+                const res = await fetch('/api/requests/visit', {
                     method: 'POST',
                     headers: {
                     'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ horarios: selectedSlots, propertyId: property.id }),
+                    body: JSON.stringify({ requestedSlots: selectedSlots, property: property }),
                 });
 
                 const data = await res.json();
@@ -139,7 +139,8 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
 
     useEffect(() => {
         if (!isOpen) {
-            setSelected({});            
+            setSelected({});
+            setStep(1);          
         }
     }, [isOpen]);
 
