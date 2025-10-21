@@ -1,7 +1,7 @@
-import { adminAuth, adminDb as db } from "@/firebase/firebase-admin-config";
+import { adminAuth, adminStorage, adminDb as db } from "@/firebase/firebase-admin-config";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { User } from "@/interfaces/user";
-import { Timestamp as AdminTimestamp, CollectionReference, DocumentData } from "firebase-admin/firestore";
+import { Timestamp as AdminTimestamp, CollectionReference, DocumentData, FieldValue } from "firebase-admin/firestore";
 import { DocumentReference as ClientDocumentReference, Timestamp as ClientTimestamp } from "firebase/firestore";
 
 const listPaginated = async (
@@ -197,4 +197,79 @@ export const denyAgentRequest = async (requestId: string, adminMsg: string) => {
         adminMsg,
         resolvedAt: AdminTimestamp.now(),
     });
+};
+
+// --- New function to update profile data ---
+export const updateUserProfileData = async (userId: string, dataToUpdate: Partial<User>) => {
+    if (!userId) {
+        throw new Error("User ID is required.");
+    }
+    const userRef = db.collection("users").doc(userId);
+
+    const updatePayload: DocumentData = {
+        ...dataToUpdate,
+        updatedAt: AdminTimestamp.now(),
+    };
+
+    delete updatePayload.id;
+    delete updatePayload.email;
+    delete updatePayload.role;
+
+    // The update method works correctly with AdminTimestamp
+    await userRef.update(updatePayload); // No need to cast now
+    console.log(`User profile data updated for userId: ${userId}`);
+};
+
+// --- New function to upload documents ---
+export const uploadUserDocuments = async (
+    userId: string,
+    filesByField: Record<string, File[]>
+): Promise<Record<string, string[]>> => {
+    if (!userId) {
+        throw new Error("User ID is required.");
+    }
+    const userRef = db.collection("users").doc(userId);
+    const bucket = adminStorage.bucket(); // Get default bucket
+    const uploadedUrls: Record<string, string[]> = {};
+
+    const uploadPromises = Object.entries(filesByField).map(async ([fieldName, files]) => {
+        const fieldUrls: string[] = [];
+        for (const file of files) {
+            // Generate a unique filename
+            const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+            const fileExtension = file.name.split(".").pop() || "";
+            const uniqueFileName = `${fieldName}-${uniqueSuffix}.${fileExtension}`;
+            const filePath = `clientFiles/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
+            const fileUpload = bucket.file(filePath);
+
+            // Convert File to Buffer (required for admin SDK upload)
+            const buffer = Buffer.from(await file.arrayBuffer());
+
+            // Upload the file buffer
+            await fileUpload.save(buffer, {
+                metadata: { contentType: file.type },
+            });
+
+            // Make file public (or use signed URLs for private files)
+            await fileUpload.makePublic();
+
+            // Get the public URL
+            const publicUrl = fileUpload.publicUrl();
+            fieldUrls.push(publicUrl);
+            console.log(`Uploaded ${file.name} to ${publicUrl}`);
+        }
+
+        // Update Firestore document with the URLs for this specific field
+        // Use dot notation for nested fields
+        await userRef.update({
+            [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
+            updatedAt: AdminTimestamp.now(), // Update timestamp
+        });
+
+        uploadedUrls[fieldName] = fieldUrls;
+    });
+
+    await Promise.all(uploadPromises);
+    console.log(`User documents updated for userId: ${userId}`);
+    return uploadedUrls;
 };

@@ -1,5 +1,8 @@
 "use client";
 
+import { JustInTimeDataModal } from "@/components/features/modals/justIn-time-data-modal";
+import { ReservationModal } from "@/components/features/modals/reservation-modal";
+import { VisitModal } from "@/components/features/modals/visit-modal";
 import { MatterportViewer } from "@/components/features/property/matterport-viewer";
 import { PropertyHeader } from "@/components/features/property/property-header";
 import { PropertyImageGallery } from "@/components/features/property/property-image-gallery";
@@ -7,11 +10,14 @@ import { PropertyMap } from "@/components/features/property/property-map";
 import { UnitList } from "@/components/features/property/unit-list";
 import { UnitSelector, UnitStructure } from "@/components/features/property/unit-selector";
 import { Skeleton } from "@/components/ui/skeleton";
+import { actionRequirements } from "@/config/actionRequirements";
+import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { DocumentReference, GeoPoint, Timestamp } from "firebase/firestore";
+import { doc, DocumentData, DocumentReference, GeoPoint, getDoc, Timestamp } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 // Mock data and functions to simulate Firebase calls
 const mockProperty: Property = {
@@ -81,6 +87,87 @@ export default function PropertyPage() {
 
     const [matterportUrl, setMatterportUrl] = useState("");
     const [isMatterportOpen, setIsMatterportOpen] = useState(false);
+
+    // User data
+    const [currentUser, setCurrentUser] = useState<DocumentData>();
+    const refetchUserData = async () => {
+        const user = auth.currentUser;
+
+        const userDocRef = doc(db, "users", user?.uid || "");
+        getDoc(userDocRef)
+            .then(docSnap => {
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    setCurrentUser(userData);
+                } else {
+                    alert("Usuário não encontrado. Por favor, faça login novamente.");
+                }
+            })
+            .catch((error: unknown) => {
+                if (error instanceof Error) {
+                    console.error("Erro ao buscar dados do usuário:", error.message);
+                } else {
+                    console.error("Erro ao buscar dados do usuário:", String(error));
+                }
+            });
+    };
+
+    useEffect(() => {
+        refetchUserData();
+    }, []);
+
+    // Request visit modal
+    const [visitModal, setVisitModal] = useState<boolean>(false);
+    const [unit, setUnit] = useState<Unit>();
+    const openVisitCalendarModal = () => {
+        setVisitModal(true);
+    };
+
+    // Request reservation modal
+    const [reservationModal, setReservationModal] = useState<boolean>(false);
+    const openReservationConfirmModal = () => {
+        setReservationModal(true);
+    };
+
+    // Action guard
+    const [isJitModalOpen, setIsJitModalOpen] = useState(false);
+    const [missingFields, setMissingFields] = useState<string[]>([]);
+    const [lastAction, setLastAction] = useState<string>("");
+
+    const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unit: Unit) => {
+        const required = actionRequirements[actionType];
+
+        await refetchUserData();
+
+        const userData = currentUser;
+        const missingFields: string[] = [];
+        const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "marriageCert"];
+
+        required.forEach(field => {
+            if (requiredDocs.includes(field)) {
+                // Check if document is uploaded
+                if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
+                    missingFields.push(field);
+                }
+            } else if (!userData?.[field]) {
+                missingFields.push(field);
+            }
+        });
+
+        setUnit(unit);
+        setLastAction(actionType);
+        if (missingFields.length > 0) {
+            setMissingFields(missingFields);
+            setIsJitModalOpen(true);
+        } else {
+            // Prossiga com a ação original
+            if (actionType === "REQUEST_VISIT") {
+                openVisitCalendarModal();
+            } else if (actionType === "REQUEST_RESERVATION") {
+                openReservationConfirmModal();
+            }
+        }
+    };
 
     // Initial data fetching for the property
     useEffect(() => {
@@ -230,6 +317,7 @@ export default function PropertyPage() {
                                 hasNextPage={hasNextPage}
                                 isLoading={isLoadingUnits}
                                 onViewMatterport={handleViewMatterport}
+                                handleGuardedAction={handleGuardedAction}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full bg-secondary/30 rounded-xl p-8">
@@ -247,6 +335,42 @@ export default function PropertyPage() {
                 url={matterportUrl}
                 isOpen={isMatterportOpen}
                 onClose={() => setIsMatterportOpen(false)}
+            />
+
+            {/* JustInTime modal*/}
+            <JustInTimeDataModal
+                missingFields={missingFields}
+                onClose={() => setIsJitModalOpen(false)}
+                isOpen={isJitModalOpen}
+                onSubmit={() => {
+                    toast.success("Informações atualizadas com sucesso!");
+                    setIsJitModalOpen(false);
+                    refetchUserData();
+
+                    if (lastAction === "REQUEST_VISIT") {
+                        openVisitCalendarModal();
+                    } else if (lastAction === "REQUEST_RESERVATION") {
+                        openReservationConfirmModal();
+                    }
+                }}
+            />
+
+            {/* Request Visit Modal*/}
+            <VisitModal
+                onClose={() => setVisitModal(false)}
+                unit={unit!}
+                property={property}
+                onSubmit={() => setVisitModal(false)}
+                isOpen={visitModal}
+            />
+
+            {/* Request Reservation modal*/}
+            <ReservationModal
+                onClose={() => setReservationModal(false)}
+                unit={unit!}
+                property={property}
+                onSubmit={() => setReservationModal(false)}
+                isOpen={reservationModal}
             />
         </div>
     );
