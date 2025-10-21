@@ -1,29 +1,92 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogOverlay, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { profileUpdateSchema } from "@/schemas/profileUpdateSchema";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { DownloadIcon } from "lucide-react";
-import React, { useEffect } from "react";
+import { Button } from "@/components/features/buttons/default-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/features/forms/default-form";
+import { Input } from "@/components/features/inputs/default-input";
+import { Label } from "@/components/features/labels/default-label";
+import { Skeleton } from "@/components/features/skeletons/default-skeleton";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { auth } from "@/firebase/firebase-config";
+import { cn } from "@/lib/utils";
+import { ProfileUpdate, profileUpdateSchema } from "@/schemas/profileUpdateSchema";
+import { notifyError, notifyInfo, notifyPromise } from "@/services/notificationService";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { Eye, EyeOff, FileCheck, FileText, Loader } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import type { Resolver } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import z from "zod";
+
+const passwordChangeSchema = z
+    .object({
+        currentPassword: z.string().min(1, "Senha atual é obrigatória"),
+        newPassword: z.string().min(8, "Nova senha deve ter pelo menos 8 caracteres"),
+        confirmNewPassword: z.string(),
+    })
+    .refine(data => data.newPassword === data.confirmNewPassword, {
+        message: "As novas senhas não correspondem",
+        path: ["confirmNewPassword"],
+    });
+type PasswordChangeData = z.infer<typeof passwordChangeSchema>;
 
 export default function UserConfig() {
-    const [activeTab, setActiveTab] = React.useState("conta");
-    const [name, setName] = React.useState<string>("");
-    const [email, setEmail] = React.useState<string>("");
-    const [address, setAddress] = React.useState<string>("");
-    const [cpf, setCpf] = React.useState<string>("");
-    const [phone, setPhone] = React.useState<string>("");
-    const [loading, setLoading] = React.useState<boolean>(true);
-    const [, setError] = React.useState<string | null>(null);
-    const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
-    const [uploading, setUploading] = React.useState(false);
-    const [uploadedUrls, setUploadedUrls] = React.useState<Record<string, string[]>>({});
-    const [pendingFiles, setPendingFiles] = React.useState<Record<string, File | null>>({});
+    const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
+    const [apiError, setApiError] = useState<string | null>(null);
 
+    // --- Estado dos Documentos ---
+    const [uploading, setUploading] = useState(false);
+    const [uploadedUrls, setUploadedUrls] = useState<Record<string, string[]>>({}); // Armazena URLs existentes
+    const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({}); // Armazena arquivos selecionados
+
+    // --- Estado do Modal de Senha ---
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+
+    // --- Form de Dados Pessoais ---
+    const form = useForm<ProfileUpdate>({
+        // zodResolver has a slightly different generic; cast to Resolver<ProfileUpdate>
+        resolver: zodResolver(profileUpdateSchema) as unknown as Resolver<ProfileUpdate>,
+        defaultValues: {
+            fullName: "",
+            address: "",
+            cpf: "",
+            phone: "",
+        },
+    });
+
+    // --- Form do Modal de Senha ---
+    const passwordForm = useForm<PasswordChangeData>({
+        resolver: zodResolver(passwordChangeSchema),
+        defaultValues: {
+            currentPassword: "",
+            newPassword: "",
+            confirmNewPassword: "",
+        },
+    });
+
+    // --- Funções de Formatação ---
     const onlyDigits = (v: string) => (v || "").toString().replace(/\D/g, "");
 
-    const formatCPF = React.useCallback((v: string) => {
+    const formatCPF = useCallback((v: string) => {
         const d = onlyDigits(v).slice(0, 11);
         if (!d) return "";
         return d.replace(/(\d{1,3})(\d{3})(\d{3})(\d{0,2})/, (_, a, b, c, d2) => {
@@ -33,7 +96,7 @@ export default function UserConfig() {
         });
     }, []);
 
-    const formatPhone = React.useCallback((v: string) => {
+    const formatPhone = useCallback((v: string) => {
         const d = onlyDigits(v);
         if (!d) return "";
         if (d.length <= 2) return `(${d}`;
@@ -42,356 +105,627 @@ export default function UserConfig() {
         return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
     }, []);
 
-    const uploadDocument = async (file: File | null, documentType: string) => {
-        if (!file) return;
-        setUploading(true);
-        setError(null);
-        try {
-            const form = new FormData();
-            form.append("file", file);
-            form.append("documentType", documentType);
-
-            const res = await fetch("/api/user/documents/upload", { method: "POST", body: form });
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `HTTP ${res.status}`);
-            }
-            const data = await res.json();
-            const url = data.url as string;
-            setUploadedUrls(prev => ({ ...prev, [documentType]: [url] }));
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            setError(message || "Erro ao enviar documento");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const DocumentRow: React.FC<{
-        label: string;
-        typeKey: string;
-        uploadedUrls: string[];
-        pendingFile?: File | null;
-        setPendingFile: (f: File | null) => void;
-    }> = ({ label, typeKey, uploadedUrls, pendingFile, setPendingFile }) => {
-        const inputId = `doc-${typeKey}`;
-        return (
-            <div className="gap-4">
-                <h1 className="flex flex-row pb-1 text-2xl text-[#4D4D4D]">
-                    {label}:
-                    <div className="ml-2">
-                        {uploadedUrls.map((u, i) => (
-                            <a
-                                key={i}
-                                href={u}
-                                target="_blank"
-                                rel="noreferrer"
-                                className=" text-sm text-blue-600 underline"
-                            >
-                                Ver {label}
-                            </a>
-                        ))}
-                        {pendingFile && (
-                            <span className="text-sm text-gray-600">
-                                Arquivo pronto para upload: {pendingFile.name}
-                            </span>
-                        )}
-                    </div>
-                </h1>
-                <label
-                    htmlFor={inputId}
-                    className="relative cursor-pointer ml-4 p-6 pt-1 text-gray-400 border-gray-400 border-3 border-dashed rounded-[10px] h-27 w-27 flex items-center justify-center"
-                >
-                    <DownloadIcon className="absolute top-1/3" />
-                </label>
-                <input
-                    id={inputId}
-                    type="file"
-                    className="hidden"
-                    onChange={e => setPendingFile(e.target.files ? e.target.files[0] : null)}
-                />
-            </div>
-        );
-    };
-
-    useEffect(() => {
-        const controller = new AbortController();
-        const { signal } = controller;
-
-        const fetchProfile = async () => {
+    // --- Busca de Dados Iniciais ---
+    const fetchProfile = useCallback(
+        async (signal?: AbortSignal) => {
+            setLoadingProfile(true);
+            setApiError(null);
             try {
                 const res = await fetch("/api/user/profile", { signal });
-                if (!res.ok) {
-                    const body = await res.json().catch(() => ({}) as unknown);
-                    const bodyJson = body as { error?: unknown };
-                    const errMsg = typeof bodyJson.error === "string" ? bodyJson.error : `HTTP ${res.status}`;
-                    throw new Error(errMsg);
-                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 const user = data.user || {};
-                setName(user.fullName || "");
-                setEmail(user.email || "");
-                setAddress(user.address || "");
-                setCpf(user.cpf ? formatCPF(user.cpf as string) : "");
-                setPhone(user.phone ? formatPhone(user.phone as string) : "");
-                if (user.documents && typeof user.documents === "object") {
-                    setUploadedUrls(user.documents as Record<string, string[]>);
-                }
+                form.reset({
+                    fullName: user.fullName || "",
+                    address: user.address || "",
+                    cpf: user.cpf ? formatCPF(user.cpf as string) : "",
+                    phone: user.phone ? formatPhone(user.phone as string) : "",
+                });
+                setUploadedUrls(user.documents || {});
             } catch (err: unknown) {
                 if (err && (err as { name?: string }).name === "AbortError") return;
                 const message = err instanceof Error ? err.message : String(err);
-                setError(message || "Erro ao buscar perfil");
+                setApiError(message || "Erro ao buscar perfil");
+                notifyError("Erro ao carregar dados do perfil.");
             } finally {
-                setLoading(false);
+                setLoadingProfile(false);
             }
+        },
+        [form, formatCPF, formatPhone]
+    );
+
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchProfile(controller.signal);
+        return () => controller.abort();
+    }, [fetchProfile]);
+
+    // --- Salvar Dados Pessoais ---
+    const onProfileSubmit = (data: ProfileUpdate) => {
+        // Limpa o CPF e telefone antes de enviar
+        const payload = {
+            ...data,
+            cpf: data.cpf ? onlyDigits(data.cpf) : undefined,
+            phone: data.phone ? onlyDigits(data.phone) : undefined,
         };
 
-        fetchProfile();
-        return () => controller.abort();
-    }, [formatCPF, formatPhone]);
-
-    const handleSave = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const payload = { fullName: name, address, phone, cpf };
-
-            const parsed = profileUpdateSchema.safeParse(payload);
-            if (!parsed.success) {
-                const issues: Record<string, string> = {};
-                parsed.error.errors.forEach(e => {
-                    const field = e.path.join(".") || "_";
-                    issues[field] = e.message;
-                });
-                setFormErrors(issues);
-                throw new Error("Invalid input");
-            }
-            setFormErrors({});
-            const res = await fetch("/api/user/profile", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}) as unknown);
-                const bodyJson = body as { issues?: unknown; error?: unknown };
-                if (bodyJson && Array.isArray(bodyJson.issues)) {
-                    type Issue = { field?: string; message?: string; error?: string };
-                    const issuesArr = bodyJson.issues as Issue[];
-                    const issues: Record<string, string> = {};
-                    issuesArr.forEach(it => {
-                        if (it && it.field) issues[it.field] = it.message || it.error || "Inválido";
-                    });
-                    setFormErrors(issues);
+        const promise = fetch("/api/user/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        })
+            .then(async res => {
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                    throw new Error(errorData.error || "Falha ao salvar");
                 }
-                const errMsg = typeof bodyJson.error === "string" ? bodyJson.error : `HTTP ${res.status}`;
-                throw new Error(errMsg);
-            }
-            const data = await res.json();
-            const user = data?.user || {};
-            setName(user.fullName || "");
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            setError(message || "Erro ao salvar perfil");
-        } finally {
-            setLoading(false);
+                return res.json();
+            })
+            .then(() => {
+                fetchProfile(); // Rebusca os dados após salvar
+            });
+
+        notifyPromise(promise, {
+            loading: "Salvando dados...",
+            success: "Dados salvos com sucesso!",
+            error: (err: Error) => err.message || "Erro ao salvar dados",
+        });
+    };
+
+    // --- Upload de Documento (Função Auxiliar) ---
+    const uploadDocument = async (file: File | null, documentType: string): Promise<string | null> => {
+        if (!file) return null;
+
+        const formData = new FormData();
+        // A API espera os arquivos anexados diretamente com a chave sendo o tipo do documento
+        formData.append(documentType, file, file.name);
+
+        const res = await fetch("/api/user/documents/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+            throw new Error(errorData.error || `Falha ao enviar ${documentType}`);
         }
+        const data = await res.json();
+        // A API retorna um objeto `urls` com arrays de URLs por tipo
+        return data.urls?.[documentType]?.[0] || null; // Pega a primeira URL retornada para este tipo
+    };
+
+    // --- Salvar Documentos ---
+    const handleSaveDocuments = async () => {
+        const filesToUpload = Object.entries(pendingFiles).filter(([, file]) => file !== null);
+        if (filesToUpload.length === 0) {
+            notifyInfo("Nenhum novo documento selecionado para salvar.");
+            return;
+        }
+
+        setUploading(true);
+
+        const uploadPromises = filesToUpload.map(([docType, file]) =>
+            uploadDocument(file, docType)
+                .then(url => {
+                    if (url) {
+                        // Atualiza o estado local imediatamente após o sucesso de CADA upload
+                        setUploadedUrls(prev => ({
+                            ...prev,
+                            [docType]: [...(prev[docType] || []), url],
+                        }));
+                        setPendingFiles(prev => ({ ...prev, [docType]: null })); // Limpa o arquivo pendente
+                    }
+                    return { docType, success: !!url }; // Retorna sucesso ou falha para o tipo
+                })
+                .catch(error => {
+                    console.error(`Erro no upload de ${docType}:`, error);
+                    notifyError(`Erro ao enviar ${docType}: ${error.message}`);
+                    return { docType, success: false }; // Indica falha
+                })
+        );
+
+        // Usa notifyPromise para o conjunto de uploads
+        notifyPromise(Promise.all(uploadPromises), {
+            loading: `Enviando ${filesToUpload.length} documento(s)...`,
+            success: results => {
+                const successes = results.filter(r => r.success).length;
+                const failures = results.length - successes;
+                setUploading(false); // Garante que uploading é resetado
+                if (failures > 0) {
+                    return `${successes} documento(s) enviados com sucesso. ${failures} falharam.`;
+                }
+                return "Todos os documentos foram enviados com sucesso!";
+            },
+            error: err => {
+                console.error("Erro geral no salvamento de documentos:", err);
+                setUploading(false); // Garante que uploading é resetado
+                return "Ocorreu um erro ao salvar alguns documentos.";
+            },
+        });
     };
 
     const setPendingFile = (documentType: string, file: File | null) => {
         setPendingFiles(p => ({ ...p, [documentType]: file }));
     };
 
-    const handleSaveDocuments = async () => {
-        setUploading(true);
-        setError(null);
-        try {
-            const entries = Object.entries(pendingFiles).filter(([, f]) => f) as [string, File][];
-            for (const [docType, file] of entries) {
-                await uploadDocument(file, docType);
-                setPendingFiles(p => ({ ...p, [docType]: null }));
-            }
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            setError(message || "Erro ao salvar documentos");
-        } finally {
-            setUploading(false);
-        }
+    // --- Componente para Linha de Documento ---
+    const DocumentRow: React.FC<{
+        label: string;
+        typeKey: string;
+        existingUrls: string[]; // Renomeado para clareza
+        pendingFile: File | null;
+        onFileSelect: (file: File | null) => void; // Renomeado
+    }> = ({ label, typeKey, existingUrls, pendingFile, onFileSelect }) => {
+        const inputId = `doc-${typeKey}`;
+        const fileName = pendingFile?.name;
+        const hasExisting = existingUrls && existingUrls.length > 0;
+
+        // Determina qual ícone mostrar
+        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : FileText;
+        const iconColor = pendingFile ? "text-green-600" : hasExisting ? "text-green-600" : "text-muted-foreground";
+
+        return (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b">
+                <Label htmlFor={inputId} className="w-full sm:w-1/3 font-medium">
+                    {label}
+                </Label>
+                <div className="flex-grow flex items-center gap-4">
+                    <Label
+                        htmlFor={inputId}
+                        className={cn(
+                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed min-h-[80px] w-[120px]",
+                            uploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50",
+                            pendingFile ? "border-green-600" : "border-input",
+                            "transition-colors"
+                        )}
+                    >
+                        <Icon className={cn("size-8", iconColor)} />
+                        <span
+                            className={cn(
+                                "text-xs font-medium text-center",
+                                pendingFile ? "text-green-700" : "text-muted-foreground"
+                            )}
+                        >
+                            {pendingFile ? "Selecionado" : hasExisting ? "Enviado" : "Selecionar"}
+                        </span>
+                    </Label>
+                    <Input
+                        type="file"
+                        id={inputId}
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        disabled={uploading}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            onFileSelect(e.target.files?.[0] ?? null);
+                        }}
+                    />
+                    <div className="text-sm">
+                        {fileName && <p className="text-foreground truncate max-w-[200px]">Novo: {fileName}</p>}
+                        {hasExisting && !pendingFile && (
+                            <div className="flex flex-col gap-1">
+                                {existingUrls.map((url, index) => (
+                                    <a
+                                        key={index}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-blue-600 underline hover:text-blue-800"
+                                    >
+                                        Ver Documento {existingUrls.length > 1 ? index + 1 : ""}
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+                        {!fileName && !hasExisting && <p className="text-muted-foreground">Nenhum arquivo enviado.</p>}
+                    </div>
+                </div>
+            </div>
+        );
     };
 
-    return (
-        <main className="grow bg-gray-50">
-            <div className="flex flex-col pt-15">
-                <div className="">
-                    <Button
-                        className={`rounded-b-none cursor-pointer w-[120px] h-[29px] ${activeTab === "conta" ? "rounded-t-[8px]  shadow-[0px_4px_3px_rgba(0,0,0,0.45)] bg-[#DEDEDE] text-black" : "bg-background text-gray-500"}`}
-                        onClick={() => setActiveTab("conta")}
-                    >
-                        Conta
-                    </Button>
-                    <Button
-                        className={`rounded-b-none cursor-pointer w-[120px] h-[29px] ${activeTab === "documentos" ? "rounded-t-[8px]  shadow-[0px_4px_3px_rgba(0,0,0,0.45)] bg-[#DEDEDE] text-black" : "bg-background text-gray-500"}`}
-                        onClick={() => setActiveTab("documentos")}
-                    >
-                        Documentos
-                    </Button>
-                </div>
-                <div className="w-screen h-px bg-[#DEDEDE]"></div>
-            </div>
+    // --- Lógica de Alteração de Senha ---
+    const onPasswordSubmit = async (data: PasswordChangeData) => {
+        const user = auth.currentUser;
+        if (!user || !user.email) {
+            notifyError("Usuário não autenticado.");
+            return;
+        }
 
-            <div className="flex flex-col justify-center items-center pt-2">
-                {activeTab === "conta" && (
-                    <>
-                        <div className="">
-                            <div className="pl-15 pt-6">
-                                <div className="flex flex-col items-start pt-2">
-                                    <h1 className="text-[#4D4D4D] text-[12px]">Nome Completo</h1>
-                                    <Input
-                                        type="text"
-                                        value={name}
-                                        onChange={e => setName(e.currentTarget.value)}
-                                        className=" border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                    ></Input>
-                                    {formErrors.fullName && (
-                                        <p className="text-red-500 text-sm mt-1">{formErrors.fullName}</p>
-                                    )}
-                                </div>
-                                <div className="flex flex-col items-start pt-4">
-                                    <h1 className="text-[#4D4D4D] text-[12px]">Endereço</h1>
-                                    <Input
-                                        value={address}
-                                        onChange={e => setAddress(e.currentTarget.value)}
-                                        className=" border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                    ></Input>
-                                    {formErrors.address && (
-                                        <p className="text-red-500 text-sm mt-1">{formErrors.address}</p>
-                                    )}
-                                </div>
-                                <div className="flex flex-col items-start pt-4">
-                                    <h1 className="text-[#4D4D4D] text-[12px]">Email</h1>
-                                    <Input
-                                        value={email}
-                                        onChange={e => setEmail(e.currentTarget.value)}
-                                        className=" border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                    ></Input>
-                                </div>
-                                <div className="flex flex-col items-start pt-4">
-                                    <h1 className="text-[#4D4D4D] text-[12px]">CPF</h1>
-                                    <Input
-                                        value={cpf}
-                                        onChange={e => setCpf(formatCPF(e.currentTarget.value))}
-                                        className=" border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                    ></Input>
-                                    {formErrors.cpf && <p className="text-red-500 text-sm mt-1">{formErrors.cpf}</p>}
-                                </div>
-                                <div className="flex flex-col items-start pt-4">
-                                    <h1 className="text-[#4D4D4D] text-[12px]">Telefone</h1>
-                                    <Input
-                                        value={phone}
-                                        onChange={e => setPhone(formatPhone(e.currentTarget.value))}
-                                        className=" border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                    ></Input>
-                                    {formErrors.phone && (
-                                        <p className="text-red-500 text-sm mt-1">{formErrors.phone}</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="pl-15 pt-5">
-                                <Dialog>
-                                    <VisuallyHidden>
-                                        <DialogTitle>Alterar Senha</DialogTitle>
-                                    </VisuallyHidden>
-                                    <DialogTrigger className="underline cursor-pointer">Alterar Senha</DialogTrigger>
-                                    <DialogOverlay></DialogOverlay>
-                                    <DialogContent className="fixed top-1/2 left-1/2 z-50 w-[468px] h-[401px] max-w-md -translate-x-[50%] -translate-y-2/3 rounded-xl bg-blend-hard-light p-6 shadow-accent-foreground">
-                                        <div className="mt-4 flex flex-col gap-y-4 items-center">
-                                            <div>
-                                                <h1 className=" text-[#4D4D4D] mb-1">Senha atual</h1>
-                                                <Input
-                                                    className="border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                                    type="password"
-                                                />
-                                            </div>
-                                            <div>
-                                                <h1 className="text-[#4D4D4D] mb-1">Senha nova</h1>
-                                                <Input
-                                                    className="border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                                    type="password"
-                                                />
-                                            </div>
-                                            <div>
-                                                <h1 className="text-[#4D4D4D] mb-1">Confirmar senha nova</h1>
-                                                <Input
-                                                    className="border border-gray-400 pl-5 rounded-[10px] bg-white w-[340px] h-[43px]"
-                                                    type="password"
-                                                />
-                                            </div>
-                                            <div className="flex justify-center mt-4">
-                                                <Button className="mt-2 mb-3 bg-black w-[340px] h-[50px] hover:bg-blend-color-burn cursor-pointer rounded-full">
-                                                    Salvar Nova Senha
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                            <div className="pl-15 flex items-center justify-start flex-col">
-                                <Button
-                                    disabled={loading}
-                                    onClick={handleSave}
-                                    className="mt-2 mb-3 bg-black w-[340px] h-[50px] hover:bg-blend-color-burn cursor-pointer rounded-full"
-                                >
-                                    {loading ? "Carregando..." : "Salvar"}
-                                </Button>
-                                <Button className="bg-red-400 text-red-900 w-[340px] h-[50px] border-2 hover:bg-red-500 border-red-00 cursor-pointer rounded-full">
-                                    Excluir Conta
-                                </Button>
-                            </div>
+        const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
+
+        const reauthPromise = reauthenticateWithCredential(user, credential);
+
+        notifyPromise(reauthPromise, {
+            loading: "Verificando senha atual...",
+            success: () => {
+                // Se reautenticação OK, tenta atualizar a senha
+                const updatePromise = updatePassword(user, data.newPassword);
+                notifyPromise(updatePromise, {
+                    loading: "Atualizando senha...",
+                    success: () => {
+                        setIsPasswordModalOpen(false); // Fecha o modal
+                        passwordForm.reset(); // Limpa o formulário de senha
+                        return "Senha alterada com sucesso!";
+                    },
+                    error: (err: unknown) => {
+                        console.error("Erro ao atualizar senha:", err);
+                        const message = err instanceof Error ? err.message : String(err);
+                        return message || "Erro ao atualizar senha.";
+                    },
+                });
+                return "Autenticação confirmada. Atualizando senha..."; // Mensagem intermediária
+            },
+            error: (err: unknown) => {
+                console.error("Erro de reautenticação:", err);
+                let code: unknown = undefined;
+                if (err && typeof err === "object" && "code" in err) {
+                    const e = err as Record<string, unknown>;
+                    code = e.code;
+                }
+                if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+                    passwordForm.setError("currentPassword", { message: "Senha atual incorreta." });
+                    return "Senha atual incorreta.";
+                }
+                const message = err instanceof Error ? err.message : String(err);
+                return message || "Erro ao verificar senha atual.";
+            },
+        });
+    };
+
+    // --- Renderização ---
+    if (loadingProfile) {
+        return (
+            <div className="container mx-auto py-10 px-4">
+                <Card className="max-w-3xl mx-auto">
+                    <CardHeader>
+                        <Skeleton className="h-8 w-1/2" />
+                        <Skeleton className="h-4 w-3/4" />
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-1/4" />
+                            <Skeleton className="h-9 w-full" />
                         </div>
-                    </>
-                )}
-                {activeTab === "documentos" && (
-                    <div className="flex flex-col gap-5 pl-20 items-start justify-center h-full w-full">
-                        <DocumentRow
-                            label="RG ou CIN"
-                            typeKey="rg"
-                            uploadedUrls={uploadedUrls["rg"] || []}
-                            pendingFile={pendingFiles["rg"] || null}
-                            setPendingFile={f => setPendingFile("rg", f)}
-                        />
-                        <DocumentRow
-                            label="Comprovante de endereço"
-                            typeKey="addressProof"
-                            uploadedUrls={uploadedUrls["addressProof"] || []}
-                            pendingFile={pendingFiles["addressProof"] || null}
-                            setPendingFile={f => setPendingFile("addressProof", f)}
-                        />
-                        <DocumentRow
-                            label="Comprovante de renda"
-                            typeKey="incomeProof"
-                            uploadedUrls={uploadedUrls["incomeProof"] || []}
-                            pendingFile={pendingFiles["incomeProof"] || null}
-                            setPendingFile={f => setPendingFile("incomeProof", f)}
-                        />
-                        <DocumentRow
-                            label="Certidão de casamento"
-                            typeKey="marriageCert"
-                            uploadedUrls={uploadedUrls["marriageCert"] || []}
-                            pendingFile={pendingFiles["marriageCert"] || null}
-                            setPendingFile={f => setPendingFile("marriageCert", f)}
-                        />
-                        <div className="flex items-center justify-center w-screen h-auto pb-2">
-                            <Button
-                                disabled={uploading}
-                                onClick={handleSaveDocuments}
-                                className="bg-black w-[100px] hover:bg-blend-color-burn cursor-pointer "
-                            >
-                                {uploading ? "Enviando..." : "Salvar"}
-                            </Button>
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-1/4" />
+                            <Skeleton className="h-9 w-full" />
                         </div>
-                    </div>
-                )}
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-1/4" />
+                            <Skeleton className="h-9 w-full" />
+                        </div>
+                        <Skeleton className="h-10 w-full" />
+                    </CardContent>
+                </Card>
             </div>
-        </main>
+        );
+    }
+
+    if (apiError) {
+        return (
+            <div className="container mx-auto py-10 px-4 text-center text-red-600">
+                Erro ao carregar perfil: {apiError}. Por favor, tente recarregar a página.
+            </div>
+        );
+    }
+
+    return (
+        <div className="container mx-auto py-10 px-4 pt-20">
+            {" "}
+            {/* Adicionado pt-20 */}
+            <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="conta">Conta</TabsTrigger>
+                    <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                </TabsList>
+
+                {/* Aba Conta */}
+                <TabsContent value="conta">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Dados Pessoais</CardTitle>
+                            <CardDescription>Atualize suas informações de perfil.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onProfileSubmit)} className="space-y-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="fullName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nome Completo</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Seu nome completo" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="address"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Endereço</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Seu endereço completo"
+                                                        {...field}
+                                                        value={field.value ?? ""}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="cpf"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>CPF</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="000.000.000-00"
+                                                            {...field}
+                                                            value={field.value ?? ""}
+                                                            onChange={e => field.onChange(formatCPF(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="phone"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Telefone</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="(00) 00000-0000"
+                                                            {...field}
+                                                            value={field.value ?? ""}
+                                                            onChange={e => field.onChange(formatPhone(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
+                                        <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button type="button" variant="link" className="p-0 h-auto">
+                                                    Alterar Senha
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Alterar Senha</DialogTitle>
+                                                    <DialogDescription>
+                                                        Para sua segurança, digite sua senha atual e a nova senha
+                                                        desejada.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <Form {...passwordForm}>
+                                                    <form
+                                                        onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+                                                        className="space-y-4"
+                                                    >
+                                                        <FormField
+                                                            control={passwordForm.control}
+                                                            name="currentPassword"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Senha Atual</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <Input
+                                                                                type={
+                                                                                    passwordVisible
+                                                                                        ? "text"
+                                                                                        : "password"
+                                                                                }
+                                                                                {...field}
+                                                                            />
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                                                onClick={() =>
+                                                                                    setPasswordVisible(!passwordVisible)
+                                                                                }
+                                                                            >
+                                                                                {passwordVisible ? (
+                                                                                    <EyeOff className="h-4 w-4" />
+                                                                                ) : (
+                                                                                    <Eye className="h-4 w-4" />
+                                                                                )}
+                                                                            </Button>
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={passwordForm.control}
+                                                            name="newPassword"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Nova Senha</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <Input
+                                                                                type={
+                                                                                    newPasswordVisible
+                                                                                        ? "text"
+                                                                                        : "password"
+                                                                                }
+                                                                                {...field}
+                                                                            />
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                                                onClick={() =>
+                                                                                    setNewPasswordVisible(
+                                                                                        !newPasswordVisible
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {newPasswordVisible ? (
+                                                                                    <EyeOff className="h-4 w-4" />
+                                                                                ) : (
+                                                                                    <Eye className="h-4 w-4" />
+                                                                                )}
+                                                                            </Button>
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={passwordForm.control}
+                                                            name="confirmNewPassword"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Confirmar Nova Senha</FormLabel>
+                                                                    <FormControl>
+                                                                        <div className="relative">
+                                                                            <Input
+                                                                                type={
+                                                                                    confirmPasswordVisible
+                                                                                        ? "text"
+                                                                                        : "password"
+                                                                                }
+                                                                                {...field}
+                                                                            />
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                                                onClick={() =>
+                                                                                    setConfirmPasswordVisible(
+                                                                                        !confirmPasswordVisible
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                {confirmPasswordVisible ? (
+                                                                                    <EyeOff className="h-4 w-4" />
+                                                                                ) : (
+                                                                                    <Eye className="h-4 w-4" />
+                                                                                )}
+                                                                            </Button>
+                                                                        </div>
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <DialogFooter>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() => setIsPasswordModalOpen(false)}
+                                                                disabled={passwordForm.formState.isSubmitting}
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                            <Button
+                                                                type="submit"
+                                                                disabled={passwordForm.formState.isSubmitting}
+                                                            >
+                                                                {passwordForm.formState.isSubmitting && (
+                                                                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                                                )}
+                                                                Salvar Nova Senha
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </form>
+                                                </Form>
+                                            </DialogContent>
+                                        </Dialog>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={form.formState.isSubmitting}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            {form.formState.isSubmitting && (
+                                                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                            )}
+                                            Salvar Alterações
+                                        </Button>
+                                    </div>
+                                    <Button type="button" variant="destructive" className="w-full mt-4">
+                                        Excluir Conta
+                                    </Button>
+                                </form>
+                            </Form>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Aba Documentos */}
+                <TabsContent value="documentos">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gerenciamento de Documentos</CardTitle>
+                            <CardDescription>Envie ou visualize seus documentos.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <DocumentRow
+                                label="RG ou CIN"
+                                typeKey="identityDoc" // Corrigido para corresponder ao schema/API
+                                existingUrls={uploadedUrls["identityDoc"] || []}
+                                pendingFile={pendingFiles["identityDoc"] || null}
+                                onFileSelect={f => setPendingFile("identityDoc", f)}
+                            />
+                            <DocumentRow
+                                label="Comprovante de Endereço"
+                                typeKey="addressProof"
+                                existingUrls={uploadedUrls["addressProof"] || []}
+                                pendingFile={pendingFiles["addressProof"] || null}
+                                onFileSelect={f => setPendingFile("addressProof", f)}
+                            />
+                            <DocumentRow
+                                label="Comprovante de Renda"
+                                typeKey="incomeProof"
+                                existingUrls={uploadedUrls["incomeProof"] || []}
+                                pendingFile={pendingFiles["incomeProof"] || null}
+                                onFileSelect={f => setPendingFile("incomeProof", f)}
+                            />
+                            <DocumentRow
+                                label="Certidão de Casamento (Opcional)"
+                                typeKey="marriageCert"
+                                existingUrls={uploadedUrls["marriageCert"] || []}
+                                pendingFile={pendingFiles["marriageCert"] || null}
+                                onFileSelect={f => setPendingFile("marriageCert", f)}
+                            />
+                            <div className="flex justify-end mt-6">
+                                <Button
+                                    onClick={handleSaveDocuments}
+                                    disabled={uploading || Object.values(pendingFiles).every(f => f === null)}
+                                >
+                                    {uploading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                                    {uploading ? "Enviando..." : "Salvar Documentos"}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
     );
 }
