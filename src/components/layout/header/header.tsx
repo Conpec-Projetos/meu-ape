@@ -45,16 +45,15 @@ const navConfig: Record<Variant, NavItem[]> = {
     client: [
         { label: "Buscar Imóveis", href: "/property-search", icon: Search },
         { label: "Meus Favoritos", href: "/my-favorites", icon: Heart },
-        { label: "Minhas Visitas", href: "/my-requests", icon: Calendar },
+        { label: "Minhas Visitas", href: "/dashboard", icon: Calendar },
     ],
     agent: [
-        { label: "Minha Agenda", href: "/my-schedule", icon: Calendar },
-        { label: "Reservas", href: "/associated-bookings", icon: Book },
         { label: "Imóveis", href: "/property-search", icon: Building },
+        { label: "Minha Agenda", href: "/agent-dashboard", icon: Calendar },
     ],
     admin: [
         { label: "Dashboard", href: "/beta/dashboard", icon: LayoutDashboard },
-        { label: "Imóveis", href: "/admin/property-management", icon: Home },
+        { label: "Imóveis", href: "/admin/property", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
     ],
