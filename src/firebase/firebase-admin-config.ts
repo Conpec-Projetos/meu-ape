@@ -31,3 +31,6 @@ export const verifySessionCookie = async (sessionCookie: string) => {
         return null;
     }
 };
+
+// Export admin so server code can use admin.firestore.FieldValue.serverTimestamp()
+export { admin };
