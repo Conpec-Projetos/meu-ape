@@ -35,6 +35,9 @@ jobs:
           echo 'FIREBASE_PRIVATE_KEY="${{ secrets.FIREBASE_PRIVATE_KEY }}"' >> .env.local
           echo 'RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}"' >> .env.local
           echo 'NEXT_PUBLIC_EMAIL_FROM="${{ secrets.NEXT_PUBLIC_EMAIL_FROM }}"' >> .env.local
+          echo 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}"' >> .env.local
+          echo 'NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}"' >> .env.local
+          echo 'GOOGLE_MAPS_SECRET_KEY="${{ secrets.GOOGLE_MAPS_SECRET_KEY }}"' >> .env.local
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
       - name: Pull Vercel Environment information
