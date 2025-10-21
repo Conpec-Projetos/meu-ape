@@ -68,13 +68,14 @@ export function GoogleMapComponent({ properties, isLoading }: { properties: Prop
         if (isLoaded) {
             google.maps.importLibrary("core").then(() => {
                 // Tente obter a preferência do sistema ou defina um padrão
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                setColorScheme(prefersDark ? google.maps.ColorScheme.DARK : google.maps.ColorScheme.LIGHT);
+                // const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                // setColorScheme(prefersDark ? google.maps.ColorScheme.DARK : google.maps.ColorScheme.LIGHT);
+                setColorScheme(google.maps.ColorScheme.DARK);
 
                 // Opcional: ouvir mudanças no tema do sistema
-                 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-                   setColorScheme(event.matches ? google.maps.ColorScheme.DARK : google.maps.ColorScheme.LIGHT);
-                 });
+                // window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+                //      setColorScheme(event.matches ? google.maps.ColorScheme.DARK : google.maps.ColorScheme.LIGHT);
+                //  });
             });
         }
     }, [isLoaded]);
