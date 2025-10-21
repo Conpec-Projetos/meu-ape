@@ -1,5 +1,4 @@
-import React from "react"
-import { useState } from "react"
+import React, { useEffect, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -7,94 +6,120 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/features/sheets/sheetreservations"
-
-import {ScrollArea} from "@/components/ui/scroll-area"
+} from "@/components/features/sheets/sheetreservations";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ReservationRequest } from "@/interfaces/reservationRequest";
+import { getReservationRequests } from "@/firebase/dashboard/service";
+import { Timestamp } from "firebase-admin/firestore";
 
 type CardReservationProps = {
-    status: string;
-    empreendimento: string;
-    nome: string;
+  status: string;
+  empreendimento: string;
+  nome: string;
+  reservation: ReservationRequest;
 };
 
 type CampoListaProps = {
   label: string;
-  valor?: string;
+  valor?: string | string[] | Date | Timestamp | (Date | Timestamp)[];
 };
 
 function CampoLista({ label, valor }: CampoListaProps) {
+  let displayValue = "—";
+  if (valor instanceof Date) displayValue = valor.toLocaleString("pt-BR");
+  else if (Array.isArray(valor)) displayValue = valor.join(", ");
+  else if ((valor as any)?.seconds !== undefined)
+    displayValue = new Date((valor as Timestamp).seconds * 1000).toLocaleString("pt-BR");
+  else if (valor) displayValue = valor.toString();
+
   return (
-    <ul className="mb-5">
+    <ul className="list-none mb-4">
       <li className="font-bold text-md text-black">{label}</li>
-      <li className="text-gray-600">{valor || "—"}</li>
+      <li className="text-gray-600 break-words">{displayValue}</li>
     </ul>
   );
 }
 
+export default function CardReservations({ status, empreendimento, nome, reservation }: CardReservationProps) {
+  const [open, setOpen] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState<ReservationRequest | null>(null);
 
-export default function CardReservations({ status, empreendimento, nome }: CardReservationProps) {
-    const [open, setOpen] = useState(false)
+  let statusclass =
+    status === "Aguardo"
+      ? "bg-yellow-200"
+      : status === "Confirmado"
+      ? "bg-green-300"
+      : "bg-red-400";
 
-    let statusclass = ""
-    if (status==="Aguardo") statusclass = 'bg-yellow-200';
-    else if (status==="Confirmado") statusclass = 'bg-green-300'
-    else if (status==='Recusado') statusclass = 'bg-red-400'
+  return (
+    <>
+      <button
+        className="flex flex-col sm:flex-row items-center justify-between
+                   bg-[#F2F2F2] rounded-lg border border-gray-300 
+                   mt-3 mb-3 hover:bg-[#e7e7e7] transition-colors duration-150 
+                   cursor-pointer shadow-md w-full sm:w-[90%] md:w-[95%] p-4"
+        onClick={() => {
+          setOpen(true);
+          setSelectedReservation(reservation);
+        }}
+      >
+        {/* Status */}
+        <div className="flex justify-center items-center w-full sm:w-[20%] mb-3 sm:mb-0">
+          <span className={`${statusclass} rounded-xl px-6 py-2 text-base sm:text-lg font-medium border border-gray-300 shadow`}>
+            {status}
+          </span>
+        </div>
 
+        {/* Infos */}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-12 lg:gap-20 w-full sm:w-[75%]">
+          <div className="flex flex-col w-full sm:w-auto">
+            <span className="font-medium text-sm sm:text-base">Empreendimento:</span>
+            <div className="mb-2 sm:mb-4 h-8 sm:h-9 bg-white rounded-lg flex items-center shadow border border-gray-300 w-full sm:w-64 lg:w-80 px-3">
+              <span className="truncate">{empreendimento}</span>
+            </div>
+          </div>
 
-    return (
-        <>
-            <button className="h-40 w-[75%] flex flex-row bg-[#F2F2F2] rounded-lg border-gray-300 border-1 mt-3 mb-3 hover:bg-[#e7e7e7] transition-colors duration-150 cursor-pointer shadow-md"
-                onClick={() => setOpen(!open)}> 
-                
-                <div className="h-full w-[15%] relative flex justify-center items-center">
-                    <span className={`${statusclass} rounded-xl px-6 py-2 absolute  text-lg font-medium  shadow`}> {status} </span>
-                </div>
-                <div className="h-full w-[75%] flex flex-row justify-center items-center gap-20 ">
-                    <div className="flex flex-col "> 
-                        <span className="mt-2 font-medium mr-auto"> Empreendimento: </span>
-                        <div className=" mb-4 h-8 w-80 bg-white rounded-lg flex items-center shadow border-1 border-gray-300"> <span className="ml-3">{empreendimento}</span> </div>
-                    </div>
-                
-                    <div className="flex flex-col">
-                        <span className="mt-2  font-medium mr-auto"> Solicitante: </span>
-                        <div className=" mb-4 h-8 w-80 bg-white rounded-lg flex items-center shadow border-1 border-gray-300"> <span className="ml-3 ">{nome}</span> </div>
-                    </div>
-                
-                </div>
-            </button>
+          <div className="flex flex-col w-full sm:w-auto">
+            <span className="font-medium text-sm sm:text-base">Solicitante:</span>
+            <div className="mb-2 sm:mb-4 h-8 sm:h-9 bg-white rounded-lg flex items-center shadow border border-gray-300 w-full sm:w-64 lg:w-80 px-3">
+              <span className="truncate">{nome}</span>
+            </div>
+          </div>
+        </div>
+      </button>
 
-            <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger></SheetTrigger>
-                    <SheetContent>
-                        <SheetHeader>
-                            <SheetTitle>Dados da reserva </SheetTitle>
-                            <div className="h-12  ">
-                                <div className="h-0.5 rounded-4xl bg-gray-400 ">
-
-                                </div>
-                            </div>
-                            <SheetDescription>
-                                <ScrollArea className="h-200 w-full rounded-md border p-4">
-                                    <div>
-                                        <CampoLista label="Status" valor={status}></CampoLista>
-                                        <CampoLista label="Nome do imóvel" valor="Edifício Real"></CampoLista>
-                                        <CampoLista label="Bloco" valor="B"></CampoLista>
-                                        <CampoLista label="Unidade" valor="47A"></CampoLista>
-                                        <CampoLista label="Nome do corretor" valor="Alexandre Pereira"></CampoLista>
-                                        <CampoLista label="CRECI do corretor" valor="04286724"></CampoLista>
-                                        <CampoLista label="Telefone do corretor" valor="(11) 91313-1313"></CampoLista>
-                                        <CampoLista label="Horários solicitados" valor="12:30 | 15:00"></CampoLista>
-                                        <CampoLista label="Horário final" valor="15:00"></CampoLista>
-                                        <CampoLista label="Mensagem" valor=""></CampoLista>
-                                        <CampoLista label="Criado em" valor="10/08"></CampoLista>
-                                        <CampoLista label="Alterado em" valor="20/08"></CampoLista>
-
-                                    </div>
-                                </ScrollArea>  
-                            </SheetDescription>
-                        </SheetHeader>
-                </SheetContent>
-            </Sheet>
-        </>
-    )
+      {/* Sheet responsivo */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger></SheetTrigger>
+        <SheetContent className="max-w-full sm:max-w-[480px]">
+          <SheetHeader>
+            <SheetTitle>Dados da reserva</SheetTitle>
+            <div className="h-12">
+              <div className="h-0.5 rounded-4xl bg-gray-400"></div>
+            </div>
+            <SheetDescription>
+              <ScrollArea className="h-125 w-full rounded-md border overflow-y-auto p-4">
+                {selectedReservation && (
+                  <div>
+                    <CampoLista label="Status" valor={selectedReservation.status} />
+                    <CampoLista label="Imóvel" valor={selectedReservation.propertyName} />
+                    <CampoLista label="Bloco" valor={selectedReservation.propertyBlock} />
+                    <CampoLista label="Unidade" valor={selectedReservation.propertyUnit} />
+                    <CampoLista label="Corretor" valor={selectedReservation.agentsName} />
+                    <CampoLista label="CRECI" valor={selectedReservation.agentsCreci} />
+                    <CampoLista label="Telefone" valor={selectedReservation.agentsPhone} />
+                    <CampoLista label="Horário solicitado" valor={selectedReservation.requestedSlots} />
+                    <CampoLista label="Horário final" valor={selectedReservation.scheduledSlot} />
+                    <CampoLista label="Mensagem" valor={selectedReservation.message} />
+                    <CampoLista label="Criado em" valor={selectedReservation.createdAt} />
+                    <CampoLista label="Atualizado em" valor={selectedReservation.updatedAt} />
+                  </div>
+                )}
+              </ScrollArea>
+            </SheetDescription>
+          </SheetHeader>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
 }

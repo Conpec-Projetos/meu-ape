@@ -13,16 +13,23 @@ interface ClientDataSnapshot {
 }
 
 export interface ReservationRequest {
-    id?: string; // id do documento no firebase
+    id?: string; // id do documento no Firebase
     status: "pending" | "approved" | "denied";
     clientRef: DocumentReference; // referência ao documento do cliente na coleção users
-    propertyRef: DocumentReference; // referência ao imóvel pai na coleção properties
-    propertyName: string;
-    agentsRef: DocumentReference[]; // referência ao corretores alocados (na coleção users)
-    unitRef: DocumentReference; // referência à unidade específica em /properties/{id}/units/{id}
-    unitName: string; // identificador da unidade
-    clientData: ClientDataSnapshot; // cópia dos dados e documentos do cliente no momento da solicitação
-    adminMsg?: string; // mensagem para o cliente
+    clientName: string; // nome do cliente
+    propertyRef: DocumentReference; // referência ao documento do imóvel na coleção properties
+    propertyName: string; // nome do imóvel
+    propertyBlock: string;
+    propertyUnit: string;
+    agentsRef?: DocumentReference[]; // referência ao corretores alocados (na coleção users)
+    agentsName: string[]; // nome do corretor
+    agentsCreci: string[]; // creci dos corretores
+    agentsEmail: string[]; // email dos 
+    message: string;
+    agentsPhone: string[]; // número dos corretores
+    requestedSlots: (Date | Timestamp)[]; // horários solicitados pelo cliente
+    scheduledSlot?: Date | Timestamp; // horário final agendado pelo administrador
+    adminMsg?: string; // mensagem para o cliente em caso de negação
     createdAt: Date | Timestamp;
     updatedAt: Date | Timestamp;
 }
