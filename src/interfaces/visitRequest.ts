@@ -3,10 +3,19 @@ import { DocumentReference, Timestamp } from "firebase/firestore";
 export interface VisitRequest {
     id?: string; // id do documento no Firebase
     status: "pending" | "approved" | "denied" | "completed";
-    clientRef: DocumentReference; // referência ao documento do cliente na coleção users
-    clientName: string; // nome do cliente que fez a solicitação
-    propertyRef: DocumentReference; // referência ao documento do imóvel na coleção properties
-    propertyName: string; // nome do imóvel/empreendimento
+    client: {
+        ref: DocumentReference; // referência ao documento do cliente na coleção users
+        fullName: string; // nome do cliente que fez a solicitação
+    };
+    property: {
+        ref: DocumentReference; // referência ao imóvel pai na coleção properties
+        name: string; // nome do imóvel/empreendimento
+    };
+    unit: {
+        ref: DocumentReference; // referência à unidade específica em /properties/{id}/units/{id}
+        identifier: string; // identificador da unidade
+        block: string; // bloco ao qual a unidade pertence
+    };
     agents?: {
         // array de map dos corretores associados/alocados para a solicitação
         ref: DocumentReference; // referência a corretor alocado (na coleção users)
@@ -17,7 +26,8 @@ export interface VisitRequest {
     }[];
     requestedSlots: (Date | Timestamp)[]; // horários solicitados pelo cliente
     scheduledSlot?: Date | Timestamp; // horário final agendado pelo administrador
-    adminMsg?: string; // mensagem para o cliente em caso de negação
+    agentMsg?: string; // mensagem para o corretor
+    clientMsg?: string; // mensagem para o cliente
     createdAt: Date | Timestamp;
     updatedAt: Date | Timestamp;
 }

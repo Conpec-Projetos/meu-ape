@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/features/buttons/default-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import {
@@ -28,12 +29,13 @@ import { ProfileUpdate, profileUpdateSchema } from "@/schemas/profileUpdateSchem
 import { notifyError, notifyInfo, notifyPromise } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
-import { Eye, EyeOff, FileCheck, FileText, Loader } from "lucide-react";
+import { Eye, EyeOff, FileCheck, Loader, UploadCloud } from "lucide-react";
 import React, { useCallback, useEffect, useState } from "react";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import z from "zod";
 
+// --- Schema para Mudança de Senha ---
 const passwordChangeSchema = z
     .object({
         currentPassword: z.string().min(1, "Senha atual é obrigatória"),
@@ -46,24 +48,19 @@ const passwordChangeSchema = z
     });
 type PasswordChangeData = z.infer<typeof passwordChangeSchema>;
 
-export default function UserConfig() {
+export default function ProfilePage() {
     const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
     const [apiError, setApiError] = useState<string | null>(null);
-
-    // --- Estado dos Documentos ---
     const [uploading, setUploading] = useState(false);
-    const [uploadedUrls, setUploadedUrls] = useState<Record<string, string[]>>({}); // Armazena URLs existentes
-    const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({}); // Armazena arquivos selecionados
-
-    // --- Estado do Modal de Senha ---
+    const [uploadedUrls, setUploadedUrls] = useState<Record<string, string[]>>({});
+    const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [newPasswordVisible, setNewPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
-    // --- Form de Dados Pessoais ---
+    // --- Formulário de Dados Pessoais ---
     const form = useForm<ProfileUpdate>({
-        // zodResolver has a slightly different generic; cast to Resolver<ProfileUpdate>
         resolver: zodResolver(profileUpdateSchema) as unknown as Resolver<ProfileUpdate>,
         defaultValues: {
             fullName: "",
@@ -73,7 +70,7 @@ export default function UserConfig() {
         },
     });
 
-    // --- Form do Modal de Senha ---
+    // --- Formulário do Modal de Senha ---
     const passwordForm = useForm<PasswordChangeData>({
         resolver: zodResolver(passwordChangeSchema),
         defaultValues: {
@@ -142,7 +139,6 @@ export default function UserConfig() {
 
     // --- Salvar Dados Pessoais ---
     const onProfileSubmit = (data: ProfileUpdate) => {
-        // Limpa o CPF e telefone antes de enviar
         const payload = {
             ...data,
             cpf: data.cpf ? onlyDigits(data.cpf) : undefined,
@@ -162,7 +158,7 @@ export default function UserConfig() {
                 return res.json();
             })
             .then(() => {
-                fetchProfile(); // Rebusca os dados após salvar
+                fetchProfile();
             });
 
         notifyPromise(promise, {
@@ -175,23 +171,15 @@ export default function UserConfig() {
     // --- Upload de Documento (Função Auxiliar) ---
     const uploadDocument = async (file: File | null, documentType: string): Promise<string | null> => {
         if (!file) return null;
-
         const formData = new FormData();
-        // A API espera os arquivos anexados diretamente com a chave sendo o tipo do documento
         formData.append(documentType, file, file.name);
-
-        const res = await fetch("/api/user/documents/upload", {
-            method: "POST",
-            body: formData,
-        });
-
+        const res = await fetch("/api/user/documents/upload", { method: "POST", body: formData });
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
             throw new Error(errorData.error || `Falha ao enviar ${documentType}`);
         }
         const data = await res.json();
-        // A API retorna um objeto `urls` com arrays de URLs por tipo
-        return data.urls?.[documentType]?.[0] || null; // Pega a primeira URL retornada para este tipo
+        return data.urls?.[documentType]?.[0] || null;
     };
 
     // --- Salvar Documentos ---
@@ -201,45 +189,35 @@ export default function UserConfig() {
             notifyInfo("Nenhum novo documento selecionado para salvar.");
             return;
         }
-
         setUploading(true);
-
         const uploadPromises = filesToUpload.map(([docType, file]) =>
             uploadDocument(file, docType)
                 .then(url => {
                     if (url) {
-                        // Atualiza o estado local imediatamente após o sucesso de CADA upload
-                        setUploadedUrls(prev => ({
-                            ...prev,
-                            [docType]: [...(prev[docType] || []), url],
-                        }));
-                        setPendingFiles(prev => ({ ...prev, [docType]: null })); // Limpa o arquivo pendente
+                        setUploadedUrls(prev => ({ ...prev, [docType]: [...(prev[docType] || []), url] }));
+                        setPendingFiles(prev => ({ ...prev, [docType]: null }));
                     }
-                    return { docType, success: !!url }; // Retorna sucesso ou falha para o tipo
+                    return { docType, success: !!url };
                 })
                 .catch(error => {
                     console.error(`Erro no upload de ${docType}:`, error);
                     notifyError(`Erro ao enviar ${docType}: ${error.message}`);
-                    return { docType, success: false }; // Indica falha
+                    return { docType, success: false };
                 })
         );
-
-        // Usa notifyPromise para o conjunto de uploads
         notifyPromise(Promise.all(uploadPromises), {
             loading: `Enviando ${filesToUpload.length} documento(s)...`,
             success: results => {
                 const successes = results.filter(r => r.success).length;
                 const failures = results.length - successes;
-                setUploading(false); // Garante que uploading é resetado
-                if (failures > 0) {
-                    return `${successes} documento(s) enviados com sucesso. ${failures} falharam.`;
-                }
-                return "Todos os documentos foram enviados com sucesso!";
+                setUploading(false);
+                if (failures > 0) return `${successes} enviados. ${failures} falharam.`;
+                return "Documentos enviados com sucesso!";
             },
             error: err => {
-                console.error("Erro geral no salvamento de documentos:", err);
-                setUploading(false); // Garante que uploading é resetado
-                return "Ocorreu um erro ao salvar alguns documentos.";
+                console.error("Erro geral no salvamento:", err);
+                setUploading(false);
+                return "Erro ao salvar documentos.";
             },
         });
     };
@@ -252,34 +230,34 @@ export default function UserConfig() {
     const DocumentRow: React.FC<{
         label: string;
         typeKey: string;
-        existingUrls: string[]; // Renomeado para clareza
+        existingUrls: string[];
         pendingFile: File | null;
-        onFileSelect: (file: File | null) => void; // Renomeado
+        onFileSelect: (file: File | null) => void;
     }> = ({ label, typeKey, existingUrls, pendingFile, onFileSelect }) => {
         const inputId = `doc-${typeKey}`;
         const fileName = pendingFile?.name;
         const hasExisting = existingUrls && existingUrls.length > 0;
-
-        // Determina qual ícone mostrar
-        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : FileText;
+        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : UploadCloud; // Alterado para UploadCloud
         const iconColor = pendingFile ? "text-green-600" : hasExisting ? "text-green-600" : "text-muted-foreground";
 
         return (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b">
-                <Label htmlFor={inputId} className="w-full sm:w-1/3 font-medium">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b last:border-b-0">
+                <Label htmlFor={inputId} className="w-full sm:w-1/3 font-medium text-sm shrink-0">
+                    {" "}
+                    {/* Ajustado texto e shrink */}
                     {label}
                 </Label>
-                <div className="flex-grow flex items-center gap-4">
+                <div className="grow flex flex-col sm:flex-row items-center gap-4">
                     <Label
                         htmlFor={inputId}
                         className={cn(
-                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed min-h-[80px] w-[120px]",
+                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed h-[90px] w-[120px] shrink-0", // Altura e largura fixas, shrink-0
                             uploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50",
                             pendingFile ? "border-green-600" : "border-input",
                             "transition-colors"
                         )}
                     >
-                        <Icon className={cn("size-8", iconColor)} />
+                        <Icon className={cn("size-6 mb-1", iconColor)} /> {/* Ícone ligeiramente maior */}
                         <span
                             className={cn(
                                 "text-xs font-medium text-center",
@@ -295,12 +273,12 @@ export default function UserConfig() {
                         accept="image/*,.pdf"
                         className="hidden"
                         disabled={uploading}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                            onFileSelect(e.target.files?.[0] ?? null);
-                        }}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFileSelect(e.target.files?.[0] ?? null)}
                     />
-                    <div className="text-sm">
-                        {fileName && <p className="text-foreground truncate max-w-[200px]">Novo: {fileName}</p>}
+                    <div className="text-sm min-w-0">
+                        {" "}
+                        {/* min-w-0 para permitir truncamento */}
+                        {fileName && <p className="text-foreground truncate font-medium">Novo: {fileName}</p>}
                         {hasExisting && !pendingFile && (
                             <div className="flex flex-col gap-1">
                                 {existingUrls.map((url, index) => (
@@ -309,14 +287,14 @@ export default function UserConfig() {
                                         href={url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="text-blue-600 underline hover:text-blue-800"
+                                        className="text-primary underline hover:text-primary/80 truncate"
                                     >
                                         Ver Documento {existingUrls.length > 1 ? index + 1 : ""}
                                     </a>
                                 ))}
                             </div>
                         )}
-                        {!fileName && !hasExisting && <p className="text-muted-foreground">Nenhum arquivo enviado.</p>}
+                        {!fileName && !hasExisting && <p className="text-muted-foreground">Nenhum arquivo.</p>}
                     </div>
                 </div>
             </div>
@@ -330,44 +308,35 @@ export default function UserConfig() {
             notifyError("Usuário não autenticado.");
             return;
         }
-
         const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
-
         const reauthPromise = reauthenticateWithCredential(user, credential);
-
         notifyPromise(reauthPromise, {
             loading: "Verificando senha atual...",
             success: () => {
-                // Se reautenticação OK, tenta atualizar a senha
                 const updatePromise = updatePassword(user, data.newPassword);
                 notifyPromise(updatePromise, {
                     loading: "Atualizando senha...",
                     success: () => {
-                        setIsPasswordModalOpen(false); // Fecha o modal
-                        passwordForm.reset(); // Limpa o formulário de senha
+                        setIsPasswordModalOpen(false);
+                        passwordForm.reset();
                         return "Senha alterada com sucesso!";
                     },
                     error: (err: unknown) => {
                         console.error("Erro ao atualizar senha:", err);
-                        const message = err instanceof Error ? err.message : String(err);
-                        return message || "Erro ao atualizar senha.";
+                        return (err instanceof Error ? err.message : String(err)) || "Erro ao atualizar senha.";
                     },
                 });
-                return "Autenticação confirmada. Atualizando senha..."; // Mensagem intermediária
+                return "Autenticação confirmada. Atualizando...";
             },
             error: (err: unknown) => {
                 console.error("Erro de reautenticação:", err);
                 let code: unknown = undefined;
-                if (err && typeof err === "object" && "code" in err) {
-                    const e = err as Record<string, unknown>;
-                    code = e.code;
-                }
+                if (err && typeof err === "object" && "code" in err) code = (err as { code: string }).code;
                 if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
                     passwordForm.setError("currentPassword", { message: "Senha atual incorreta." });
                     return "Senha atual incorreta.";
                 }
-                const message = err instanceof Error ? err.message : String(err);
-                return message || "Erro ao verificar senha atual.";
+                return (err instanceof Error ? err.message : String(err)) || "Erro ao verificar senha atual.";
             },
         });
     };
@@ -375,13 +344,15 @@ export default function UserConfig() {
     // --- Renderização ---
     if (loadingProfile) {
         return (
-            <div className="container mx-auto py-10 px-4">
+            <div className="container mx-auto py-10 px-4 pt-20">
+                {" "}
+                {/* Adicionado pt-20 */}
                 <Card className="max-w-3xl mx-auto">
                     <CardHeader>
                         <Skeleton className="h-8 w-1/2" />
-                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-3/4 mt-2" />
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-6 pt-6">
                         <div className="space-y-2">
                             <Skeleton className="h-4 w-1/4" />
                             <Skeleton className="h-9 w-full" />
@@ -390,11 +361,17 @@ export default function UserConfig() {
                             <Skeleton className="h-4 w-1/4" />
                             <Skeleton className="h-9 w-full" />
                         </div>
-                        <div className="space-y-2">
-                            <Skeleton className="h-4 w-1/4" />
-                            <Skeleton className="h-9 w-full" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-1/3" />
+                                <Skeleton className="h-9 w-full" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-1/3" />
+                                <Skeleton className="h-9 w-full" />
+                            </div>
                         </div>
-                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full mt-4" />
                     </CardContent>
                 </Card>
             </div>
@@ -403,8 +380,10 @@ export default function UserConfig() {
 
     if (apiError) {
         return (
-            <div className="container mx-auto py-10 px-4 text-center text-red-600">
-                Erro ao carregar perfil: {apiError}. Por favor, tente recarregar a página.
+            <div className="container mx-auto py-10 px-4 pt-20 text-center text-destructive">
+                {" "}
+                {/* Adicionado pt-20 */}
+                Erro ao carregar perfil: {apiError}. Tente recarregar.
             </div>
         );
     }
@@ -414,7 +393,9 @@ export default function UserConfig() {
             {" "}
             {/* Adicionado pt-20 */}
             <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                    {" "}
+                    {/* Adicionado mb-6 */}
                     <TabsTrigger value="conta">Conta</TabsTrigger>
                     <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 </TabsList>
@@ -497,20 +478,18 @@ export default function UserConfig() {
                                             )}
                                         />
                                     </div>
-
                                     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
                                         <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
                                             <DialogTrigger asChild>
-                                                <Button type="button" variant="link" className="p-0 h-auto">
+                                                <Button type="button" variant="link" className="p-0 h-auto text-sm">
                                                     Alterar Senha
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent>
+                                            <DialogContent className="sm:max-w-[425px]">
                                                 <DialogHeader>
                                                     <DialogTitle>Alterar Senha</DialogTitle>
                                                     <DialogDescription>
-                                                        Para sua segurança, digite sua senha atual e a nova senha
-                                                        desejada.
+                                                        Digite sua senha atual e a nova senha desejada.
                                                     </DialogDescription>
                                                 </DialogHeader>
                                                 <Form {...passwordForm}>
@@ -656,7 +635,6 @@ export default function UserConfig() {
                                                 </Form>
                                             </DialogContent>
                                         </Dialog>
-
                                         <Button
                                             type="submit"
                                             disabled={form.formState.isSubmitting}
@@ -668,6 +646,7 @@ export default function UserConfig() {
                                             Salvar Alterações
                                         </Button>
                                     </div>
+                                    {/* Botão Excluir Conta - Adicionar Lógica onClick */}
                                     <Button type="button" variant="destructive" className="w-full mt-4">
                                         Excluir Conta
                                     </Button>
@@ -685,9 +664,10 @@ export default function UserConfig() {
                             <CardDescription>Envie ou visualize seus documentos.</CardDescription>
                         </CardHeader>
                         <CardContent>
+                            {/* Document Rows */}
                             <DocumentRow
                                 label="RG ou CIN"
-                                typeKey="identityDoc" // Corrigido para corresponder ao schema/API
+                                typeKey="identityDoc"
                                 existingUrls={uploadedUrls["identityDoc"] || []}
                                 pendingFile={pendingFiles["identityDoc"] || null}
                                 onFileSelect={f => setPendingFile("identityDoc", f)}
@@ -713,6 +693,7 @@ export default function UserConfig() {
                                 pendingFile={pendingFiles["marriageCert"] || null}
                                 onFileSelect={f => setPendingFile("marriageCert", f)}
                             />
+
                             <div className="flex justify-end mt-6">
                                 <Button
                                     onClick={handleSaveDocuments}
