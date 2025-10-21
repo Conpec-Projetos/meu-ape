@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit, Trash, Image as ImageIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AddUnitModal from "../../../components/features/modals/add-unit-modal";
-import EditImagesModal from "../../../components/features/modals/edit-images-modal";
+import AddUnitModal from "../modals/add-unit-modal";
+import EditImagesModal from "../modals/edit-images-modal";
 
 interface Property {
   id: string;

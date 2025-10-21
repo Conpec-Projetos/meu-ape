@@ -1,6 +1,6 @@
 "use client";
 
-import PropertyTable from "@/components/features/tables/PropertyTable";
+import PropertyTable from "@/components/features/tables/unity-table";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -79,12 +79,8 @@ export default function AdminPropertyManagementPage() {
     }
 
     return (
-        <div className="py-20 flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="relative w-full max-w-11/12 bg-[#e5e5e5] dark:bg-[#222] rounded-xl shadow-lg p-10 flex flex-col">
-                <button className="absolute top-8 right-8 text-gray-500 hover:text-gray-700" aria-label="Fechar">
-                    <X size={32} />
-                </button>
-                <h2 className="text-2xl font-bold mb-8">EDIÇÃO DE IMÓVEIS</h2>
+        // Container principal ajustado para se encaixar no modal
+        <div className="w-full flex flex-col">                <h2 className="text-2xl font-bold mb-8">EDIÇÃO DE IMÓVEIS</h2>
                 <form className="flex flex-col xl:flex-row gap-8" onSubmit={handleSubmit}>
                     {/* Coluna esquerda */}
                     <div className="flex-1 flex flex-col gap-4">
@@ -217,7 +213,7 @@ export default function AdminPropertyManagementPage() {
                         
                     </div>
                     {/* Separador vertical */}
-                    <div className="hidden md:block w-px bg-gray-400 mx-4" />
+                    <div className="hidden xl:block w-px bg-gray-400 mx-4" />
                     {/* Coluna direita */}
                     <div className="flex-1 flex flex-col gap-4">
                         <div className="overflow-x-auto">
@@ -232,7 +228,7 @@ export default function AdminPropertyManagementPage() {
                         </div>
                     </div>
                 </form>
-                <div className="flex flex-col md:flex-row justify-center items-center mt-10 gap-4 gap-x-12">
+                <div className="flex flex-col xl:flex-row justify-center items-center mt-10 gap-4 gap-x-12">
                     <Button variant="outline" className="flex items-center gap-2 px-4 py-4 text-lg">
                         <X className="w-5 h-5" /> Excluir imóvel
                     </Button>
@@ -244,7 +240,6 @@ export default function AdminPropertyManagementPage() {
                         <Check className="w-5 h-5" /> Salvar
                     </Button>
                 </div>
-            </div>
         </div>
     );
 }
