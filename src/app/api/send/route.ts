@@ -1,4 +1,4 @@
-import { EmailTemplateAgentRequest } from '@/components/emailTemplate/agentRegisterRequest';
+import { EmailTemplateAgentRequest } from '@/components/features/emails/agent-registration';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);

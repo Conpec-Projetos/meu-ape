@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/features/inputs/default-input";
 import { auth } from "@/firebase/firebase-config";
 import { LoginData, loginSchema } from "@/schemas/loginSchema";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
@@ -20,7 +21,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export default function LoginPage() {
     const [passwordVisible, setPasswordVisible] = useState(false);
@@ -49,18 +49,17 @@ export default function LoginPage() {
             });
 
             if (response.ok) {
-                toast.success("Login bem-sucedido! Redirecionando...");
+                notifySuccess("Login bem-sucedido! Redirecionando...");
                 setTimeout(() => {
                     window.location.assign("/");
-                    }, 3000);
-                ;
+                }, 3000);
             } else {
                 const errorData = await response.json();
-                toast.error(errorData.error || "Credenciais inválidas");
+                notifyError(errorData.error || "Credenciais inválidas");
             }
         } catch (error) {
             console.error("Erro durante o login:", error);
-            toast.error("Credenciais inválidas");
+            notifyError("Credenciais inválidas");
         } finally {
             setIsLoading(false);
         }
