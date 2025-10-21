@@ -94,52 +94,56 @@ export default function PropertyPage() {
         const user = auth.currentUser;
 
         const userDocRef = doc(db, "users", user?.uid || "");
-        getDoc(userDocRef).then((docSnap) => {
-            if (docSnap.exists()) {
-                const userData = docSnap.data();
-                setCurrentUser(userData);
-            } else {
-                alert("Usuário não encontrado. Por favor, faça login novamente.");
-            }
-        }).catch((error: any) => {
-            console.error("Erro ao buscar dados do usuário:", error);
-        })
-    }
+        getDoc(userDocRef)
+            .then(docSnap => {
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    setCurrentUser(userData);
+                } else {
+                    alert("Usuário não encontrado. Por favor, faça login novamente.");
+                }
+            })
+            .catch((error: unknown) => {
+                if (error instanceof Error) {
+                    console.error("Erro ao buscar dados do usuário:", error.message);
+                } else {
+                    console.error("Erro ao buscar dados do usuário:", String(error));
+                }
+            });
+    };
 
     useEffect(() => {
         refetchUserData();
-    }, [])
-
+    }, []);
 
     // Request visit modal
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [unit, setUnit] = useState<Unit>();
     const openVisitCalendarModal = () => {
         setVisitModal(true);
-    }
+    };
 
     // Request reservation modal
     const [reservationModal, setReservationModal] = useState<boolean>(false);
     const openReservationConfirmModal = () => {
         setReservationModal(true);
-    }
+    };
 
     // Action guard
     const [isJitModalOpen, setIsJitModalOpen] = useState(false);
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [lastAction, setLastAction] = useState<string>("");
 
-    const handleGuardedAction = async (actionType: 'REQUEST_VISIT' | 'REQUEST_RESERVATION', unit: Unit) => {
+    const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unit: Unit) => {
         const required = actionRequirements[actionType];
-        
+
         await refetchUserData();
 
         const userData = currentUser;
         const missingFields: string[] = [];
-        const requiredDocs = ['addressProof', 'incomeProof', 'identityDoc', 'marriageCert'];
+        const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "marriageCert"];
 
-
-        required.forEach((field) => {
+        required.forEach(field => {
             if (requiredDocs.includes(field)) {
                 // Check if document is uploaded
                 if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
@@ -157,13 +161,12 @@ export default function PropertyPage() {
             setIsJitModalOpen(true);
         } else {
             // Prossiga com a ação original
-            if (actionType === 'REQUEST_VISIT') {
+            if (actionType === "REQUEST_VISIT") {
                 openVisitCalendarModal();
-            } else if (actionType === 'REQUEST_RESERVATION') {
+            } else if (actionType === "REQUEST_RESERVATION") {
                 openReservationConfirmModal();
             }
         }
-
     };
 
     // Initial data fetching for the property
@@ -344,17 +347,17 @@ export default function PropertyPage() {
                     setIsJitModalOpen(false);
                     refetchUserData();
 
-                    if(lastAction === 'REQUEST_VISIT'){
+                    if (lastAction === "REQUEST_VISIT") {
                         openVisitCalendarModal();
-                    } else if (lastAction === 'REQUEST_RESERVATION'){
+                    } else if (lastAction === "REQUEST_RESERVATION") {
                         openReservationConfirmModal();
                     }
                 }}
             />
 
             {/* Request Visit Modal*/}
-            <VisitModal 
-                onClose={() => setVisitModal(false)} 
+            <VisitModal
+                onClose={() => setVisitModal(false)}
                 unit={unit!}
                 property={property}
                 onSubmit={() => setVisitModal(false)}
@@ -362,10 +365,10 @@ export default function PropertyPage() {
             />
 
             {/* Request Reservation modal*/}
-            <ReservationModal 
-                onClose={() => setReservationModal(false)} 
-                unit={unit!} 
-                property={property} 
+            <ReservationModal
+                onClose={() => setReservationModal(false)}
+                unit={unit!}
+                property={property}
                 onSubmit={() => setReservationModal(false)}
                 isOpen={reservationModal}
             />
