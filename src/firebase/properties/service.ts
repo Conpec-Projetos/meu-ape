@@ -1,14 +1,26 @@
 import { db, storage } from "@/firebase/firebase-config";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import {
-    Query, DocumentData, QueryConstraint, where, orderBy, // Adicionado orderBy
-    limit, startAfter, getDoc, doc, collection, query, getDocs, QueryDocumentSnapshot, Timestamp,
-    addDoc,
-    deleteDoc,
-    getCountFromServer,
-    updateDoc,
-} from "firebase/firestore";
 import { Property } from "@/interfaces/property"; // Usando a interface mais completa
+import {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    DocumentData,
+    getCountFromServer,
+    getDoc,
+    getDocs,
+    limit,
+    orderBy,
+    Query,
+    query,
+    QueryConstraint,
+    QueryDocumentSnapshot,
+    startAfter,
+    Timestamp,
+    updateDoc,
+    where,
+} from "firebase/firestore";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 
 /**
  * Generates an array of lowercase keywords from a string.
@@ -33,7 +45,10 @@ const generateKeywords = (text: string): string[] => {
     return Array.from(keywords);
 };
 
-export async function criarPropriedade(property: Omit<Property, "createdAt" | "updatedAt" | "id">, imageFiles?: File[]): Promise<string> {
+export async function criarPropriedade(
+    property: Omit<Property, "createdAt" | "updatedAt" | "id">,
+    imageFiles?: File[]
+): Promise<string> {
     try {
         // Generate keywords for searching
         const searchKeywords = generateKeywords(property.name);
@@ -220,7 +235,7 @@ export async function atualizarPropriedade(
             const docRef = doc(db, "properties", id);
             const docSnap = await getDoc(docRef);
             const existingImages = docSnap.exists() ? docSnap.data().propertyImages || [] : [];
-            
+
             const imagensAtualizadas = existingImages
                 .filter((img: string) => !imagensParaRemover?.includes(img))
                 .concat(novasImagensUrls);
@@ -285,7 +300,10 @@ export async function countProperties(): Promise<number> {
  * @param pageSize The number of documents to fetch per page.
  * @returns A promise that resolves to an object with properties, the next page cursor, and a hasNextPage flag based *only* on the primary query.
  */
-export async function getProperties(params: { [key: string]: string }, pageSize: number = 30): Promise<{
+export async function getProperties(
+    params: { [key: string]: string },
+    pageSize: number = 30
+): Promise<{
     properties: Property[];
     nextPageCursor: string | null;
     hasNextPage: boolean; // Indicates if Firestore *might* have more based on primary query
@@ -298,7 +316,10 @@ export async function getProperties(params: { [key: string]: string }, pageSize:
 
     // --- Primary Filter Logic ---
     if (q) {
-        const keywords = q.toLowerCase().split(' ').filter(k => k.length > 0);
+        const keywords = q
+            .toLowerCase()
+            .split(" ")
+            .filter(k => k.length > 0);
         // Apply text search constraint - requires appropriate index on 'searchKeywords'
         keywords.forEach(keyword => {
             constraints.push(where("searchKeywords", "array-contains", keyword));
@@ -354,7 +375,6 @@ export async function getProperties(params: { [key: string]: string }, pageSize:
     const hasNextPage = documentSnapshots.docs.length > pageSize;
     const lastDocOnPage = documentSnapshots.docs[pageSize - 1]; // Last doc *of the current page*
     const nextPageCursor = hasNextPage && lastDocOnPage ? lastDocOnPage.id : null;
-
 
     return {
         properties,
