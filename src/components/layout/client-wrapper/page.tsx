@@ -8,14 +8,15 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
     const { role, loading } = useAuth();
 
     if (loading) {
-        return null; // Or a loading spinner
+        return null; // Ou um spinner de carregamento
     }
 
     return (
-        <>
+        <div className="flex flex-col min-h-screen">
             <Header variant={role || "guest"} />
-            <main className="flex-grow">{children}</main>
+            {/* grow faz o main ocupar o espaço disponível */}
+            <main className="grow">{children}</main>
             <Footer />
-        </>
+        </div>
     );
 }
