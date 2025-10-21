@@ -14,6 +14,8 @@ import {
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
 import { atualizarPropriedade, buscarPropriedadePorId } from "@/firebase/properties/service";
+import { Property } from "@/interfaces/property";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
 import { LayoutGrid, Upload, X } from "lucide-react";
@@ -21,20 +23,19 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import * as z from "zod";
 
 const formSchema = z.object({
-    nomeEmpreendimento: z.string().min(1, {
+    name: z.string().min(1, {
         message: "Nome do empreendimento é obrigatório.",
     }),
-    enderecoCompleto: z.string().min(1, {
+    address: z.string().min(1, {
         message: "Endereço completo é obrigatório.",
     }),
-    prazoEntrega: z.string().min(1, {
+    deliveryDate: z.string().min(1, {
         message: "Prazo de entrega é obrigatório.",
     }),
-    dataLancamento: z.string().min(1, {
+    launchDate: z.string().min(1, {
         message: "Data de lançamento é obrigatória.",
     }),
 });
@@ -55,10 +56,10 @@ export default function EditPropertyPage() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            nomeEmpreendimento: "",
-            enderecoCompleto: "",
-            prazoEntrega: "",
-            dataLancamento: "",
+            name: "",
+            address: "",
+            deliveryDate: "",
+            launchDate: "",
         },
     });
 
@@ -67,21 +68,21 @@ export default function EditPropertyPage() {
             const property = await buscarPropriedadePorId(propertyId);
             if (property) {
                 form.reset({
-                    nomeEmpreendimento: property.nomeEmpreendimento || "",
-                    enderecoCompleto: property.enderecoCompleto || "",
-                    prazoEntrega: property.prazoEntrega
-                        ? new Date(property.prazoEntrega).toISOString().split("T")[0]
+                    name: property.name || "",
+                    address: property.address || "",
+                    deliveryDate: property.deliveryDate
+                        ? new Date(property.deliveryDate as Date).toISOString().split("T")[0]
                         : "",
-                    dataLancamento: property.dataLancamento
-                        ? new Date(property.dataLancamento).toISOString().split("T")[0]
+                    launchDate: property.launchDate
+                        ? new Date(property.launchDate as Date).toISOString().split("T")[0]
                         : "",
                 });
-                setExistingImages(property.imagens || []);
+                setExistingImages(property.propertyImages || []);
             } else {
-                toast.error("Propriedade não encontrada");
+                notifyError("Propriedade não encontrada");
             }
         } catch {
-            toast.error("Erro ao carregar propriedade");
+            notifyError("Erro ao carregar propriedade");
         } finally {
             setLoadingProperty(false);
         }
@@ -142,7 +143,7 @@ export default function EditPropertyPage() {
                 setSelectedImages(prev => [...prev, ...compressedFiles]);
             } catch (error) {
                 console.error("Error processing images:", error);
-                toast.error("Erro ao processar imagens. Tente novamente.");
+                notifyError("Erro ao processar imagens. Tente novamente.");
             } finally {
                 setIsUploadingImages(false);
                 // Clearing the file input to allow selecting the same file again
@@ -166,17 +167,17 @@ export default function EditPropertyPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            const propertyData = {
-                nomeEmpreendimento: values.nomeEmpreendimento,
-                enderecoCompleto: values.enderecoCompleto,
-                prazoEntrega: new Date(values.prazoEntrega),
-                dataLancamento: new Date(values.dataLancamento),
-                imagens: existingImages,
+            const propertyData: Partial<Property> = {
+                name: values.name,
+                address: values.address,
+                deliveryDate: new Date(values.deliveryDate),
+                launchDate: new Date(values.launchDate),
+                propertyImages: existingImages,
             };
 
             await atualizarPropriedade(propertyId, propertyData, selectedImages, imagesToRemove);
 
-            toast.success("Propriedade atualizada com sucesso!");
+            notifySuccess("Propriedade atualizada com sucesso!");
 
             setSelectedImages([]);
             setImagePreviews([]);
@@ -186,7 +187,7 @@ export default function EditPropertyPage() {
             // set the selected images in the existing images
             loadProperty();
         } catch {
-            toast.error("Erro ao atualizar propriedade. Tente novamente.");
+            notifySuccess("Erro ao atualizar propriedade. Tente novamente.");
         } finally {
             setIsLoading(false);
         }
@@ -222,7 +223,7 @@ export default function EditPropertyPage() {
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                 <FormField
                                     control={form.control}
-                                    name="nomeEmpreendimento"
+                                    name="name"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Nome do Empreendimento</FormLabel>
@@ -237,7 +238,7 @@ export default function EditPropertyPage() {
 
                                 <FormField
                                     control={form.control}
-                                    name="enderecoCompleto"
+                                    name="address"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Endereço Completo</FormLabel>
@@ -253,7 +254,7 @@ export default function EditPropertyPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
-                                        name="prazoEntrega"
+                                        name="deliveryDate"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Prazo de Entrega</FormLabel>
@@ -268,7 +269,7 @@ export default function EditPropertyPage() {
 
                                     <FormField
                                         control={form.control}
-                                        name="dataLancamento"
+                                        name="launchDate"
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Data de Lançamento</FormLabel>

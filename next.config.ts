@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/v0/b/meu-ape-120a9.firebasestorage.app/o/**",
       },
+    {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+    },
     ]
   },
 };
