@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Unit } from "@/interfaces/unit";
 import { Bath, Bed, Car, Square } from "lucide-react";
-import { useEffect, useState } from "react";
 
 interface UnitCardProps {
     unit: Unit;
-    handleGuardedAction: (actionType: 'REQUEST_VISIT' | 'REQUEST_RESERVATION', unit: Unit) => void;
+    handleGuardedAction: (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unit: Unit) => void;
 }
 
 export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
-
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow border border-border/40 rounded-xl overflow-hidden">
             <CardHeader className="bg-secondary/30 p-4 border-b border-border/40">
@@ -46,16 +44,24 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
                         }).format(unit.price)}
                     </p>
                     <div className="flex gap-2 w-full sm:w-auto flex-wrap justify-end">
-                        <Button variant="outline" size="sm" className="flex-1" onClick={() => handleGuardedAction('REQUEST_VISIT', unit)}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleGuardedAction("REQUEST_VISIT", unit)}
+                        >
                             Agendar Visita
                         </Button>
-                        <Button size="sm" className="flex-1" onClick={() => handleGuardedAction('REQUEST_RESERVATION', unit)}>
+                        <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleGuardedAction("REQUEST_RESERVATION", unit)}
+                        >
                             Solicitar Reserva
                         </Button>
                     </div>
                 </div>
             </CardFooter>
-
         </Card>
     );
 }
