@@ -6,41 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
 import { MapProvider } from "@/providers/google-maps-provider";
-import { GeoPoint, Timestamp } from "firebase/firestore";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-
-// --- MOCK DATA (to be replaced with API calls) ---
-const mockProperties: Property[] = Array.from({ length: 8 }).map((_, i) => ({
-    id: `prop-${i}`,
-    name: `Residencial Vista do Vale ${i + 1}`,
-    address: "Av. Brasil, 1234, Campinas - SP",
-    propertyImages: [], // placeholder for images in mock data; replace with actual fetch in real API call
-    deliveryDate: Timestamp.now(),
-    launchDate: Timestamp.now(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    developerRef: {} as any,
-    features: ["Piscina", "Academia"],
-    floors: 20,
-    unitsPerFloor: 4,
-    location: new GeoPoint(-22.90556 + (Math.random() - 0.5) * 0.05, -47.06083 + (Math.random() - 0.5) * 0.05),
-    searchableUnitFeats: {
-        minPrice: 500000 + i * 50000,
-        maxPrice: 1200000,
-        sizes: [60, 75, 90],
-        bedrooms: [2, 3],
-        baths: [1, 2],
-        garages: [1, 2],
-        minSize: 60,
-        maxSize: 90,
-    },
-    availableUnits: 10,
-    groups: [],
-    description: "Um empreendimento incrível.",
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-}));
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useInView } from "react-intersection-observer";
 
 // --- MAIN PAGE COMPONENT ---
 function PropertySearchPageContent() {
@@ -48,20 +17,64 @@ function PropertySearchPageContent() {
     const isMobile = useIsMobile();
     const [properties, setProperties] = useState<Property[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [nextPageCursor, setNextPageCursor] = useState<string | null>(null);
+    const [hasNextPage, setHasNextPage] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
+    const { ref, inView } = useInView({
+        threshold: 0,
+        triggerOnce: false,
+    });
+
+    const fetchProperties = useCallback(
+        async (cursor: string | null) => {
+            if (!cursor) {
+                setIsLoading(true);
+            } else {
+                setIsFetchingMore(true);
+            }
+            setError(null);
+
+            const params = new URLSearchParams(searchParams.toString());
+            if (cursor) {
+                params.set("cursor", cursor);
+            }
+
+            try {
+                const response = await fetch(`/api/properties?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch: ${response.statusText}`);
+                }
+                const data = await response.json();
+
+                setProperties(prev => (cursor ? [...prev, ...data.properties] : data.properties));
+                setNextPageCursor(data.nextPageCursor);
+                setHasNextPage(data.hasNextPage);
+            } catch (e) {
+                setError(e instanceof Error ? e.message : "An unknown error occurred");
+            } finally {
+                setIsLoading(false);
+                setIsFetchingMore(false);
+            }
+        },
+        [searchParams]
+    );
+
+    // Effect for initial load and search param changes
     useEffect(() => {
-        const fetchProperties = async () => {
-            setIsLoading(true);
-            // MOCK API CALL
-            // In a real app, you would call your Firebase function here, passing the searchParams
-            console.log("Fetching properties with params:", searchParams.toString());
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            setProperties(mockProperties);
-            setIsLoading(false);
-        };
+        setProperties([]);
+        setNextPageCursor(null);
+        setHasNextPage(true);
+        fetchProperties(null);
+    }, [fetchProperties]);
 
-        fetchProperties();
-    }, [searchParams]);
+    // Effect for infinite scroll
+    useEffect(() => {
+        if (inView && hasNextPage && !isLoading && !isFetchingMore && nextPageCursor) {
+            fetchProperties(nextPageCursor);
+        }
+    }, [inView, hasNextPage, isLoading, isFetchingMore, nextPageCursor, fetchProperties]);
 
     if (isMobile) {
         return (
@@ -77,7 +90,9 @@ function PropertySearchPageContent() {
                         </TabsTrigger>
                     </TabsList>
                     <TabsContent value="list" className="flex-grow overflow-y-auto">
-                        <PropertyList properties={properties} isLoading={isLoading} />
+                        <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
+                        {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                        {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                     </TabsContent>
                     <TabsContent value="map" className="flex-grow">
                         <GoogleMapComponent properties={properties} isLoading={isLoading} />
@@ -96,7 +111,9 @@ function PropertySearchPageContent() {
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={45} minSize={30}>
-                    <PropertyList properties={properties} isLoading={isLoading} />
+                    <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
+                    {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                    {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>

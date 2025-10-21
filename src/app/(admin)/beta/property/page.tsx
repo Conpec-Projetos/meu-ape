@@ -4,7 +4,7 @@ import blurImgUrl from "@/assets/blur_img_placeholder.jpg";
 import { Button } from "@/components/features/buttons/default-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import { buscarPropriedadesPaginado, excluirPropriedade } from "@/firebase/properties/service";
-import { Property } from "@/interfaces/propertyOld";
+import { Property } from "@/interfaces/property";
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { Building, Calendar, Clock, ImageIcon, MapPin, Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -123,78 +123,78 @@ export default function PropertiesListPage() {
                                     <div className="flex justify-between items-start">
                                         <div className="grid grid-cols-[auto_1fr] w-3/4 max-w-3/4 gap-3 items-start">
                                             {/* Property Image Preview */}
-                                            <div className="w-16 h-16 rounded-lg relative bg-gray-100">
-                                                {property.imagens && property.imagens.length > 0 ? (
-                                                    <Image
-                                                        src={property.imagens[0]}
-                                                        alt={property.nomeEmpreendimento}
-                                                        fill
-                                                        className="object-cover rounded-lg"
-                                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                                        placeholder="blur"
-                                                        blurDataURL={blurImgUrl.src}
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <div className="flex items-center justify-center w-full h-full">
-                                                        <ImageIcon className="h-6 w-6 text-gray-400" />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Property Info */}
-                                            <div>
-                                                <CardTitle className="text-lg">{property.nomeEmpreendimento}</CardTitle>
-                                                <CardDescription className="flex items-start gap-2 mt-2">
-                                                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                                                    <span className="text-sm line-clamp-2">
-                                                        {property.enderecoCompleto}
-                                                    </span>
-                                                </CardDescription>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className="flex gap-1 flex-shrink-0">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer p-2"
-                                                onClick={() => router.push(`/beta/property/write/${property.id}`)}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer p-2"
-                                                onClick={() => handleDelete(property.id!, property.nomeEmpreendimento)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Clock className="h-4 w-4" />
-                                            <span>
-                                                <strong>Prazo:</strong> {formatDate(property.prazoEntrega)}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Calendar className="h-4 w-4" />
-                                            <span>
-                                                <strong>Lançamento:</strong> {formatDate(property.dataLancamento)}
-                                            </span>
-                                        </div>
-
-                                        <div className="text-xs text-gray-500 pt-2 border-t">
-                                            Cadastrado em: {formatDate(property.criadoEm)}
-                                        </div>
-                                    </div>
+                                                                                        <div className="w-16 h-16 rounded-lg relative bg-gray-100">
+                                                                                            {property.propertyImages && property.propertyImages.length > 0 ? (
+                                                                                                <Image
+                                                                                                    src={property.propertyImages[0]}
+                                                                                                    alt={property.name}
+                                                                                                    fill
+                                                                                                    className="object-cover rounded-lg"
+                                                                                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                                                                                    placeholder="blur"
+                                                                                                    blurDataURL={blurImgUrl.src}
+                                                                                                    unoptimized
+                                                                                                />
+                                                                                            ) : (
+                                                                                                <div className="flex items-center justify-center w-full h-full">
+                                                                                                    <ImageIcon className="h-6 w-6 text-gray-400" />
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                            
+                                                                                        {/* Property Info */}
+                                                                                        <div>
+                                                                                            <CardTitle className="text-lg">{property.name}</CardTitle>
+                                                                                            <CardDescription className="flex items-start gap-2 mt-2">
+                                                                                                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                                                                                                <span className="text-sm line-clamp-2">
+                                                                                                    {property.address}
+                                                                                                </span>
+                                                                                            </CardDescription>
+                                                                                        </div>
+                                                                                    </div>
+                                            
+                                                                                    {/* Action Buttons */}
+                                                                                    <div className="flex gap-1 flex-shrink-0">
+                                                                                        <Button
+                                                                                            variant="outline"
+                                                                                            size="sm"
+                                                                                            className="text-sky-600 hover:text-sky-800 hover:bg-sky-50 cursor-pointer p-2"
+                                                                                            onClick={() => router.push(`/beta/property/write/${property.id}`)}
+                                                                                        >
+                                                                                            <Pencil className="h-4 w-4" />
+                                                                                        </Button>
+                                                                                        <Button
+                                                                                            variant="outline"
+                                                                                            size="sm"
+                                                                                            className="text-red-600 hover:text-red-800 hover:bg-red-50 cursor-pointer p-2"
+                                                                                            onClick={() => handleDelete(property.id!, property.name)}
+                                                                                        >
+                                                                                            <Trash2 className="h-4 w-4" />
+                                                                                        </Button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </CardHeader>
+                                                                            <CardContent className="space-y-4">
+                                                                                <div className="space-y-3">
+                                                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                                        <Clock className="h-4 w-4" />
+                                                                                        <span>
+                                                                                            <strong>Prazo:</strong> {formatDate(property.deliveryDate as Date)}
+                                                                                        </span>
+                                                                                    </div>
+                                            
+                                                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                                                        <Calendar className="h-4 w-4" />
+                                                                                        <span>
+                                                                                            <strong>Lançamento:</strong> {formatDate(property.launchDate as Date)}
+                                                                                        </span>
+                                                                                    </div>
+                                            
+                                                                                    <div className="text-xs text-gray-500 pt-2 border-t">
+                                                                                        Cadastrado em: {formatDate(property.createdAt as Date)}
+                                                                                    </div>
+                                                                                </div>
                                 </CardContent>
                             </Card>
                         ))}
