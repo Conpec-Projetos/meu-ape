@@ -133,7 +133,8 @@ export default function PropertyPage() {
                 deliveryDate: new Date(values.deliveryDate),
                 launchDate: new Date(values.launchDate),
                 developerRef: doc(db, "developers", "default"), // Add a default developer reference
-                location: new GeoPoint(0, 0), // Add a default location
+                developerName: "Construtora Teste",
+                location: new GeoPoint(0, 0),
                 features: [],
                 floors: 0,
                 unitsPerFloor: 0,
