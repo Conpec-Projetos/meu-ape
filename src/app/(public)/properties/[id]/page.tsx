@@ -30,6 +30,7 @@ const mockProperty: Property = {
     deliveryDate: Timestamp.now(),
     launchDate: Timestamp.now(),
     developerRef: {} as DocumentReference,
+    developerName: "Construtora Teste",
     features: ["Piscina", "Academia", "Sauna", "Playground", "Salão de Festas", "Portaria 24h"],
     floors: 20,
     unitsPerFloor: 4,
