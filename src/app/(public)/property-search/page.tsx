@@ -80,7 +80,7 @@ function PropertySearchPageContent() {
         return (
             <div className="pt-20 flex flex-col h-screen">
                 <SearchBar />
-                <Tabs defaultValue="list" className="flex-grow flex flex-col">
+                <Tabs defaultValue="list" className="grow flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
                         <TabsTrigger value="list" className="text-base h-full">
                             <ListFilter className="mr-2" /> Lista
@@ -89,12 +89,12 @@ function PropertySearchPageContent() {
                             <Map className="mr-2" /> Mapa
                         </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="list" className="flex-grow overflow-y-auto">
+                    <TabsContent value="list" className="grow overflow-y-auto">
                         <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
                         {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
                         {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                     </TabsContent>
-                    <TabsContent value="map" className="flex-grow">
+                    <TabsContent value="map" className="grow">
                         <GoogleMapComponent properties={properties} isLoading={isLoading} />
                     </TabsContent>
                 </Tabs>
@@ -105,7 +105,7 @@ function PropertySearchPageContent() {
     return (
         <div className="pt-20 flex flex-col h-screen">
             <SearchBar />
-            <ResizablePanelGroup direction="horizontal" className="flex-grow border-t">
+            <ResizablePanelGroup direction="horizontal" className="grow border-t">
                 <ResizablePanel defaultSize={55} minSize={30}>
                     <GoogleMapComponent properties={properties} isLoading={isLoading} />
                 </ResizablePanel>

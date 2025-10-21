@@ -39,7 +39,7 @@ function MapEvents() {
                         const params = new URLSearchParams(searchParams.toString());
                         params.set("bounds", newBoundsString);
                         // Use replace para não adicionar ao histórico do navegador a cada atualização do mapa
-                        router.replace(`${pathname}?${params.toString()}`);
+                        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
                     }
                 }
             }, DEBOUNCE_DELAY);
