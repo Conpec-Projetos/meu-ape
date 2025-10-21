@@ -90,8 +90,24 @@ export default function PropertyTable({ onEdit, onDelete }: {
     setPage(newPage);
   }
 
-  function handleAddUnit(unit: Omit<Property, "id">) {
-    setProperties(prev => [...prev, { id: String(Date.now()), ...unit }]);
+  function handleAddUnit(unit: { identificador: string; preco: number; tamanho: number; quartos: number; banheiros: number; garagem: number; }) {
+    // Add missing fields with sensible defaults to satisfy Property type
+    const newUnit: Property = {
+      id: String(Date.now()),
+      identificador: unit.identificador,
+      preco: unit.preco,
+      tamanho: unit.tamanho,
+      quartos: unit.quartos,
+      banheiros: unit.banheiros,
+      garagem: unit.garagem,
+      // defaults for fields not provided by the modal
+      categoria: "",
+      andar: 0,
+      disponibilidade: "sim",
+      images: [],
+      planta: [],
+    };
+    setProperties(prev => [...prev, newUnit]);
     setShowAddModal(false);
   }
     
