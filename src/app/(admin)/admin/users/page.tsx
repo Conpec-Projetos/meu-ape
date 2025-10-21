@@ -7,18 +7,17 @@ import { AgentRequestTable } from "@/components/features/tables/agent-request-ta
 import { UserTable, UserTableSkeleton } from "@/components/features/tables/user-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAgentRequests } from "@/hooks/use-agent-requests";
 import { useUserCounts } from "@/hooks/use-user-counts";
 import { useUsers } from "@/hooks/use-users";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { User } from "@/interfaces/user";
+import { notifyPromise } from "@/services/notificationService";
+import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { toast } from "sonner";
-
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 
 function UserManagementContent() {
     const router = useRouter();
@@ -130,7 +129,7 @@ function UserManagementContent() {
                 }
             });
 
-        toast.promise(promise(), {
+        notifyPromise(promise(), {
             loading: "Salvando usuário...",
             success: message => `${message}`,
             error: "Ocorreu um erro ao salvar o usuário",
@@ -154,7 +153,7 @@ function UserManagementContent() {
                 }
             });
 
-        toast.promise(promise(), {
+        notifyPromise(promise(), {
             loading: "Aprovando solicitação...",
             success: message => `${message}`,
             error: "Ocorreu um erro ao aprovar a solicitação",
@@ -187,7 +186,7 @@ function UserManagementContent() {
                 }
             });
 
-        toast.promise(promise(), {
+        notifyPromise(promise(), {
             loading: "Negando solicitação...",
             success: message => `${message}`,
             error: "Ocorreu um erro ao negar a solicitação",
@@ -215,7 +214,7 @@ function UserManagementContent() {
                 }
             });
 
-        toast.promise(promise(), {
+        notifyPromise(promise(), {
             loading: "Negando solicitação...",
             success: message => `${message}`,
             error: "Ocorreu um erro ao negar a solicitação",
@@ -237,7 +236,7 @@ function UserManagementContent() {
                 }
             });
 
-        toast.promise(promise(), {
+        notifyPromise(promise(), {
             loading: "Deletando usuário...",
             success: message => `${message}`,
             error: "Ocorreu um erro ao deletar o usuário",

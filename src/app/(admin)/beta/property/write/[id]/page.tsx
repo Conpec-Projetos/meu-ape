@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/features/inputs/default-input";
 import { atualizarPropriedade, buscarPropriedadePorId } from "@/firebase/properties/service";
 import { Property } from "@/interfaces/property";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
 import { LayoutGrid, Upload, X } from "lucide-react";
@@ -22,7 +23,6 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import * as z from "zod";
 
 const formSchema = z.object({
@@ -79,10 +79,10 @@ export default function EditPropertyPage() {
                 });
                 setExistingImages(property.propertyImages || []);
             } else {
-                toast.error("Propriedade não encontrada");
+                notifyError("Propriedade não encontrada");
             }
         } catch {
-            toast.error("Erro ao carregar propriedade");
+            notifyError("Erro ao carregar propriedade");
         } finally {
             setLoadingProperty(false);
         }
@@ -143,7 +143,7 @@ export default function EditPropertyPage() {
                 setSelectedImages(prev => [...prev, ...compressedFiles]);
             } catch (error) {
                 console.error("Error processing images:", error);
-                toast.error("Erro ao processar imagens. Tente novamente.");
+                notifyError("Erro ao processar imagens. Tente novamente.");
             } finally {
                 setIsUploadingImages(false);
                 // Clearing the file input to allow selecting the same file again
@@ -177,7 +177,7 @@ export default function EditPropertyPage() {
 
             await atualizarPropriedade(propertyId, propertyData, selectedImages, imagesToRemove);
 
-            toast.success("Propriedade atualizada com sucesso!");
+            notifySuccess("Propriedade atualizada com sucesso!");
 
             setSelectedImages([]);
             setImagePreviews([]);
@@ -187,7 +187,7 @@ export default function EditPropertyPage() {
             // set the selected images in the existing images
             loadProperty();
         } catch {
-            toast.error("Erro ao atualizar propriedade. Tente novamente.");
+            notifySuccess("Erro ao atualizar propriedade. Tente novamente.");
         } finally {
             setIsLoading(false);
         }

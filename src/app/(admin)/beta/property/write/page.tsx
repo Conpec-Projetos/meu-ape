@@ -12,9 +12,12 @@ import {
     FormMessage,
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
+import { db } from "@/firebase/firebase-config";
 import { criarPropriedade } from "@/firebase/properties/service";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
+import { GeoPoint, doc } from "firebase/firestore";
 import { LayoutGrid, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -22,8 +25,6 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
-import { GeoPoint, doc } from "firebase/firestore";
-import { db } from "@/firebase/firebase-config";
 
 const formSchema = z.object({
     name: z.string().min(1, {
@@ -110,7 +111,7 @@ export default function PropertyPage() {
                 setSelectedImages(prev => [...prev, ...compressedFiles]);
             } catch (error) {
                 console.error("Error processing images:", error);
-                toast.error("Erro ao processar imagens. Tente novamente.");
+                notifyError("Erro ao processar imagens. Tente novamente.");
             } finally {
                 setIsUploadingImages(false);
             }
@@ -131,12 +132,12 @@ export default function PropertyPage() {
                 address: values.address,
                 deliveryDate: new Date(values.deliveryDate),
                 launchDate: new Date(values.launchDate),
-                developerRef: doc(db, 'developers', 'default'), // Add a default developer reference
+                developerRef: doc(db, "developers", "default"), // Add a default developer reference
                 location: new GeoPoint(0, 0), // Add a default location
                 features: [],
                 floors: 0,
                 unitsPerFloor: 0,
-                description: '',
+                description: "",
                 searchableUnitFeats: {
                     sizes: [],
                     bedrooms: [],
@@ -163,14 +164,14 @@ export default function PropertyPage() {
             await criarPropriedade(propertyData, selectedImages);
 
             toast.dismiss("upload-progress");
-            toast.success("Empreendimento cadastrado com sucesso! 🎉");
+            notifySuccess("Empreendimento cadastrado com sucesso! 🎉");
 
             form.reset();
             setSelectedImages([]);
             setImagePreviews([]);
         } catch {
             toast.dismiss("upload-progress");
-            toast.error("Erro ao cadastrar empreendimento. Verifique sua conexão e tente novamente.");
+            notifyError("Erro ao cadastrar empreendimento. Verifique sua conexão e tente novamente.");
         } finally {
             setIsLoading(false);
         }
