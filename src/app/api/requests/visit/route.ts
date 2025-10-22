@@ -4,7 +4,7 @@ import { db } from "@/firebase/firebase-config";
 import { createVisitRequest } from "@/firebase/visitRequest/service";
 import { Property } from "@/interfaces/property";
 import { VisitRequest } from "@/interfaces/visitRequest";
-import { timeStamp } from "console";
+import { sendEmailAdmin } from "@/lib/sendEmailAdmin";
 import { and, collection, doc, getCountFromServer, getDoc, or, query, Timestamp, where } from "firebase/firestore";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -101,6 +101,14 @@ export async function POST (req: NextRequest){
         } as Partial<VisitRequest>;
 
         await createVisitRequest(uploadData);
+
+        // 6. Send emails to admins
+        try{
+            await sendEmailAdmin({type: "visitRequest", clientName: userName, propertyName: property.name});
+        } catch(error){
+            console.error(error);
+        }
+        
 
         // 7. Return success response
         return NextResponse.json({ success: true, message: "Visit requested  successfully" });

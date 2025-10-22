@@ -1,4 +1,4 @@
-import { DocumentReference, Timestamp } from "firebase/firestore";
+import { DocumentReference, FieldValue, Timestamp } from "firebase/firestore";
 
 export interface VisitRequest {
     id?: string; // id do documento no Firebase
@@ -11,6 +11,6 @@ export interface VisitRequest {
     requestedSlots: (Date | Timestamp)[]; // horários solicitados pelo cliente
     scheduledSlot?: Date | Timestamp; // horário final agendado pelo administrador
     adminMsg?: string; // mensagem para o cliente em caso de negação
-    createdAt: Date | Timestamp;
+    createdAt: Date | Timestamp | FieldValue;
     updatedAt: Date | Timestamp;
 }
