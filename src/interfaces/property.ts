@@ -2,6 +2,7 @@ import { DocumentReference, GeoPoint, Timestamp } from "firebase/firestore";
 import { Unit } from "./unit";
 
 interface SearchableUnitFeats {
+    // campo desnormalizado para busca/filtragem
     sizes: number[];
     bedrooms: number[];
     baths: number[];
@@ -15,7 +16,8 @@ interface SearchableUnitFeats {
 export interface Property {
     id?: string; // id do documento no Firebase
     developerRef: DocumentReference; // referência ao documento da construtora na coleção developers
-    name: string;
+    developerName: string; // nome da construtora
+    name: string; // nome do imóvel/empreendimento
     address: string; // endereço em linguagem natural
     location: GeoPoint; // coordenadas
     deliveryDate: Date | Timestamp;

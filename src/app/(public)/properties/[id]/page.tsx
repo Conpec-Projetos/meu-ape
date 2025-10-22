@@ -3,10 +3,12 @@
 import { JustInTimeDataModal } from "@/components/features/modals/justIn-time-data-modal";
 import { ReservationModal } from "@/components/features/modals/reservation-modal";
 import { VisitModal } from "@/components/features/modals/visit-modal";
-import { MatterportViewer } from "@/components/features/property/matterport-viewer";
+// Importar o novo componente Matterport (que será criado/adaptado)
+import { EmbeddedMatterportViewer } from "@/components/features/property/embedded-matterport-viewer"; // Renomeado para clareza
 import { PropertyHeader } from "@/components/features/property/property-header";
 import { PropertyImageGallery } from "@/components/features/property/property-image-gallery";
-import { PropertyMap } from "@/components/features/property/property-map";
+// Importar o GoogleMapComponent
+import { GoogleMapComponent } from "@/components/features/property-search";
 import { UnitList } from "@/components/features/property/unit-list";
 import { UnitSelector, UnitStructure } from "@/components/features/property/unit-selector";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,12 +16,14 @@ import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
+// Importar o MapProvider
+import { MapProvider } from "@/providers/google-maps-provider";
 import { doc, DocumentData, DocumentReference, GeoPoint, getDoc, Timestamp } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-// Mock data and functions to simulate Firebase calls
+// Mock data (MANTIDO PARA EXEMPLO, SUBSTITUIR POR CHAMADAS REAIS)
 const mockProperty: Property = {
     id: "mock-property-id",
     name: "Residencial Elysian",
@@ -30,10 +34,12 @@ const mockProperty: Property = {
     deliveryDate: Timestamp.now(),
     launchDate: Timestamp.now(),
     developerRef: {} as DocumentReference,
+    developerName: "Construtora Teste",
     features: ["Piscina", "Academia", "Sauna", "Playground", "Salão de Festas", "Portaria 24h"],
     floors: 20,
     unitsPerFloor: 4,
     location: new GeoPoint(34.0522, -118.2437),
+    matterportUrl: ["https://my.matterport.com/show/?m=EmsYeDcMSPu"],
     searchableUnitFeats: {
         minPrice: 500000,
         maxPrice: 1200000,
@@ -65,14 +71,14 @@ const mockUnits: Unit[] = Array.from({ length: 5 }).map((_, i) => ({
     garages: 1,
     isAvailable: true,
     floor: 10 + i,
-    matterportUrl: i % 2 === 0 ? "https://my.matterport.com/show/?m=1234567890" : undefined,
     images: [],
     developerRef: {} as DocumentReference,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
 }));
+// --- FIM DOS MOCKS ---
 
-export default function PropertyPage() {
+function PropertyPageContent() { // Extraído para usar dentro do MapProvider
     const params = useParams();
     const id = params.id as string;
     const [property, setProperty] = useState<Property | null>(null);
@@ -85,82 +91,80 @@ export default function PropertyPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
 
-    const [matterportUrl, setMatterportUrl] = useState("");
-    const [isMatterportOpen, setIsMatterportOpen] = useState(false);
+    // REMOVIDO: Estados relacionados ao modal Matterport
+    // const [matterportUrl, setMatterportUrl] = useState("");
+    // const [isMatterportOpen, setIsMatterportOpen] = useState(false);
 
-    // User data
     const [currentUser, setCurrentUser] = useState<DocumentData>();
     const refetchUserData = async () => {
         const user = auth.currentUser;
-
-        const userDocRef = doc(db, "users", user?.uid || "");
-        getDoc(userDocRef)
-            .then(docSnap => {
-                if (docSnap.exists()) {
-                    const userData = docSnap.data();
-                    setCurrentUser(userData);
-                } else {
-                    alert("Usuário não encontrado. Por favor, faça login novamente.");
-                }
-            })
-            .catch((error: unknown) => {
-                if (error instanceof Error) {
-                    console.error("Erro ao buscar dados do usuário:", error.message);
-                } else {
-                    console.error("Erro ao buscar dados do usuário:", String(error));
-                }
-            });
+        if (!user) {
+            setCurrentUser(undefined);
+            return;
+        }
+        const userDocRef = doc(db, "users", user.uid);
+        try {
+            const docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) {
+                setCurrentUser(docSnap.data());
+            } else {
+                console.error("Usuário não encontrado no Firestore.");
+                setCurrentUser(undefined);
+            }
+        } catch (error: unknown) {
+            console.error("Erro ao buscar dados do usuário:", String(error));
+        }
     };
 
     useEffect(() => {
         refetchUserData();
     }, []);
 
-    // Request visit modal
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [unit, setUnit] = useState<Unit>();
-    const openVisitCalendarModal = () => {
-        setVisitModal(true);
-    };
+    const openVisitCalendarModal = () => setVisitModal(true);
 
-    // Request reservation modal
     const [reservationModal, setReservationModal] = useState<boolean>(false);
-    const openReservationConfirmModal = () => {
-        setReservationModal(true);
-    };
+    const openReservationConfirmModal = () => setReservationModal(true);
 
-    // Action guard
     const [isJitModalOpen, setIsJitModalOpen] = useState(false);
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [lastAction, setLastAction] = useState<string>("");
 
-    const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unit: Unit) => {
+    const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unitData: Unit) => {
         const required = actionRequirements[actionType];
+        await refetchUserData(); // Garante que temos os dados mais recentes
 
-        await refetchUserData();
-
-        const userData = currentUser;
-        const missingFields: string[] = [];
-        const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "marriageCert"];
+        const userData = currentUser; // Usa o estado atualizado
+        const currentMissingFields: string[] = [];
+        const requiredDocs = ["addressProof", "incomeProof", "identityDoc"]; // marriageCert é opcional aqui? Verificar lógica original
 
         required.forEach(field => {
             if (requiredDocs.includes(field)) {
-                // Check if document is uploaded
                 if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
-                    missingFields.push(field);
+                    currentMissingFields.push(field);
                 }
             } else if (!userData?.[field]) {
-                missingFields.push(field);
+                currentMissingFields.push(field);
             }
         });
 
-        setUnit(unit);
+        // Verificação específica para certidão de casamento em reservas, se aplicável
+        if (actionType === "REQUEST_RESERVATION" && actionRequirements.REQUEST_RESERVATION.includes('marriageCert')) {
+             if (!userData?.documents?.marriageCert || userData.documents.marriageCert.length === 0) {
+                 // Considerar se é realmente obrigatório ou apenas para alguns casos
+                 // Adicionar se for estritamente necessário: currentMissingFields.push('marriageCert');
+             }
+        }
+
+
+        setUnit(unitData); // Define a unidade para os modais
         setLastAction(actionType);
-        if (missingFields.length > 0) {
-            setMissingFields(missingFields);
+
+        if (currentMissingFields.length > 0) {
+            setMissingFields(currentMissingFields);
             setIsJitModalOpen(true);
         } else {
-            // Prossiga com a ação original
             if (actionType === "REQUEST_VISIT") {
                 openVisitCalendarModal();
             } else if (actionType === "REQUEST_RESERVATION") {
@@ -169,18 +173,14 @@ export default function PropertyPage() {
         }
     };
 
-    // Initial data fetching for the property
     useEffect(() => {
         const fetchPropertyData = async () => {
             setIsLoading(true);
-            // TODO: Replace with actual API call: const prop = await getPropertyById(id);
-            const prop = mockProperty;
+            // TODO: Substituir mocks por chamadas reais à API/Firebase
+            const prop = mockProperty; // await getPropertyById(id);
             setProperty(prop);
-
-            // TODO: Replace with actual API call: const structure = await getUnitStructureForProperty(id);
-            const structure = mockUnitStructure;
+            const structure = mockUnitStructure; // await getUnitStructureForProperty(id);
             setUnitStructure(structure);
-
             setIsLoading(false);
         };
         if (id) {
@@ -188,16 +188,14 @@ export default function PropertyPage() {
         }
     }, [id]);
 
-    // Fetch units when selection changes
     useEffect(() => {
         if (!selectedBlock || !selectedCategory) return;
 
         const fetchUnits = async () => {
             setIsLoadingUnits(true);
-            // TODO: Replace with actual API call
-            // const { units: newUnits, nextCursor } = await getUnitsPaginated(id, { block: selectedBlock, category: selectedCategory });
-            const newUnits = mockUnits;
-            const nextCursor = "next-page-cursor"; // Simulate next cursor
+            // TODO: Substituir mock por chamada real
+            const newUnits = mockUnits; // await getUnitsPaginated(id, { block: selectedBlock, category: selectedCategory });
+            const nextCursor = "next-page-cursor"; // Simula cursor
 
             setUnits(newUnits);
             setCursor(nextCursor);
@@ -212,11 +210,9 @@ export default function PropertyPage() {
         if (!hasNextPage || isLoadingUnits) return;
 
         setIsLoadingUnits(true);
-        // TODO: Replace with actual API call
-        // console.log("Loading more items starting after:", cursor);
-        // const { units: newUnits, nextCursor } = await getUnitsPaginated(id, { block: selectedBlock, category: selectedCategory, startAfter: cursor });
-        const newUnits = mockUnits.map(u => ({ ...u, id: u.id + "-more" })); // Simulate new data
-        const nextCursor = null; // Simulate end of list
+        // TODO: Substituir mock por chamada real
+        const newUnits = mockUnits.map(u => ({ ...u, id: u.id + "-more" })); // Simula novos dados
+        const nextCursor = null; // Simula fim da lista
 
         setUnits(prev => [...prev, ...newUnits]);
         setCursor(nextCursor);
@@ -227,19 +223,14 @@ export default function PropertyPage() {
     const handleSelectUnitType = (block: string, category: string) => {
         setSelectedBlock(block);
         setSelectedCategory(category);
-        setUnits([]); // Reset units on new selection
+        setUnits([]);
         setCursor(null);
         setHasNextPage(true);
     };
 
-    const handleViewMatterport = (url: string) => {
-        setMatterportUrl(url);
-        setIsMatterportOpen(true);
-    };
-
     if (isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8 space-y-8">
+             <div className="container mx-auto px-4 py-8 space-y-8 pt-20">
                 <div className="flex justify-between items-center">
                     <Skeleton className="h-12 w-1/3" />
                     <Skeleton className="h-10 w-32" />
@@ -250,6 +241,8 @@ export default function PropertyPage() {
                         <Skeleton className="h-32 w-full" />
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-48 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                        <Skeleton className="h-64 w-full" /> 
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <Skeleton className="h-64 w-full" />
@@ -261,11 +254,14 @@ export default function PropertyPage() {
     }
 
     if (!property) {
-        return <div className="text-center py-12">Imóvel não encontrado.</div>;
+        return <div className="text-center py-12 pt-20">Imóvel não encontrado.</div>;
     }
 
+    // Obter a URL do Matterport da propriedade (pegando a primeira, se houver)
+    const propertyMatterportUrl = property.matterportUrl?.[0];
+
     return (
-        <div className="py-15 bg-background text-foreground">
+        <div className="py-15 bg-background text-foreground pt-20">
             <div className="container mx-auto px-4 py-8">
                 <PropertyHeader name={property.name} address={property.address} />
 
@@ -304,8 +300,24 @@ export default function PropertyPage() {
                                 />
                             )}
                         </div>
-                        {/* Map Section */}
-                        <PropertyMap location={property.location} />
+
+                        {/* Matterport Viewer Embutido */}
+                         {propertyMatterportUrl && (
+                            <div>
+                                <h3 className="text-xl font-semibold text-primary mb-4">Tour 3D Imersivo</h3>
+                                <EmbeddedMatterportViewer url={propertyMatterportUrl} />
+                            </div>
+                         )}
+
+
+                        {/* Map Section - Usando GoogleMapComponent */}
+                        <div>
+                            <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
+                            <div className="h-[800px] w-full rounded-lg overflow-hidden">
+                                 {/* Passa a propriedade inteira, ou apenas a localização */}
+                                <GoogleMapComponent properties={[property]} isLoading={false} />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Right Column: Unit List */}
@@ -316,7 +328,7 @@ export default function PropertyPage() {
                                 onLoadMore={handleLoadMore}
                                 hasNextPage={hasNextPage}
                                 isLoading={isLoadingUnits}
-                                onViewMatterport={handleViewMatterport}
+                                // REMOVIDO: onViewMatterport
                                 handleGuardedAction={handleGuardedAction}
                             />
                         ) : (
@@ -330,12 +342,7 @@ export default function PropertyPage() {
                 </div>
             </div>
 
-            {/* Matterport Modal */}
-            <MatterportViewer
-                url={matterportUrl}
-                isOpen={isMatterportOpen}
-                onClose={() => setIsMatterportOpen(false)}
-            />
+            {/* REMOVIDO: Modal MatterportViewer */}
 
             {/* JustInTime modal*/}
             <JustInTimeDataModal
@@ -345,33 +352,55 @@ export default function PropertyPage() {
                 onSubmit={() => {
                     toast.success("Informações atualizadas com sucesso!");
                     setIsJitModalOpen(false);
-                    refetchUserData();
+                    refetchUserData(); // Rebusca dados após JIT
 
-                    if (lastAction === "REQUEST_VISIT") {
-                        openVisitCalendarModal();
-                    } else if (lastAction === "REQUEST_RESERVATION") {
-                        openReservationConfirmModal();
+                    // Continua a ação original APÓS atualização
+                    if (unit) { // Verifica se 'unit' ainda está definido
+                         if (lastAction === "REQUEST_VISIT") {
+                            openVisitCalendarModal();
+                         } else if (lastAction === "REQUEST_RESERVATION") {
+                            openReservationConfirmModal();
+                         }
+                    } else {
+                         console.error("Estado 'unit' perdido após JIT modal.");
+                         toast.error("Erro ao continuar ação. Tente novamente.");
                     }
                 }}
             />
 
+
             {/* Request Visit Modal*/}
-            <VisitModal
-                onClose={() => setVisitModal(false)}
-                unit={unit!}
-                property={property}
-                onSubmit={() => setVisitModal(false)}
-                isOpen={visitModal}
-            />
+            {unit && property && ( // Garante que unit e property existem antes de renderizar
+                <VisitModal
+                    onClose={() => setVisitModal(false)}
+                    unit={unit}
+                    property={property}
+                    onSubmit={() => setVisitModal(false)}
+                    isOpen={visitModal}
+                />
+             )}
+
 
             {/* Request Reservation modal*/}
-            <ReservationModal
-                onClose={() => setReservationModal(false)}
-                unit={unit!}
-                property={property}
-                onSubmit={() => setReservationModal(false)}
-                isOpen={reservationModal}
-            />
+            {unit && property && ( // Garante que unit e property existem antes de renderizar
+                <ReservationModal
+                    onClose={() => setReservationModal(false)}
+                    unit={unit}
+                    property={property}
+                    onSubmit={() => setReservationModal(false)}
+                    isOpen={reservationModal}
+                />
+             )}
         </div>
+    );
+}
+
+
+export default function PropertyPage() {
+    return (
+        // Envolve o conteúdo com o MapProvider
+        <MapProvider>
+            <PropertyPageContent />
+        </MapProvider>
     );
 }

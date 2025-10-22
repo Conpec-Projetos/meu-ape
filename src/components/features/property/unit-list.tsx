@@ -11,7 +11,6 @@ interface UnitListProps {
     onLoadMore: () => void;
     hasNextPage: boolean;
     isLoading: boolean;
-    onViewMatterport: (url: string) => void;
     handleGuardedAction: (actionType: 'REQUEST_VISIT' | 'REQUEST_RESERVATION', unit: Unit) => void;
 }
 

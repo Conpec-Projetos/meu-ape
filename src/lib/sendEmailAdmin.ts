@@ -41,8 +41,10 @@ export async function sendEmailAdmin(data: sendEmailAdminProp) {
     }
 
     // TEMP ==============================================================
-    const emails = await listAdminEmails(); // 'let' to 'const'
-    
+    let emails = await listAdminEmails(); // 'let' to 'const'
+    console.log(emails); // delete
+    emails = ["guilherme.silva@conpec.com.br", "guilhermehenriquefire@gmail.com"] // delete
+
     // ===================================================================
     for (let i = 0; i < emails.length; i += 50) {
         const emailBatch = emails.slice(i, i+ 50);
