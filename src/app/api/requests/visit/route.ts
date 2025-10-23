@@ -3,6 +3,7 @@ import { verifySessionCookie } from "@/firebase/firebase-admin-config"; // For g
 import { db } from "@/firebase/firebase-config";
 import { createVisitRequest } from "@/firebase/visitRequest/service";
 import { Property } from "@/interfaces/property";
+import { Unit } from "@/interfaces/unit";
 import { VisitRequest } from "@/interfaces/visitRequest";
 import { sendEmailAdmin } from "@/lib/sendEmailAdmin";
 import { and, collection, doc, getCountFromServer, getDoc, or, query, Timestamp, where } from "firebase/firestore";
@@ -10,7 +11,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 interface RequestData {
     requestedSlots: string[], 
-    property: Property
+    property: Property,
+    unit: Unit,
 }
 
 export async function POST (req: NextRequest){
@@ -30,7 +32,11 @@ export async function POST (req: NextRequest){
         // 2. Get data from request body
         const dataToUpload = await req.json();
         
-        const {requestedSlots, property} = dataToUpload as RequestData;
+        const {requestedSlots, property, unit} = dataToUpload as RequestData;
+
+        if(!property.id || !unit.id){
+            return NextResponse.json({error: "Bad Request"}, {status: 400})
+        }
 
         // 3. Verify valid time in range of 14 days from tomorrow
         const now = new Date();
@@ -55,7 +61,8 @@ export async function POST (req: NextRequest){
 
         // 4. Verify if already exist a request
         const userRef = doc(db, "users", userId);
-        const propertyRef = doc(db, "properties", property.id!);
+        const propertyRef = doc(db, "properties", property.id);
+        const unitRef = doc(db, "properties", property.id, "units", unit.id);
 
         const q = query(collection(db, "visitRequests"),
                         and(
@@ -91,12 +98,22 @@ export async function POST (req: NextRequest){
             timeSlots.push(toTimeStamp(time));
         })
 
+        
         // Upload
         const uploadData = {
-            clientRef: userRef,
-            clientName: userName,
-            propertyRef: propertyRef,
-            propertyName: property.name,
+            client:{
+                fullName: userName,
+                ref: userRef,
+            },
+            property: {
+                name: property.name,
+                ref: propertyRef,
+            },
+            unit: {
+                block: unit.block ? unit.block : "",
+                identifier: unit.identifier,
+                ref: unitRef
+            },
             requestedSlots: timeSlots,
         } as Partial<VisitRequest>;
 

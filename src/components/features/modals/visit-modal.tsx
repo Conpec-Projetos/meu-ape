@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Unit } from "@/interfaces/unit";
 import { Loader } from "lucide-react";
 import { Property } from "@/interfaces/property";
+import { notifyError } from "@/services/notificationService";
 
 interface VisitModalProps {
     unit: Unit;
@@ -92,7 +93,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                     headers: {
                     'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ requestedSlots: selectedSlots, property: property }),
+                    body: JSON.stringify({ requestedSlots: selectedSlots, property: property, unit: unit }),
                 });
 
                 const data = await res.json();
@@ -103,11 +104,11 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
 
                 } else {
                     console.error(data);
-                    toast.error("Você já possui uma solicitação para este imóvel");
+                    notifyError("Você já possui uma solicitação para este imóvel");
                 }
             } catch (err) {
                 console.error(err);
-                toast.error("Erro de conexão com o servidor");
+                notifyError("Erro de conexão com o servidor");
             } finally {
                 setLoading(false);
             }
