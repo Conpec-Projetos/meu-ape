@@ -1,4 +1,5 @@
 import { EmailTemplateAgentRequest } from '@/components/features/emails/agent-registration';
+import { EmailTemplateReservationRequest } from '@/components/features/emails/reservation-request';
 import { EmailTemplateVisitRequest } from '@/components/features/emails/visit-request';
 import { listAdminEmails } from '@/firebase/users/service';
 import { JSX } from 'react';
@@ -17,8 +18,16 @@ interface visitRequestProp {
     propertyName: string
 }
 
+interface reservationRequestProp {
+    type: "reservationRequest",
+    clientName: string,
+    propertyName: string,
+    unitIdentifier: string,
+    unitBlock?: string,
+}
 
-type sendEmailAdminProp = agentRequestProp | visitRequestProp
+
+type sendEmailAdminProp = agentRequestProp | visitRequestProp | reservationRequestProp
 export async function sendEmailAdmin(data: sendEmailAdminProp) {
     let emailInfo: {subject: string, template: JSX.Element};
     switch(data.type){
@@ -34,16 +43,21 @@ export async function sendEmailAdmin(data: sendEmailAdminProp) {
                 subject: "Solicitação de visita",
                 template: EmailTemplateVisitRequest({ clientName: data.clientName, propertyName: data.propertyName }),
             };
-            break;            
+            break;  
+            
+        case "reservationRequest":
+            emailInfo = {
+                subject: "Solicitação de reserva",
+                template: EmailTemplateReservationRequest({ clientName: data.clientName, propertyName: data.propertyName, unitIdentifier: data.unitIdentifier, unitBlock: data.unitBlock }),
+            }
+            break;
         
         default:
             throw new Error("Undefined email type");
     }
 
     // TEMP ==============================================================
-    let emails = await listAdminEmails(); // 'let' to 'const'
-    console.log(emails); // delete
-    emails = ["guilherme.silva@conpec.com.br", "guilhermehenriquefire@gmail.com"] // delete
+    const emails = await listAdminEmails(); // 'let' to 'const'
 
     // ===================================================================
     for (let i = 0; i < emails.length; i += 50) {

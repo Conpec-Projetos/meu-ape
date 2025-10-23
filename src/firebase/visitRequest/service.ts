@@ -11,6 +11,8 @@ export const createVisitRequest = async (
         id: visitRef.id,
         status: "pending",
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        
     } as VisitRequest;
 
     return setDoc(visitRef, uploadData);

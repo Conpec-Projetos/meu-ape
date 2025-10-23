@@ -1,3 +1,4 @@
+import { FieldValue } from "firebase-admin/firestore";
 import { DocumentReference, Timestamp } from "firebase/firestore";
 
 interface Client {
@@ -36,6 +37,6 @@ export interface ReservationRequest {
     }[];
     agentMsg?: string; // mensagem para o corretor
     clientMsg?: string; // mensagem para o cliente
-    createdAt: Date | Timestamp;
-    updatedAt: Date | Timestamp;
+    createdAt: Date | Timestamp | FieldValue;
+    updatedAt: Date | Timestamp | FieldValue;
 }

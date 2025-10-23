@@ -11,6 +11,7 @@ import { Property } from "@/interfaces/property";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/firebase/firebase-config";
 import { Checkbox } from "@/components/features/checkboxes/default-checkbox";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 
 interface ReservationModalProps {
     unit: Unit;
@@ -37,19 +38,19 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        if(isOpen){
-            const originalStyle = window.getComputedStyle(document.body).overflow;
+        const originalStyle = window.getComputedStyle(document.body).overflow;
 
+        if (isOpen) {
             // Lock scroll
             document.body.style.overflow = "hidden";
-
-            // On cleanup, unlock scroll
-            return () => {
-            document.body.style.overflow = originalStyle;
-            };            
         }
 
+        return () => {
+            // Always reset overflow on cleanup
+            document.body.style.overflow = originalStyle;
+        };
     }, [isOpen]);
+
 
     useEffect(() => {
         if (!isOpen) {
@@ -81,37 +82,54 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
 
     const handleReserve = async () => {
         if (!haveFiles.addressProof || !haveFiles.incomeProof || !haveFiles.identityDoc || !haveFiles.marriageCert) {
-            toast.error("Por favor, envie todos os documentos necessários antes de reservar a unidade.");
+            notifyError("Por favor, envie todos os documentos necessários antes de reservar a unidade.");
             return;
         }
         if (!termsAccepted) {
-            toast.error("Por favor, aceite os termos e condições antes de reservar a unidade.");
+            notifyError("Por favor, aceite os termos e condições antes de reservar a unidade.");
             return;
         }
 
         try {
             setIsLoading(true);
-            const res = await fetch('/api/reservas', {
+            const res = await fetch('/api/requests/reservation', {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ unitId: unit.id, propertyId: property.id }),
+                body: JSON.stringify({ unit: unit, property: property }),
             });
 
             const data = await res.json();
 
-            if (res.ok) {
-                toast.success("Sua solicitação de reserva foi enviada e está em análise!");
-                onSubmit();
+                if (res.ok) {
+                    notifySuccess("Sua solicitação de reserva foi enviada e está em análise!");
+                    onSubmit();
 
-            } else {
-                console.error(data);
-                toast.error("Esta unidade não está mais disponível");
-            }
+                } else {
+                    console.error(data);
+
+                    if(res.status == 409){
+                        switch(data.code){
+                            case "AVAILABILITY":
+                                notifyError("Esta unidade acabou de se tornar indisponível.");
+                                break;
+
+                            case "DUPLICITY":
+                                notifyError("Você já possui uma solicitação para este imóvel");
+                                break;
+                            
+                            default:
+                                notifyError("Conflito desconhecido ocorreu.");
+                                break;
+                        }
+                    } else {
+                        notifyError("Esta unidade não está mais disponível");
+                    }
+                }
         } catch (err) {
             console.error(err);
-            toast.error("Erro de conexão com o servidor");
+            notifyError("Erro de conexão com o servidor");
         } finally {
             setIsLoading(false);
         }

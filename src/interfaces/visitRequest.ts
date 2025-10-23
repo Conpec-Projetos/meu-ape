@@ -30,5 +30,5 @@ export interface VisitRequest {
     agentMsg?: string; // mensagem para o corretor
     clientMsg?: string; // mensagem para o cliente
     createdAt: Date | Timestamp | FieldValue;
-    updatedAt: Date | Timestamp;
+    updatedAt: Date | Timestamp | FieldValue;
 }

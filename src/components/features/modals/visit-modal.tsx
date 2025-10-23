@@ -104,7 +104,12 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
 
                 } else {
                     console.error(data);
-                    notifyError("Você já possui uma solicitação para este imóvel");
+                    if(res.status == 409){
+                        notifyError("Você já possui uma solicitação para este imóvel");
+
+                    } else {
+                        notifyError(data.error);
+                    }
                 }
             } catch (err) {
                 console.error(err);
