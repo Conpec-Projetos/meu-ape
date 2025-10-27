@@ -19,7 +19,7 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
             <CardContent className="p-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div className="flex items-center gap-2">
                     <Square className="h-5 w-5 text-primary/80" />
-                    <span className="font-medium">{unit.size} m²</span>
+                    <span className="font-medium">{unit.size_sqm} m²</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <Bed className="h-5 w-5 text-primary/80" />

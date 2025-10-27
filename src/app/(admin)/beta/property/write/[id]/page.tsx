@@ -14,7 +14,7 @@ import {
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
 import { atualizarPropriedade, buscarPropriedadePorId } from "@/firebase/properties/service";
-import { Property } from "@/interfaces/property";
+import { PropertyOld } from "@/interfaces/propertyOld";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
@@ -167,7 +167,7 @@ export default function EditPropertyPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
         try {
-            const propertyData: Partial<Property> = {
+            const propertyData: Partial<PropertyOld> = {
                 name: values.name,
                 address: values.address,
                 deliveryDate: new Date(values.deliveryDate),
