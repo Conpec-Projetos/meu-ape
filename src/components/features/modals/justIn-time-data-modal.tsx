@@ -44,7 +44,7 @@ const fieldConfig: Record<
     addressProof: { label: "Comprovante de Endereço", type: "file", accept: "image/*,.pdf" },
     incomeProof: { label: "Comprovante de Renda", type: "file", accept: "image/*,.pdf" },
     identityDoc: { label: "Documento de Identidade (RG/CIN)", type: "file", accept: "image/*,.pdf" },
-    marriageCert: { label: "Certidão de Casamento", type: "file", accept: "image/*,.pdf" },
+    bmCert: { label: "Certidão de Nascimento ou Casamento", type: "file", accept: "image/*,.pdf" },
 };
 
 export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }: JustInTimeDataModalProps) {
@@ -104,6 +104,7 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
     const handleFormSubmit = async (data: UserDataForm) => {
         setIsUploading(true);
 
+        console.log(data);
         const dataFields: Record<string, string> = {};
         const fileFields: Record<string, FileList> = {};
 

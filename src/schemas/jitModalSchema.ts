@@ -39,10 +39,10 @@ export const userDataSchema = z.object({
                     .refine(files => files[0]?.size > 0, {
                         message: "Arquivo inválido",
                     }),
-        marriageCert: z
+        bmCert: z
                     .any()
                     .refine(files => (files instanceof FileList || Array.isArray(files)) && files.length >= 1, {
-                        message: "Certidão de casamento obrigatória",
+                        message: "Certidão de nascimento ou casamento obrigatória",
                     })
                     .refine(files => files[0]?.size > 0, {
                         message: "Arquivo inválido",

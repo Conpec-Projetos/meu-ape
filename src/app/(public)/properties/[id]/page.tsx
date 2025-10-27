@@ -137,7 +137,7 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
 
         const userData = currentUser; // Usa o estado atualizado
         const currentMissingFields: string[] = [];
-        const requiredDocs = ["addressProof", "incomeProof", "identityDoc"]; // marriageCert é opcional aqui? Verificar lógica original
+        const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "bmCert"];
 
         required.forEach(field => {
             if (requiredDocs.includes(field)) {
@@ -148,15 +148,6 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                 currentMissingFields.push(field);
             }
         });
-
-        // Verificação específica para certidão de casamento em reservas, se aplicável
-        if (actionType === "REQUEST_RESERVATION" && actionRequirements.REQUEST_RESERVATION.includes('marriageCert')) {
-             if (!userData?.documents?.marriageCert || userData.documents.marriageCert.length === 0) {
-                 // Considerar se é realmente obrigatório ou apenas para alguns casos
-                 // Adicionar se for estritamente necessário: currentMissingFields.push('marriageCert');
-             }
-        }
-
 
         setUnit(unitData); // Define a unidade para os modais
         setLastAction(actionType);
