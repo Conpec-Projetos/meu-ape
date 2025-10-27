@@ -1,5 +1,5 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config"
-import type { Property } from "@/interfaces/property";
+import type { Property } from "@/interfaces/property"; // Make sure Property interface path is correct
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
@@ -13,6 +13,14 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
     const decodedClaims = await verifySessionCookie(sessionCookie);
     return decodedClaims?.role === "admin";
 }
+
+// Define a type for the expected location structure from Supabase
+// Adjust this based on your actual Supabase 'location' column type (e.g., PostGIS geometry/geography)
+type SupabaseLocation = {
+    type?: string;
+    coordinates?: [number, number]; // Assuming [lng, lat] order
+} | null | unknown; // Allow for null or unknown
+
 
 // GET handler for listing properties with pagination and basic search
 export async function GET(request: NextRequest) {
@@ -29,15 +37,17 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limitSize;
 
     try {
-        // Selecione as colunas necessárias, incluindo a de imagens
+        // Select the necessary columns, including image arrays and location
         const selectQuery = `
-            id, name, address, description, delivery_date, launch_date, features, floors, units_per_floor, property_images, areas_images, matterport_urls, groups, created_at
+            id, name, address, description, delivery_date, launch_date, features, floors, units_per_floor, property_images, areas_images, matterport_urls, groups, created_at,
+            location
         `;
 
         let query = supabase.from("properties").select(selectQuery, { count: "exact" });
 
         // Apply search filter if 'q' parameter exists
         if (q) {
+            // Using PostgREST syntax for OR condition on multiple columns
             query = query.or(`name.ilike.%${q}%,address.ilike.%${q}%`);
         }
 
@@ -54,40 +64,58 @@ export async function GET(request: NextRequest) {
         const totalProperties = count ?? 0;
         const totalPages = Math.ceil(totalProperties / limitSize);
 
-        //  Mapeamento para camelCase
-        const formattedProperties: Property[] = (supabaseData || []).map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            address: p.address,
-            description: p.description,
-            // Mapeie outras propriedades conforme necessário...
-            propertyImages: p.property_images, // <-- Mapeamento chave aqui
-            areasImages: p.areas_images,
-            matterportUrls: p.matterport_urls,
-            // Certifique-se de que outros campos correspondam à interface Property
-            location: { lat: 0, lng: 0 }, // Adicione um placeholder ou busque a localização real se necessário
-            deliveryDate: p.delivery_date ? new Date(p.delivery_date) : new Date(), // Converta para Date
-            launchDate: p.launch_date ? new Date(p.launch_date) : new Date(), // Converta para Date
-            features: p.features || [],
-            floors: p.floors,
-            unitsPerFloor: p.units_per_floor,
-            groups: p.groups ? p.groups.split(",") : [], // Exemplo de conversão se groups for string
-            searchableUnitFeats: {
-                // Adicione um placeholder se não estiver buscando isso aqui
-                minPrice: 0,
-                maxPrice: 0,
-                bedrooms: [],
-                baths: [],
-                garages: [],
-                minSize: 0,
-                maxSize: 0,
-                sizes: [],
-            },
-        }));
+        // Mapeamento para camelCase and Property interface
+        const formattedProperties: Property[] = (supabaseData || []).map(p => {
+             // Extract lat/lng safely
+            let lat = 0, lng = 0;
+            const loc = p.location as SupabaseLocation; // Assert type for better checking
+            // Check if location is an object and has coordinates array
+            if (loc && typeof loc === 'object' && 'coordinates' in loc && Array.isArray(loc.coordinates) && loc.coordinates.length === 2) {
+                lng = typeof loc.coordinates[0] === 'number' ? loc.coordinates[0] : 0;
+                lat = typeof loc.coordinates[1] === 'number' ? loc.coordinates[1] : 0;
+            }
+             // Add alternative parsing if location might be a string `POINT(lng lat)`
+             else if (typeof loc === 'string') {
+                 const match = loc.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+                 if (match) {
+                     lng = parseFloat(match[1]);
+                     lat = parseFloat(match[2]);
+                 }
+             }
+
+            return {
+                id: p.id,
+                name: p.name,
+                address: p.address ?? '', // Default null address to empty string
+                description: p.description ?? '', // Default null description to empty string
+                // Default null image arrays to undefined (or empty array [] if preferred)
+                propertyImages: p.property_images ?? undefined,
+                areasImages: p.areas_images ?? undefined,
+                matterportUrls: p.matterport_urls ?? undefined,
+                location: { lat, lng }, // Use safely extracted lat/lng
+                deliveryDate: p.delivery_date ? new Date(p.delivery_date) : new Date(0), // Default date
+                launchDate: p.launch_date ? new Date(p.launch_date) : new Date(0), // Default date
+                features: p.features || [],
+                floors: p.floors ?? 0, // Default null to 0
+                unitsPerFloor: p.units_per_floor ?? 0, // Default null to 0
+                groups: p.groups ? p.groups.split(",") : [],
+                // Default structure for searchableUnitFeats
+                searchableUnitFeats: {
+                    minPrice: 0,
+                    maxPrice: 0,
+                    bedrooms: [],
+                    baths: [],
+                    garages: [],
+                    minSize: 0,
+                    maxSize: 0,
+                    sizes: [],
+                },
+            };
+        });
         // ---------------------------------
 
         return NextResponse.json({
-            properties: formattedProperties, // <-- Retorne os dados formatados
+            properties: formattedProperties, // Return formatted data
             totalPages,
             total: totalProperties,
         });
@@ -98,7 +126,8 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST handler for creating a new property and its units
+
+// POST handler - unchanged from previous correction, assuming it's correct now
 export async function POST(request: NextRequest) {
     // --- Authentication/Authorization ---
     if (!(await isAdmin(request))) {
@@ -112,8 +141,13 @@ export async function POST(request: NextRequest) {
         const { units, ...propertyData } = body; // Separate property data from units array
 
         // --- Data Validation (using Zod schemas) ---
+        // Ensure developer_id exists and is valid before parsing
+        if (!propertyData.developer_id) {
+             throw new Error("developer_id é obrigatório.");
+        }
         const validatedProperty = propertySchema.parse(propertyData); // Validate property data
         const validatedUnits = z.array(unitSchema.omit({ property_id: true })).parse(units || []); // Validate units array
+
 
         // --- Database Insertion ---
         // Insert Property
@@ -121,6 +155,8 @@ export async function POST(request: NextRequest) {
             .from("properties")
             .insert({
                 ...validatedProperty,
+                 // Convert features to TEXT[] if it's not already
+                features: Array.isArray(validatedProperty.features) ? validatedProperty.features : [],
                 // Add default/generated values if needed, e.g., location processing
                 // location: `POINT(${lng} ${lat})` // Example if using PostGIS POINT
             })
@@ -137,19 +173,35 @@ export async function POST(request: NextRequest) {
             const unitsWithPropertyId = validatedUnits.map(unit => ({
                 ...unit,
                 property_id: newProperty.id, // Link unit to the created property
+                // Ensure category is an array of strings or null
+                category: typeof unit.category === 'string' ? [unit.category] : (unit.category ?? [])
             }));
 
             const { error: unitsError } = await supabase.from("units").insert(unitsWithPropertyId);
 
             if (unitsError) {
                 console.error("Supabase Insert Units Error:", unitsError);
-                // Optional: Attempt to delete the property if units fail? Or handle differently.
+                // Attempt to delete the property if units fail to maintain consistency
                 await supabase.from("properties").delete().eq("id", newProperty.id);
-                throw new Error("Erro ao criar unidades associadas à propriedade.");
+                throw new Error("Erro ao criar unidades associadas à propriedade. A propriedade foi revertida.");
             }
         }
 
-        return NextResponse.json({ ...newProperty, units: validatedUnits }, { status: 201 });
+        // Fetch the newly created property along with any created units
+         const { data: createdPropertyWithUnits, error: fetchError } = await supabase
+            .from("properties")
+            .select("*, units(*)") // Fetch related units
+            .eq("id", newProperty.id)
+            .single();
+
+         if (fetchError || !createdPropertyWithUnits) {
+             console.error("Failed to fetch created property with units:", fetchError);
+             // Return the basic property data if fetching units fails
+             return NextResponse.json(newProperty, { status: 201 });
+         }
+
+
+        return NextResponse.json(createdPropertyWithUnits, { status: 201 }); // Return property with units
     } catch (error) {
         console.error("API POST Error:", error);
         let status = 500;

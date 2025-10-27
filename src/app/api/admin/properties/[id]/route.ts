@@ -1,9 +1,9 @@
-import { supabaseAdmin } from "@/supabase/supabase-admin";
-import { NextRequest, NextResponse } from "next/server";
+import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
+import { supabaseAdmin } from "@/supabase/supabase-admin";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 
 // Helper to check admin role
 async function isAdmin(request: NextRequest): Promise<boolean> {
@@ -14,17 +14,14 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
 }
 
 // GET handler for fetching a specific property and its units
-export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-    // --- Authentication/Authorization ---
-     if (!(await isAdmin(request))) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+    if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = supabaseAdmin;
-    const { id } = await params;
+    // Access params directly from context
+    const { id } = await context.params;
 
     if (!id) {
         return NextResponse.json({ error: "ID da propriedade ausente" }, { status: 400 });
@@ -44,10 +41,7 @@ export async function GET(
         }
 
         // Fetch Units associated with the property
-        const { data: units, error: unitsError } = await supabase
-            .from("units")
-            .select("*")
-            .eq("property_id", id);
+        const { data: units, error: unitsError } = await supabase.from("units").select("*").eq("property_id", id);
 
         if (unitsError) {
             console.error("Supabase GET Units Error:", unitsError);
@@ -55,8 +49,8 @@ export async function GET(
             return NextResponse.json({ error: "Erro ao buscar unidades da propriedade" }, { status: 500 });
         }
 
+        // Add null check for units before returning
         return NextResponse.json({ ...property, units: units || [] });
-
     } catch (error) {
         console.error("API GET [id] Error:", error);
         const message = error instanceof Error ? error.message : "Erro interno do servidor";
@@ -67,15 +61,17 @@ export async function GET(
 // PUT handler for updating a property and synchronizing its units
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-     // --- Authentication/Authorization ---
-     if (!(await isAdmin(request))) {
+    // Directly type the context parameter
+    context: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+    // --- Authentication/Authorization ---
+    if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = supabaseAdmin;
-    const { id } = params;
+    // Access params directly from context
+    const { id } = await context.params;
 
     if (!id) {
         return NextResponse.json({ error: "ID da propriedade ausente" }, { status: 400 });
@@ -83,33 +79,28 @@ export async function PUT(
 
     try {
         const body = await request.json();
-        // Assume the body includes updated property data and a 'units' array
-        // where each unit has an optional 'status' ('new', 'updated', 'deleted') or just its data for update
+        // Separate units from property data, default units to an empty array if not present
         const { units = [], ...propertyData } = body;
 
-        // --- Data Validation ---
-        // Use .partial() for updates as not all fields might be sent
+        // Validate property data (allow partial updates)
         const validatedPropertyData = propertySchema.partial().parse(propertyData);
-        // More complex validation for units array (handle different statuses)
-        // This is a simplified example; adjust based on your exact needs
-        const validatedUnits = z.array(
-            unitSchema.partial().extend({
-                id: z.string().uuid().optional(), // id is optional for 'new'
-                status: z.enum(["new", "updated", "deleted"]).optional(),
-            })
-        ).parse(units);
+        // Validate units data
+        const validatedUnits = z
+            .array(
+                unitSchema.partial().extend({
+                    id: z.string().uuid().optional(), // Allow optional id for updates/inserts
+                    status: z.enum(["new", "updated", "deleted"]).optional(), // Status for sync logic
+                })
+            )
+            .parse(units); // Use the separated units array
 
-
-        // --- Database Update (Potentially within a transaction if complex) ---
-
-        // 1. Update Property details
+        // Update Property
         const { error: propertyUpdateError } = await supabase
             .from("properties")
             .update({
-                 ...validatedPropertyData,
-                 updated_at: new Date().toISOString(), // Update timestamp
-                // Handle location update if necessary
-                })
+                ...validatedPropertyData,
+                updated_at: new Date().toISOString(), // Ensure updated_at is set
+            })
             .eq("id", id);
 
         if (propertyUpdateError) {
@@ -117,68 +108,83 @@ export async function PUT(
             throw new Error("Erro ao atualizar dados da propriedade.");
         }
 
-        // 2. Synchronize Units
-        const unitsToInsert = validatedUnits.filter(u => u.status === 'new' && !u.id);
-        const unitsToUpdate = validatedUnits.filter(u => u.id && (u.status === 'updated' || !u.status)); // Update if 'updated' or no status
-        const unitIdsToDelete = validatedUnits.filter(u => u.id && u.status === 'deleted').map(u => u.id);
+        // --- Unit Synchronization Logic ---
+        const unitsToInsert = validatedUnits.filter(u => u.status === "new" && !u.id);
+        const unitsToUpdate = validatedUnits.filter(u => u.id && (u.status === "updated" || !u.status)); // Update if status is 'updated' or missing
+        const unitIdsToDelete = validatedUnits
+            .filter(u => u.id && u.status === "deleted")
+            .map(u => u.id)
+            .filter((id): id is string => id !== undefined); // Ensure IDs are strings
 
-        // Batch operations are generally preferred for efficiency
-        const unitOperations: Promise<any>[] = [];
-
-        // Inserts
+        // Insert new units
         if (unitsToInsert.length > 0) {
-            const insertPayload = unitsToInsert.map(({ status, ...unitData }) => ({
-                 ...unitData,
-                 property_id: id // Ensure link to parent property
+            const insertPayload = unitsToInsert.map(({ ...unitData }) => ({
+                // Remove status before inserting
+                ...unitData,
+                property_id: id,
+                identifier: unitData.identifier || "", // Provide default if needed
+                // Ensure category is an array of strings or null
+                category: typeof unitData.category === "string" ? [unitData.category] : unitData.category,
             }));
-             unitOperations.push(supabase.from("units").insert(insertPayload));
-        }
-
-        // Updates
-        for (const unit of unitsToUpdate) {
-            const { id: unitId, status, property_id, ...updateData } = unit; // Exclude non-updatable fields
-            if (unitId) { // Should always have id here
-                unitOperations.push(
-                    supabase.from("units").update({...updateData, updated_at: new Date().toISOString()}).eq("id", unitId)
-                );
+            const { error: insertError } = await supabase.from("units").insert(insertPayload);
+            if (insertError) {
+                console.error("Supabase Insert Units Error:", insertError);
+                throw new Error("Erro ao inserir novas unidades.");
             }
         }
 
-        // Deletes
+        // Update existing units
+        for (const unit of unitsToUpdate) {
+            const { id: unitId, ...updateData } = unit; // Remove status before updating
+            if (unitId) {
+                const updatePayload = {
+                    ...updateData,
+                    updated_at: new Date().toISOString(),
+                    // Ensure category is an array of strings or null
+                    category: typeof updateData.category === "string" ? [updateData.category] : updateData.category,
+                };
+                const { error: updateError } = await supabase.from("units").update(updatePayload).eq("id", unitId);
+                if (updateError) {
+                    console.error(`Supabase Update Unit Error (ID: ${unitId}):`, updateError);
+                    // Decide how to handle partial failures - maybe collect errors and report?
+                    // For now, we'll throw, which will roll back or indicate failure
+                    throw new Error(`Erro ao atualizar unidade ${unitId}.`);
+                }
+            }
+        }
+
+        // Delete marked units
         if (unitIdsToDelete.length > 0) {
-            unitOperations.push(supabase.from("units").delete().in("id", unitIdsToDelete));
+            const { error: deleteError } = await supabase.from("units").delete().in("id", unitIdsToDelete);
+            if (deleteError) {
+                console.error("Supabase Delete Units Error:", deleteError);
+                throw new Error("Erro ao deletar unidades marcadas.");
+            }
         }
+        // --- End Unit Synchronization ---
 
-        const results = await Promise.allSettled(unitOperations);
-        const errors = results.filter(r => r.status === 'rejected');
-
-        if (errors.length > 0) {
-            console.error("Supabase Unit Sync Errors:", errors.map((e: any) => e.reason));
-            // Consider rollback or partial success handling
-            throw new Error("Erro ao sincronizar algumas unidades.");
-        }
-
-        // Fetch the updated property data with units to return
-         const { data: updatedProperty, error: fetchError } = await supabase
+        // Fetch the updated property with its units to return
+        const { data: updatedProperty, error: fetchError } = await supabase
             .from("properties")
-            .select("*, units(*)") // Select property and all related units
+            .select("*, units(*)") // Fetch related units
             .eq("id", id)
             .single();
 
-         if (fetchError || !updatedProperty) {
-             console.error("Failed to fetch updated property:", fetchError);
-             return NextResponse.json({ message: "Propriedade atualizada, mas erro ao buscar dados finais." });
-         }
+        if (fetchError || !updatedProperty) {
+            console.error("Failed to fetch updated property:", fetchError);
+            // Return success but indicate fetch failure, or handle as an error?
+            // Returning the validated data might be better than nothing if fetch fails
+            return NextResponse.json({ message: "Propriedade atualizada, mas erro ao buscar dados finais." });
+        }
 
-        return NextResponse.json(updatedProperty);
-
+        return NextResponse.json(updatedProperty); // Return updated property with units
     } catch (error) {
         console.error("API PUT [id] Error:", error);
         let status = 500;
         let message = "Erro interno do servidor";
         if (error instanceof z.ZodError) {
             status = 400;
-             message = "Dados inválidos: " + error.errors.map(e => `${e.path.join(".")} - ${e.message}`).join(", ");
+            message = "Dados inválidos: " + error.errors.map(e => `${e.path.join(".")} - ${e.message}`).join(", ");
         } else if (error instanceof Error) {
             message = error.message;
         }
@@ -189,53 +195,40 @@ export async function PUT(
 // DELETE handler for deleting a property (and potentially its units via cascade)
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
-) {
-     // --- Authentication/Authorization ---
-     if (!(await isAdmin(request))) {
+    context: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+    if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = supabaseAdmin;
-    const { id } = params;
+    // Access params directly from context
+    const { id } = await context.params;
 
     if (!id) {
         return NextResponse.json({ error: "ID da propriedade ausente" }, { status: 400 });
     }
 
     try {
-        // Delete Property - Assuming ON DELETE CASCADE is set for units foreign key
-        const { error } = await supabase
-            .from("properties")
-            .delete()
-            .eq("id", id);
+        // Delete the property. Units might be deleted via CASCADE constraint if set up in SQL.
+        const { error } = await supabase.from("properties").delete().eq("id", id);
 
         if (error) {
             console.error("Supabase DELETE Error:", error);
-            // Handle specific errors like foreign key constraints if cascade isn't set
-            if (error.code === '23503') { // Foreign key violation
-                 return NextResponse.json({ error: "Erro: Não é possível excluir a propriedade pois existem unidades associadas. Exclua as unidades primeiro." }, { status: 409 }); // Conflict
+            // Handle foreign key constraint error specifically if cascade delete isn't set up
+            if (error.code === "23503") {
+                // Foreign key violation
+                return NextResponse.json(
+                    {
+                        error: "Erro: Não é possível excluir a propriedade pois existem unidades associadas. Exclua as unidades primeiro.",
+                    },
+                    { status: 409 }
+                ); // Conflict
             }
             throw new Error("Erro ao excluir propriedade.");
         }
 
-        // If ON DELETE CASCADE is NOT set, you need to manually delete units first:
-        /*
-        const { error: unitsError } = await supabase
-            .from("units")
-            .delete()
-            .eq("property_id", id);
-        if (unitsError) { throw unitsError; }
-
-        const { error: propertyError } = await supabase
-            .from("properties")
-            .delete()
-            .eq("id", id);
-        if (propertyError) { throw propertyError; }
-        */
-
         return NextResponse.json({ message: "Propriedade excluída com sucesso" });
-
     } catch (error) {
         console.error("API DELETE [id] Error:", error);
         const message = error instanceof Error ? error.message : "Erro interno do servidor";

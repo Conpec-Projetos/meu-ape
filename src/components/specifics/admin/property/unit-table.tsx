@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Unit } from "@/interfaces/unit";
 import { Edit, Trash2 } from "lucide-react";
-import { UnitModal } from "../modals/unit-modal";
+import { useState } from "react";
+import { UnitModal } from "./unit-modal";
 
 interface UnityTableProps {
-    units: Unit[];
-    onUnitsChange: (units: Unit[]) => void;
+    units: Partial<Unit>[];
+    onUnitsChange: (units: Partial<Unit>[]) => void;
 }
 
 export default function UnityTable({ units, onUnitsChange }: UnityTableProps) {
@@ -68,14 +68,22 @@ export default function UnityTable({ units, onUnitsChange }: UnityTableProps) {
                         {units.length > 0 ? (
                             units.map(unit => (
                                 <TableRow key={unit.id}>
-                                    <TableCell>{unit.number}</TableCell>
-                                    <TableCell>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(unit.price)}</TableCell>
+                                    <TableCell>{unit.identifier}</TableCell>
+                                    <TableCell>
+                                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                                            unit.price || 0
+                                        )}
+                                    </TableCell>
                                     <TableCell>{unit.bedrooms}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(unit)}>
+                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(unit as Unit)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(unit.id)}>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => unit.id && handleDelete(unit.id)}
+                                        >
                                             <Trash2 className="h-4 w-4 text-red-500" />
                                         </Button>
                                     </TableCell>
@@ -83,7 +91,9 @@ export default function UnityTable({ units, onUnitsChange }: UnityTableProps) {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center h-24">Nenhuma unidade cadastrada.</TableCell>
+                                <TableCell colSpan={4} className="text-center h-24">
+                                    Nenhuma unidade cadastrada.
+                                </TableCell>
                             </TableRow>
                         )}
                     </TableBody>

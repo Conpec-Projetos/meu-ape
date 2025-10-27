@@ -10,7 +10,7 @@ export default function UserConfig() {
     const [activeTab, setActiveTab] = React.useState("conta");
 
     return (
-        <main className="flex-grow bg-gray-50">
+        <main className="grow bg-gray-50">
             <div className="flex flex-col pt-15">
                 <div className="">
                     <Button

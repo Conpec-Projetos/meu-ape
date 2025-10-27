@@ -50,7 +50,7 @@ export function useProperties() {
 
     useEffect(() => {
         fetchProperties(true); // Carga inicial
-    }, []);
+    }, [fetchProperties]);
 
     return { properties, isLoading, error, hasMore, fetchMoreProperties: fetchProperties, refreshProperties };
 }
