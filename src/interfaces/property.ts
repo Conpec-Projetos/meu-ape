@@ -11,7 +11,7 @@ export interface Property {
     unitsPerFloor: number;
     propertyImages?: string[];
     areasImages?: string[];
-    matterportUrl?: string[];
+    matterportUrls?: string[];
     groups: string[];
     searchableUnitFeats: {
         minPrice: number;
