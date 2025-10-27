@@ -4,7 +4,7 @@ import blurImgUrl from "@/assets/blur_img_placeholder.jpg";
 import { Button } from "@/components/features/buttons/default-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/features/cards/default-card";
 import { buscarPropriedadesPaginado, excluirPropriedade } from "@/firebase/properties/service";
-import { Property } from "@/interfaces/property";
+import { PropertyOld } from "@/interfaces/propertyOld";
 import { notifyConfirmation, notifyError, notifyPromise } from "@/services/notificationService";
 import { QueryDocumentSnapshot } from "firebase/firestore";
 import { Building, Calendar, Clock, ImageIcon, MapPin, Pencil, Trash2 } from "lucide-react";
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function PropertiesListPage() {
-    const [properties, setProperties] = useState<Property[]>([]);
+    const [properties, setProperties] = useState<PropertyOld[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null);

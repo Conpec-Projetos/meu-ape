@@ -1,5 +1,5 @@
 import { db, storage } from "@/firebase/firebase-config";
-import { Property } from "@/interfaces/property"; // Usando a interface mais completa
+import { PropertyOld } from "@/interfaces/propertyOld"; // Usando a interface mais completa
 import {
     addDoc,
     collection,
@@ -46,7 +46,7 @@ const generateKeywords = (text: string): string[] => {
 };
 
 export async function criarPropriedade(
-    property: Omit<Property, "createdAt" | "updatedAt" | "id">,
+    property: Omit<PropertyOld, "createdAt" | "updatedAt" | "id">,
     imageFiles?: File[]
 ): Promise<string> {
     try {
@@ -75,11 +75,11 @@ export async function criarPropriedade(
     }
 }
 
-export async function buscarPropriedades(): Promise<Property[]> {
+export async function buscarPropriedades(): Promise<PropertyOld[]> {
     try {
         const q = query(collection(db, "properties"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
-        const properties: Property[] = [];
+        const properties: PropertyOld[] = [];
 
         querySnapshot.forEach(doc => {
             const data = doc.data();
@@ -90,7 +90,7 @@ export async function buscarPropriedades(): Promise<Property[]> {
                 launchDate: data.launchDate.toDate(),
                 createdAt: data.createdAt.toDate(),
                 updatedAt: data.updatedAt.toDate(),
-            } as Property);
+            } as PropertyOld);
         });
 
         return properties;
@@ -104,7 +104,7 @@ export async function buscarPropriedadesPaginado(
     pageSize: number = 30,
     lastDoc?: QueryDocumentSnapshot
 ): Promise<{
-    properties: Property[];
+    properties: PropertyOld[];
     lastDoc: QueryDocumentSnapshot | null;
     hasMore: boolean;
 }> {
@@ -116,7 +116,7 @@ export async function buscarPropriedadesPaginado(
         }
 
         const querySnapshot = await getDocs(q);
-        const properties: Property[] = [];
+        const properties: PropertyOld[] = [];
 
         querySnapshot.forEach(doc => {
             const data = doc.data();
@@ -127,7 +127,7 @@ export async function buscarPropriedadesPaginado(
                 launchDate: data.launchDate.toDate(),
                 createdAt: data.createdAt.toDate(),
                 updatedAt: data.updatedAt.toDate(),
-            } as Property);
+            } as PropertyOld);
         });
 
         const lastDocument = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
@@ -182,7 +182,7 @@ export async function subirImagensEmLotes(files: File[], propertyId: string): Pr
     return imageUrls;
 }
 
-export async function buscarPropriedadePorId(id: string): Promise<Property | null> {
+export async function buscarPropriedadePorId(id: string): Promise<PropertyOld | null> {
     try {
         const docRef = doc(db, "properties", id);
         const docSnap = await getDoc(docRef);
@@ -196,7 +196,7 @@ export async function buscarPropriedadePorId(id: string): Promise<Property | nul
                 launchDate: data.launchDate.toDate(),
                 createdAt: data.createdAt.toDate(),
                 updatedAt: data.updatedAt.toDate(),
-            } as Property;
+            } as PropertyOld;
         }
 
         return null;
@@ -208,7 +208,7 @@ export async function buscarPropriedadePorId(id: string): Promise<Property | nul
 
 export async function atualizarPropriedade(
     id: string,
-    property: Partial<Omit<Property, "createdAt" | "id">>,
+    property: Partial<Omit<PropertyOld, "createdAt" | "id">>,
     imageFiles?: File[],
     imagensParaRemover?: string[]
 ) {
@@ -225,7 +225,7 @@ export async function atualizarPropriedade(
         }
 
         // --- Data Update ---
-        const updateData: Partial<Property> & { updatedAt: Timestamp } = {
+        const updateData: Partial<PropertyOld> & { updatedAt: Timestamp } = {
             ...property,
             updatedAt: Timestamp.now(),
         };
@@ -304,7 +304,7 @@ export async function getProperties(
     params: { [key: string]: string },
     pageSize: number = 30
 ): Promise<{
-    properties: Property[];
+    properties: PropertyOld[];
     nextPageCursor: string | null;
     hasNextPage: boolean; // Indicates if Firestore *might* have more based on primary query
 }> {
@@ -369,7 +369,7 @@ export async function getProperties(
                 launchDate: data.launchDate ? convertTimestamp(data.launchDate) : undefined,
                 createdAt: data.createdAt ? convertTimestamp(data.createdAt) : undefined,
                 updatedAt: data.updatedAt ? convertTimestamp(data.updatedAt) : undefined,
-            } as Property;
+            } as PropertyOld;
         });
 
     const hasNextPage = documentSnapshots.docs.length > pageSize;
