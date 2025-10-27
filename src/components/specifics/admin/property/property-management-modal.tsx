@@ -1,10 +1,6 @@
 "use client";
 
-import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-
-import UnityTable from "@/components/features/tables/unity-table";
+import UnityTable from "@/components/specifics/admin/property/unit-table";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -19,6 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
+import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface PropertyManagementFormProps {
     property: Property | null;
@@ -28,7 +27,8 @@ interface PropertyManagementFormProps {
 
 export default function PropertyManagementForm({ property, onSave, onClose }: PropertyManagementFormProps) {
     const [form, setForm] = useState<Partial<Property>>({});
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+    const [units, setUnits] = useState<Partial<Unit>[]>([]);
+    const [developerId, setDeveloperId] = useState<string | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Mock data
@@ -43,12 +43,14 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
 
     useEffect(() => {
         if (property) {
-            const formattedProperty = {
-                ...property,
-                launchDate: property.launchDate ? new Date(property.launchDate).toISOString().split("T")[0] : "",
-                deliveryDate: property.deliveryDate ? new Date(property.deliveryDate).toISOString().split("T")[0] : "",
-            };
-            setForm(formattedProperty);
+            const {
+                units: propertyUnits,
+                developerId: propDeveloperId,
+                ...restOfProperty
+            } = property as Property & { units: Unit[]; developerId: string };
+            setForm(restOfProperty);
+            setUnits(propertyUnits || []);
+            setDeveloperId(propDeveloperId);
         } else {
             setForm({
                 name: "",
@@ -60,6 +62,8 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 matterportUrls: [""],
                 groups: [],
             });
+            setUnits([]);
+            setDeveloperId(undefined);
         }
     }, [property]);
 
@@ -89,12 +93,10 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         e.preventDefault();
         setIsSubmitting(true);
 
-        const dataToValidate = { ...form };
+        const dataToValidate = { ...form, units, developerId };
         const result = propertySchema.safeParse(dataToValidate);
 
         if (!result.success) {
-            const fieldErrors = result.error.flatten().fieldErrors;
-            setErrors(fieldErrors as { [key: string]: string });
             setIsSubmitting(false);
             toast.error("Por favor, corrija os erros no formulário.");
             return;
@@ -142,13 +144,18 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <Label htmlFor="launchDate">Data de lançamento</Label>
-                            <Input id="launchDate" value={form.launchDate || ""} onChange={handleChange} type="date" />
+                            <Input
+                                id="launchDate"
+                                value={form.launchDate ? new Date(form.launchDate).toISOString().split("T")[0] : ""}
+                                onChange={handleChange}
+                                type="date"
+                            />
                         </div>
                         <div className="flex-1">
                             <Label htmlFor="deliveryDate">Data de entrega</Label>
                             <Input
                                 id="deliveryDate"
-                                value={form.deliveryDate || ""}
+                                value={form.deliveryDate ? new Date(form.deliveryDate).toISOString().split("T")[0] : ""}
                                 onChange={handleChange}
                                 type="date"
                             />
@@ -197,10 +204,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <Label>Construtora</Label>
-                            <Select
-                                value={form.developerId || ""}
-                                onValueChange={value => setForm(prev => ({ ...prev, developerId: value }))}
-                            >
+                            <Select value={developerId || ""} onValueChange={value => setDeveloperId(value)}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Selecione" />
                                 </SelectTrigger>
@@ -258,10 +262,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
 
                 {/* Coluna direita (Unidades) */}
                 <div className="flex-1 flex flex-col gap-4">
-                    <UnityTable
-                        units={form.units || []}
-                        onUnitsChange={updatedUnits => setForm(prev => ({ ...prev, units: updatedUnits as Unit[] }))}
-                    />
+                    <UnityTable units={units} onUnitsChange={updatedUnits => setUnits(updatedUnits)} />
                 </div>
             </form>
 

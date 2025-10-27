@@ -1,14 +1,14 @@
 "use client";
 
-import { JustInTimeDataModal } from "@/components/features/modals/justIn-time-data-modal";
-import { ReservationModal } from "@/components/features/modals/reservation-modal";
-import { VisitModal } from "@/components/features/modals/visit-modal";
-import { GoogleMapComponent } from "@/components/features/property-search";
-import { EmbeddedMatterportViewer } from "@/components/features/property/embedded-matterport-viewer";
-import { PropertyHeader } from "@/components/features/property/property-header";
-import { PropertyImageGallery } from "@/components/features/property/property-image-gallery";
-import { UnitList } from "@/components/features/property/unit-list";
-import { UnitSelector, UnitStructure } from "@/components/features/property/unit-selector";
+import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
+import { EmbeddedMatterportViewer } from "@/components/specifics/admin/property/embedded-matterport-viewer";
+import { PropertyHeader } from "@/components/specifics/admin/property/property-header";
+import { PropertyImageGallery } from "@/components/specifics/admin/property/property-image-gallery";
+import { UnitList } from "@/components/specifics/admin/property/unit-list";
+import { UnitSelector, UnitStructure } from "@/components/specifics/admin/property/unit-selector";
+import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
+import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
+import { VisitModal } from "@/components/specifics/properties/visit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";

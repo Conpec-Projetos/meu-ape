@@ -1,17 +1,16 @@
 "use client";
 
-import { Search } from "lucide-react";
-import { Suspense, useState } from "react";
-import InfiniteScroll from "react-infinite-scroll-component";
-import { toast } from "sonner";
-
-import { PropertyModal } from "@/components/features/modals/property-modal";
-import { PropertiesTable } from "@/components/features/tables/properties-table";
+import { PropertiesTable } from "@/components/specifics/admin/property/properties-table";
+import { PropertyModal } from "@/components/specifics/admin/property/property-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useProperties } from "@/hooks/use-properties";
 import { Property } from "@/interfaces/property";
+import { Search } from "lucide-react";
+import { Suspense, useState } from "react";
+import InfiniteScroll from "react-infinite-scroll-component";
+import { toast } from "sonner";
 
 function PropertyManagementContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);

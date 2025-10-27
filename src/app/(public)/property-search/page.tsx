@@ -1,6 +1,8 @@
 "use client";
 
-import { GoogleMapComponent, PropertyList, SearchBar } from "@/components/features/property-search";
+import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
+import { PropertyList } from "@/components/specifics/property-search/property-list";
+import { SearchBar } from "@/components/specifics/property-search/search-bar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";

@@ -18,7 +18,7 @@ export function PropertyModal({ isOpen, onClose, onSave, property }: PropertyMod
                 <DialogHeader>
                     <DialogTitle>{property ? "Editar Imóvel" : "Adicionar Novo Imóvel"}</DialogTitle>
                 </DialogHeader>
-                <div className="flex-grow overflow-y-auto pr-6">
+                <div className="grow overflow-y-auto pr-6">
                     <PropertyManagementForm property={property} onSave={onSave} onClose={onClose} />
                 </div>
             </DialogContent>
