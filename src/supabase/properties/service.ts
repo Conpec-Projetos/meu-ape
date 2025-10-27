@@ -1,5 +1,3 @@
-import { supabaseAdmin } from "@/lib/supabase/client.server"
-import { TablesInsert } from "@/supabase/types/types"
 
 // Tipagem para os filtros da sua página de busca
 export type PropertySearchFilters = {
@@ -18,7 +16,7 @@ type SearchProps = {
   limit?: number
 }
 
-// A FUNÇÃO DE BUSCA COMPLEXA QUE VOCÊ QUERIA
+// FUNÇÃO DE BUSCA COMPLEXA
 export async function searchProperties({
   filters,
   page = 1,
