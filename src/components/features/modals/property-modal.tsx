@@ -1,22 +1,25 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
-import AdminPropertyManagementPage from "./property-management-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Property } from "@/interfaces/property";
+import PropertyManagementForm from "./property-management-modal";
 
 interface PropertyModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSave: () => void;
+    property: Property | null;
 }
 
-export function PropertyModal({ isOpen, onClose }: PropertyModalProps) {
+export function PropertyModal({ isOpen, onClose, onSave, property }: PropertyModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[95vw] h-[95vh] flex flex-col">
                 <DialogHeader>
-                    {/* O título já está na sua página, então podemos deixar este vazio ou remover */}
+                    <DialogTitle>{property ? "Editar Imóvel" : "Adicionar Novo Imóvel"}</DialogTitle>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-6">
-                    <AdminPropertyManagementPage />
+                    <PropertyManagementForm property={property} onSave={onSave} onClose={onClose} />
                 </div>
             </DialogContent>
         </Dialog>

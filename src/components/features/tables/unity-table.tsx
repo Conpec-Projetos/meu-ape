@@ -1,206 +1,103 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, Trash, Image as ImageIcon } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import AddUnitModal from "../modals/add-unit-modal";
-import EditImagesModal from "../modals/edit-images-modal";
+"use client";
 
-interface Property {
-  id: string;
-  categoria: string;
-  identificador: string;
-  preco: number;
-  andar: number;
-  tamanho: number;
-  quartos: number;
-  banheiros: number;
-  garagem: number;
-  disponibilidade: string;
-  images?: string[];
-  planta?: string[];
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Unit } from "@/interfaces/unit";
+import { Edit, Trash2 } from "lucide-react";
+import { UnitModal } from "../modals/unit-modal";
+
+interface UnityTableProps {
+    units: Unit[];
+    onUnitsChange: (units: Unit[]) => void;
 }
 
-export default function PropertyTable({ onEdit, onDelete }: {
-  onEdit: (property: Property) => void;
-  onDelete: (id: string) => void;
-}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [showEditImagesModal, setShowEditImagesModal] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
-  const [totalPages, setTotalPages] = useState(1);
+export default function UnityTable({ units, onUnitsChange }: UnityTableProps) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingUnit, setEditingUnit] = useState<Partial<Unit> | null>(null);
 
-  useEffect(() => {
-    setLoading(true);
-    // Simula fetch do backend
-    setTimeout(() => {
-      setProperties([
-        {
-          id: "1",
-          categoria: "A",
-          identificador: "0001",
-          preco: 3000,
-          andar: 2,
-          tamanho: 30,
-          quartos: 2,
-          banheiros: 2,
-          garagem: 1,
-          disponibilidade: "sim",
-          images: [],
-          planta: [],
-        },
-        {
-          id: "2",
-          categoria: "A",
-          identificador: "0002",
-          preco: 3800,
-          andar: 2,
-          tamanho: 30,
-          quartos: 2,
-          banheiros: 2,
-          garagem: 2,
-          images: [],
-          disponibilidade: "sim",
-          planta: [],
-        }
-        
-        // ...restante dos mocks
-      ]);
-      setTotalPages(3);
-      setLoading(false);
-    }, 1000);
-  }, [page]);
-  function handleEditImages(id: string) {
-    setShowEditImagesModal({ open: true, id });
-  }
-
-  function handleSaveImages(imgs: string[]) {
-    if (showEditImagesModal.id) {
-      setProperties(prev => prev.map(p => p.id === showEditImagesModal.id ? { ...p, images: imgs } : p));
-    }
-    setShowEditImagesModal({ open: false, id: null });
-  }
-
-  function handlePageChange(newPage: number) {
-    router.push(`?page=${newPage}`);
-    setPage(newPage);
-  }
-
-  function handleAddUnit(unit: { identificador: string; preco: number; tamanho: number; quartos: number; banheiros: number; garagem: number; }) {
-    // Add missing fields with sensible defaults to satisfy Property type
-    const newUnit: Property = {
-      id: String(Date.now()),
-      identificador: unit.identificador,
-      preco: unit.preco,
-      tamanho: unit.tamanho,
-      quartos: unit.quartos,
-      banheiros: unit.banheiros,
-      garagem: unit.garagem,
-      // defaults for fields not provided by the modal
-      categoria: "",
-      andar: 0,
-      disponibilidade: "sim",
-      images: [],
-      planta: [],
+    const handleAddNew = () => {
+        setEditingUnit(null); // Garante que o modal esteja vazio para adicionar
+        setIsModalOpen(true);
     };
-    setProperties(prev => [...prev, newUnit]);
-    setShowAddModal(false);
-  }
-    
 
-  return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Unidades</h1>
-  <Button onClick={() => setShowAddModal(true)}>Adicionar unidade</Button>
-      </div>
-      <table className="w-full border rounded-lg overflow-hidden">
-        <thead className="bg-gray-100">
-          <tr className="">
-            <th className="p-3 text-left">Id</th>
-            <th className="p-3 text-left">Categoria</th>
-            <th className="p-3 text-left">Valor</th>
-            <th className="p-3 text-left">Andar</th>
-            <th className="p-3 text-left">Espaço</th>
-            <th className="p-3 text-left">Quartos</th>
-            <th className="p-3 text-left">Banheiros</th>
-            <th className="p-3 text-center">Vagas de garagem</th>
-            <th className="p-3 text-center">Disponível</th>
-            <th className="p-3 text-center">Fotos</th>
-            <th className="p-3 text-center">Planta</th>
-            <th className="p-3 text-center">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <tr key={i}>
-                <td colSpan={5} className="p-3">
-                  <Skeleton className="h-6 w-full" />
-                </td>
-              </tr>
-            ))
-          ) : (
-            properties.map((property) => (
-              <tr key={property.id} className="border-b">
-                <td className="p-3">{property.identificador}</td>
-                <td className="p-3 text-center">{property.categoria}</td>
-                <td className="p-3">R${property.preco}</td>
-                <td className="p-3 text-center">{property.andar}</td>
-                <td className="p-3 text-center">{property.tamanho}m²</td>
-                <td className="p-3 text-center">{property.quartos}</td>
-                <td className="p-3 text-center">{property.banheiros}</td>
-                <td className="p-3 text-center">{property.garagem}</td>
-                <td className="p-3 text-center">{property.disponibilidade}</td>
-                <td className="p-3 text-center">
-                  <Button size="icon" variant="ghost" onClick={() => handleEditImages(property.id)}>
-                    <ImageIcon className="w-5 h-5" />
-                  </Button>
-                </td>
-                <td className="p-3 text-center">
-                  <Button size="icon" variant="ghost" onClick={() => handleEditImages(property.id)}>
-                    <ImageIcon className="w-5 h-5" />
-                  </Button>
-                </td> 
-                <td className="p-3 text-center flex gap-2 justify-center">
-                  <Button size="icon" variant="ghost" onClick={() => onEdit(property)}>
-                    <Edit className="w-5 h-5" />
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => onDelete(property.id)}>
-                    <Trash className="w-5 h-5" />
-                  </Button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      {showAddModal && (
-        <AddUnitModal
-          onClose={() => setShowAddModal(false)}
-          onSave={handleAddUnit}
-        />
-      )}
-      {showEditImagesModal.open && (
-        <EditImagesModal
-          onClose={() => setShowEditImagesModal({ open: false, id: null })}
-          onSave={handleSaveImages}
-          images={properties.find(p => p.id === showEditImagesModal.id)?.images || []}
-        />
-      )}
-      <div className="flex justify-center items-center gap-2 mt-6">
-        <Button disabled={page === 1} onClick={() => handlePageChange(page - 1)}>
-          Anterior
-        </Button>
-        <span>Página {page} de {totalPages}</span>
-        <Button disabled={page === totalPages} onClick={() => handlePageChange(page + 1)}>
-          Próxima
-        </Button>
-      </div>
-    </div>
-  );
+    const handleEdit = (unit: Unit) => {
+        setEditingUnit(unit);
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = (unitId: string) => {
+        if (confirm("Tem certeza que deseja excluir esta unidade?")) {
+            const updatedUnits = units.filter(u => u.id !== unitId);
+            onUnitsChange(updatedUnits);
+        }
+    };
+
+    const handleSaveUnit = (unit: Unit) => {
+        let updatedUnits;
+        if (unit.id) {
+            // Editando unidade existente
+            updatedUnits = units.map(u => (u.id === unit.id ? unit : u));
+        } else {
+            // Adicionando nova unidade (com um ID temporário)
+            updatedUnits = [...units, { ...unit, id: `temp-${Date.now()}` }];
+        }
+        onUnitsChange(updatedUnits);
+        setIsModalOpen(false);
+    };
+
+    return (
+        <div className="w-full">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold">Unidades do Imóvel</h3>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddNew}>
+                    Adicionar Unidade +
+                </Button>
+            </div>
+            <div className="border rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Número</TableHead>
+                            <TableHead>Preço</TableHead>
+                            <TableHead>Quartos</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {units.length > 0 ? (
+                            units.map(unit => (
+                                <TableRow key={unit.id}>
+                                    <TableCell>{unit.number}</TableCell>
+                                    <TableCell>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(unit.price)}</TableCell>
+                                    <TableCell>{unit.bedrooms}</TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(unit)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(unit.id)}>
+                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center h-24">Nenhuma unidade cadastrada.</TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {isModalOpen && (
+                <UnitModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    onSave={handleSaveUnit}
+                    unit={editingUnit}
+                />
+            )}
+        </div>
+    );
 }
