@@ -356,15 +356,26 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             );
             const currentAreaUrls = (form.areasImages || []).filter(url => !imagesToRemoveAreas.includes(url));
 
-            // Build units payloads for POST/PUT
-            const unitsPayload = unitsWithMedia.map(u => {
-                const base = mapUnitToSnakeCase(u);
-                const hasValidId = isUuid(u.id);
-                if (hasValidId) {
-                    return { id: u.id as string, status: "updated" as const, ...base };
-                }
-                return { status: "new" as const, ...base };
-            });
+            // Build units payloads for POST/PUT respecting deletion marks
+            const unitsPayload = unitsWithMedia.reduce(
+                (acc: Array<{ id?: string; status: "new" | "updated" | "deleted"; [k: string]: unknown }>, u) => {
+                    const hasValidId = isUuid(u.id);
+                    if (u.status === "deleted") {
+                        if (hasValidId) {
+                            acc.push({ id: u.id as string, status: "deleted" });
+                        }
+                        return acc;
+                    }
+                    const base = mapUnitToSnakeCase(u);
+                    if (!hasValidId) {
+                        acc.push({ status: "new", ...base });
+                    } else {
+                        acc.push({ id: u.id as string, status: "updated", ...base });
+                    }
+                    return acc;
+                },
+                [] as Array<{ id?: string; status: "new" | "updated" | "deleted"; [k: string]: unknown }>
+            );
 
             const finalBody = {
                 ...result.data,
@@ -810,11 +821,17 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         <p className="text-xs text-muted-foreground mr-auto self-center">
                             Campos marcados com * são obrigatórios.
                         </p>
-                        <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
-                            <X className="w-5 h-5 cursor-pointer" /> Cancelar
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={onClose}
+                            disabled={isSubmitting}
+                            className="cursor-pointer"
+                        >
+                            <X className="w-5 h-5" /> Cancelar
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            <Check className="w-5 h-5 cursor-pointer" /> {isSubmitting ? "Salvando..." : "Salvar"}
+                        <Button type="submit" disabled={isSubmitting} className="cursor-pointer">
+                            <Check className="w-5 h-5 r" /> {isSubmitting ? "Salvando..." : "Salvar"}
                         </Button>
                     </div>
                 </div>
