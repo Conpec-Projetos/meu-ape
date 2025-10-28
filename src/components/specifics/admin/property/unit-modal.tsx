@@ -127,10 +127,6 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
         <Dialog
             open={isOpen}
             onOpenChange={open => {
-                // Only call onClose when the dialog is being closed (open === false).
-                // Passing `onClose` directly caused the parent closer to be invoked
-                // when the Dialog attempted to sync/open, which made the modal
-                // immediately close after opening.
                 if (!open) onClose();
             }}
         >

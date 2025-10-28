@@ -1,12 +1,12 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import type { Property } from "@/interfaces/property"; // Make sure Property interface path is correct
+import { geocodeAddress } from "@/lib/geocoding";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-// Helper to check admin role
 async function isAdmin(request: NextRequest): Promise<boolean> {
     const sessionCookie = request.cookies.get("session")?.value;
     if (!sessionCookie) return false;
@@ -15,7 +15,6 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
 }
 
 // Define a type for the expected location structure from Supabase
-// Adjust this based on your actual Supabase 'location' column type (e.g., PostGIS geometry/geography)
 type SupabaseLocation =
     | {
           type?: string;
@@ -58,7 +57,6 @@ export async function GET(request: NextRequest) {
                 });
 
                 if (!rpcError && rpcData) {
-                    // rpcData may be { rows: [...], total: n } or an array of rows
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const rpcResult: any = rpcData;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,7 +77,6 @@ export async function GET(request: NextRequest) {
                                 totalProperties = Number(parsed.total ?? rows.length ?? 0);
                             }
                         } catch (err) {
-                            // ignore parse errors
                             console.warn("Failed to parse rpc string result for fuzzy search", err);
                         }
                     }
@@ -250,7 +247,6 @@ export async function GET(request: NextRequest) {
 
 // POST handler - unchanged from previous correction, assuming it's correct now
 export async function POST(request: NextRequest) {
-    // --- Authentication/Authorization ---
     if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -261,7 +257,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { units, ...propertyData } = body; // Separate property data from units array
 
-        // --- Data Validation (using Zod schemas) ---
+        // Data Validation (using Zod schemas)
         // Ensure developer_id exists and is valid before parsing
         if (!propertyData.developer_id) {
             throw new Error("developer_id é obrigatório.");
@@ -269,7 +265,7 @@ export async function POST(request: NextRequest) {
         const validatedProperty = propertySchema.parse(propertyData); // Validate property data
         const validatedUnits = z.array(unitSchema.omit({ property_id: true })).parse(units || []); // Validate units array
 
-        // --- Database Insertion ---
+        // Database Insertion
         // Insert Property
         const { data: newProperty, error: propertyError } = await supabase
             .from("properties")
@@ -286,6 +282,22 @@ export async function POST(request: NextRequest) {
         if (propertyError) {
             console.error("Supabase Insert Property Error:", propertyError);
             throw new Error("Erro ao criar propriedade.");
+        }
+
+        // If we have an address, attempt to geocode and update PostGIS location via RPC (if available)
+        if (newProperty?.id && typeof validatedProperty.address === "string" && validatedProperty.address.trim()) {
+            try {
+                const result = await geocodeAddress(validatedProperty.address);
+                if (result) {
+                    await supabase.rpc("set_property_location", {
+                        p_property_id: newProperty.id,
+                        p_lat: result.lat,
+                        p_lng: result.lng,
+                    });
+                }
+            } catch (e) {
+                console.warn("Falha ao geocodificar endereço ou atualizar localização:", e);
+            }
         }
 
         // Insert Units (if any)
