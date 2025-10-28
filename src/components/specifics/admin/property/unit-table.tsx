@@ -63,7 +63,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                     <h3 className="font-semibold">Unidades do Imóvel</h3>
                     <span className="text-xs text-muted-foreground">{units.length} cadastrada(s)</span>
                 </div>
-                <Button type="button" onClick={handleAddNew} size="sm">
+                <Button type="button" onClick={handleAddNew} size="sm" className="cursor-pointer">
                     <PlusCircle className="h-4 w-4 mr-2" /> Adicionar Unidade
                 </Button>
             </div>
@@ -135,13 +135,21 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                     <TableCell>{unit.garages}</TableCell>
                                     <TableCell>{unit.isAvailable ? "Sim" : "Não"}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(unit as Unit)}>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleEdit(unit as Unit)}
+                                            className="cursor-pointer"
+                                        >
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                         <Button
+                                            type="button"
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => unit.id && handleDelete(unit.id)}
+                                            className="cursor-pointer"
                                         >
                                             <Trash2 className="h-4 w-4 text-red-500" />
                                         </Button>

@@ -17,6 +17,7 @@ import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
 import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -476,7 +477,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="floors">Nº de pavimentos</Label>
-                                <Input id="floors" value={form.floors || ""} onChange={handleChange} type="number" />
+                                <Input id="floors" value={form.floors || ""} onChange={handleChange} type="text" />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="unitsPerFloor">Unidades por pavimento</Label>
@@ -484,7 +485,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     id="unitsPerFloor"
                                     value={form.unitsPerFloor || ""}
                                     onChange={handleChange}
-                                    type="number"
+                                    type="text"
                                 />
                             </div>
                         </div>
@@ -506,6 +507,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                         size="icon"
                                         onClick={() => removeMatterportField(index)}
                                         aria-label="Remover URL"
+                                        className="cursor-pointer"
                                     >
                                         <Trash2 className="h-4 w-4 text-red-500" />
                                     </Button>
@@ -515,7 +517,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="w-fit"
+                                className="cursor-pointer w-fit"
                                 onClick={addMatterportField}
                             >
                                 <PlusCircle className="h-4 w-4 mr-2" />
@@ -532,12 +534,12 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     Construtora <span className="text-red-500">*</span>
                                 </Label>
                                 <Select value={developerId || ""} onValueChange={value => setDeveloperId(value)}>
-                                    <SelectTrigger aria-required="true">
+                                    <SelectTrigger aria-required="true" className="cursor-pointer">
                                         <SelectValue placeholder="Selecione" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {developers.map(dev => (
-                                            <SelectItem key={dev.id} value={dev.id}>
+                                            <SelectItem key={dev.id} value={dev.id} className="cursor-pointer">
                                                 {dev.name}
                                             </SelectItem>
                                         ))}
@@ -548,7 +550,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                 <Label>Grupos Visíveis</Label>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-between">
+                                        <Button variant="outline" className="w-full justify-between cursor-pointer">
                                             {form.groups?.length || 0} selecionados
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -564,6 +566,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                                         : form.groups?.filter(id => id !== group.id);
                                                     setForm(prev => ({ ...prev, groups: newGroups }));
                                                 }}
+                                                className="cursor-pointer"
                                             >
                                                 {group.name}
                                             </DropdownMenuCheckboxItem>
@@ -593,7 +596,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="w-fit"
+                                            className="w-fit cursor-pointer"
                                             onClick={() => propertyImageInputRef.current?.click()}
                                         >
                                             Adicionar Imagens +
@@ -606,15 +609,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                         {form.propertyImages.map((url, idx) => (
                                             <div key={`prop-existing-${idx}`} className="relative group">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
+                                                <Image
                                                     src={url}
                                                     alt="Imagem do imóvel"
+                                                    width={500}
+                                                    height={500}
                                                     className="h-28 w-full object-cover rounded"
                                                 />
                                                 <button
                                                     type="button"
-                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                                     onClick={() => removeExistingImage("property", url)}
                                                 >
                                                     Remover
@@ -629,15 +633,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                         {propertyImagePreviews.map((url, idx) => (
                                             <div key={`prop-new-${idx}`} className="relative group">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
+                                                <Image
                                                     src={url}
                                                     alt="Preview"
+                                                    width={500}
+                                                    height={500}
                                                     className="h-28 w-full object-cover rounded"
                                                 />
                                                 <button
                                                     type="button"
-                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                                     onClick={() => removeNewImage("property", idx)}
                                                 >
                                                     Remover
@@ -664,7 +669,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                         <Button
                                             type="button"
                                             variant="outline"
-                                            className="w-fit"
+                                            className="w-fit cursor-pointer"
                                             onClick={() => areaImageInputRef.current?.click()}
                                         >
                                             Adicionar Imagens +
@@ -677,15 +682,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                         {form.areasImages.map((url, idx) => (
                                             <div key={`area-existing-${idx}`} className="relative group">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
+                                                <Image
                                                     src={url}
                                                     alt="Imagem da área comum"
+                                                    width={500}
+                                                    height={500}
                                                     className="h-28 w-full object-cover rounded"
                                                 />
                                                 <button
                                                     type="button"
-                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                                     onClick={() => removeExistingImage("area", url)}
                                                 >
                                                     Remover
@@ -700,15 +706,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                         {areaImagePreviews.map((url, idx) => (
                                             <div key={`area-new-${idx}`} className="relative group">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img
+                                                <Image
                                                     src={url}
                                                     alt="Preview"
+                                                    width={500}
+                                                    height={500}
                                                     className="h-28 w-full object-cover rounded"
                                                 />
                                                 <button
                                                     type="button"
-                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                                     onClick={() => removeNewImage("area", idx)}
                                                 >
                                                     Remover
@@ -734,10 +741,10 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                             Campos marcados com * são obrigatórios.
                         </p>
                         <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
-                            <X className="w-5 h-5" /> Cancelar
+                            <X className="w-5 h-5 cursor-pointer" /> Cancelar
                         </Button>
                         <Button type="submit" disabled={isSubmitting}>
-                            <Check className="w-5 h-5" /> {isSubmitting ? "Salvando..." : "Salvar"}
+                            <Check className="w-5 h-5 cursor-pointer" /> {isSubmitting ? "Salvando..." : "Salvar"}
                         </Button>
                     </div>
                 </div>
