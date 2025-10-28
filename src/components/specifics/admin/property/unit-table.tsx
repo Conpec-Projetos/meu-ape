@@ -15,6 +15,7 @@ type DraftUnit = Partial<Unit> & {
     imageFiles?: File[];
     imagePreviews?: string[];
     imagesToRemove?: string[];
+    status?: "new" | "updated" | "deleted";
 };
 
 interface UnitTableProps {
@@ -38,8 +39,13 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
 
     const handleDelete = (unitId: string) => {
         if (confirm("Tem certeza que deseja excluir esta unidade?")) {
-            const updatedUnits = units.filter(u => u.id !== unitId);
-            onUnitsChange(updatedUnits);
+            const isPersisted = unitId && !String(unitId).startsWith("temp-");
+            // For persisted units, mark as deleted so API can remove them on save.
+            // For temp (unsaved) units, just remove from the list.
+            const updatedUnits = isPersisted
+                ? units.map(u => (u.id === unitId ? { ...u, status: "deleted" } : u))
+                : units.filter(u => u.id !== unitId);
+            onUnitsChange(updatedUnits as DraftUnit[]);
         }
     };
 
@@ -87,75 +93,83 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {units.length > 0 ? (
-                            units.map(unit => (
-                                <TableRow key={unit.id} className="odd:bg-muted/30">
-                                    <TableCell>{unit.identifier}</TableCell>
-                                    <TableCell>
-                                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                                            unit.price || 0
-                                        )}
-                                    </TableCell>
-                                    <TableCell>{unit.block || "-"}</TableCell>
-                                    <TableCell>{unit.category || "-"}</TableCell>
-                                    <TableCell>{unit.bedrooms}</TableCell>
-                                    <TableCell>{unit.baths}</TableCell>
-                                    <TableCell>
-                                        {typeof unit.size_sqm === "number" ? `${unit.size_sqm} m²` : "-"}
-                                    </TableCell>
-                                    <TableCell>{typeof unit.floor === "number" ? unit.floor : "-"}</TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-2 items-center">
-                                            {((unit.images || [])[0] || (unit.imagePreviews || [])[0]) && (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={(unit.images || [])[0] || (unit.imagePreviews || [])[0] || ""}
-                                                    alt="Imagem"
-                                                    className="h-10 w-10 object-cover rounded"
-                                                />
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-2 items-center">
-                                            {((unit.floorPlanUrls || [])[0] || (unit.floorPlanPreviews || [])[0]) && (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                    src={
-                                                        (unit.floorPlanUrls || [])[0] ||
-                                                        (unit.floorPlanPreviews || [])[0] ||
-                                                        ""
-                                                    }
-                                                    alt="Planta"
-                                                    className="h-10 w-10 object-cover rounded"
-                                                />
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{unit.garages}</TableCell>
-                                    <TableCell>{unit.isAvailable ? "Sim" : "Não"}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleEdit(unit as Unit)}
-                                            className="cursor-pointer"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => unit.id && handleDelete(unit.id)}
-                                            className="cursor-pointer"
-                                        >
-                                            <Trash2 className="h-4 w-4 text-red-500" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                        {units.filter(u => u.status !== "deleted").length > 0 ? (
+                            units
+                                .filter(u => u.status !== "deleted")
+                                .map(unit => (
+                                    <TableRow key={unit.id} className="odd:bg-muted/30">
+                                        <TableCell>{unit.identifier}</TableCell>
+                                        <TableCell>
+                                            {new Intl.NumberFormat("pt-BR", {
+                                                style: "currency",
+                                                currency: "BRL",
+                                            }).format(unit.price || 0)}
+                                        </TableCell>
+                                        <TableCell>{unit.block || "-"}</TableCell>
+                                        <TableCell>{unit.category || "-"}</TableCell>
+                                        <TableCell>{unit.bedrooms}</TableCell>
+                                        <TableCell>{unit.baths}</TableCell>
+                                        <TableCell>
+                                            {typeof unit.size_sqm === "number" ? `${unit.size_sqm} m²` : "-"}
+                                        </TableCell>
+                                        <TableCell>{typeof unit.floor === "number" ? unit.floor : "-"}</TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2 items-center">
+                                                {((unit.images || [])[0] || (unit.imagePreviews || [])[0]) && (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={
+                                                            (unit.images || [])[0] ||
+                                                            (unit.imagePreviews || [])[0] ||
+                                                            ""
+                                                        }
+                                                        alt="Imagem"
+                                                        className="h-10 w-10 object-cover rounded"
+                                                    />
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2 items-center">
+                                                {((unit.floorPlanUrls || [])[0] ||
+                                                    (unit.floorPlanPreviews || [])[0]) && (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={
+                                                            (unit.floorPlanUrls || [])[0] ||
+                                                            (unit.floorPlanPreviews || [])[0] ||
+                                                            ""
+                                                        }
+                                                        alt="Planta"
+                                                        className="h-10 w-10 object-cover rounded"
+                                                    />
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{unit.garages}</TableCell>
+                                        <TableCell>{unit.isAvailable ? "Sim" : "Não"}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEdit(unit as Unit)}
+                                                className="cursor-pointer"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => unit.id && handleDelete(unit.id)}
+                                                className="cursor-pointer"
+                                            >
+                                                <Trash2 className="h-4 w-4 text-red-500" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={13} className="text-center h-24 text-muted-foreground">
