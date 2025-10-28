@@ -33,6 +33,11 @@ jobs:
           echo 'FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"' >> .env.local
           echo 'FIREBASE_CLIENT_EMAIL="${{ secrets.FIREBASE_CLIENT_EMAIL }}"' >> .env.local
           echo 'FIREBASE_PRIVATE_KEY="${{ secrets.FIREBASE_PRIVATE_KEY }}"' >> .env.local
+          echo 'GOOGLE_MAPS_SECRET_KEY="${{ secrets.GOOGLE_MAPS_SECRET_KEY }}"' >> .env.local
+          echo 'NEXT_PUBLIC_SUPABASE_PROJECT_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_PROJECT_URL }}"' >> .env.local
+          echo 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KE="${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KE }}"' >> .env.local
+          echo 'NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}"' >> .env.local
+          echo 'SUPABASE_SECRET_KEY="${{ secrets.SUPABASE_SECRET_KEY }}"' >> .env.local
           echo 'RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}"' >> .env.local
           echo 'NEXT_PUBLIC_EMAIL_FROM="${{ secrets.NEXT_PUBLIC_EMAIL_FROM }}"' >> .env.local
           echo 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}"' >> .env.local
