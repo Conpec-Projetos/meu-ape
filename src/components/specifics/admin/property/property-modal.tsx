@@ -14,7 +14,6 @@ interface PropertyModalProps {
 export function PropertyModal({ isOpen, onClose, onSave, property }: PropertyModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            {/* Ensure the modal is wide enough across breakpoints and not constrained by default sm:max-w-lg */}
             <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-3xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1700px] max-w-[1200px] h-[90vh] p-0 overflow-hidden rounded-lg">
                 <DialogHeader className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 px-6 py-4">
                     <DialogTitle className="text-lg font-semibold tracking-tight">

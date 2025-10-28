@@ -142,7 +142,6 @@ function PropertyPageContent() {
 
         if (actionType === "REQUEST_RESERVATION" && actionRequirements.REQUEST_RESERVATION.includes("marriageCert")) {
             if (!userData?.documents?.marriageCert || userData.documents.marriageCert.length === 0) {
-                // currentMissingFields.push('marriageCert');
             }
         }
 
