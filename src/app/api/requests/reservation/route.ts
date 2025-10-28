@@ -61,15 +61,15 @@ export async function POST(req: NextRequest){
         // 4. Transaction
         try{
             await runTransaction(db, async(transaction) => {
-                const unitDoc = await transaction.get(unitRef);
-                if(!unitDoc.exists() ){
-                    throw new Error("BAD_REQUEST");
-                }
+                // const unitDoc = await transaction.get(unitRef);
+                // if(!unitDoc.exists() ){
+                //     throw new Error("BAD_REQUEST");
+                // }
 
-                // Verify if the unit is available
-                if(!unitDoc.data().isAvailable){
-                    throw new Error("CONFLICT");
-                }
+                // // Verify if the unit is available
+                // if(!unitDoc.data().isAvailable){
+                //     throw new Error("CONFLICT");
+                // }
 
                 // Create Request
                 const docRef = doc(collection(db, "reservationRequests"));

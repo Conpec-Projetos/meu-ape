@@ -80,8 +80,8 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
     const [loading, setLoading] = useState(false);
     const handleSave = async () => {
         const selectedSlots = Object.entries(selected)
-            .filter(([_, isSelected]) => isSelected)
-            .map(([key, _]) => key);
+            .filter(([, isSelected]) => isSelected)
+            .map(([key]) => key);
 
         if (selectedSlots.length === 0) {
             toast.error("Por favor, selecione ao menos um horário para a visita");
@@ -212,11 +212,11 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                         <CardContent className="overflow-auto p-6 flex-1">
                             <h3 className="text-md mb-5"> <span className="font-bold">{property.name}</span> - {unit.block ? `Bloco ${unit.block}` : ''} Unidade {unit.identifier}</h3>
                             <h3 className="text-md font-semibold mb-4">Horários Selecionados:</h3>
-                            {Object.entries(selected).sort(compareDateTime).filter(([_, isSelected]) => isSelected).length === 0 ? (
+                            {Object.entries(selected).sort(compareDateTime).filter(([, isSelected]) => isSelected).length === 0 ? (
                                 <p>Nenhum horário selecionado.</p>
                             ) : (
                                 <ul className="list-disc list-inside space-y-1">
-                                    {Object.entries(selected).sort(compareDateTime).filter(([_, isSelected]) => isSelected).map(([key]) => (
+                                    {Object.entries(selected).sort(compareDateTime).filter(([, isSelected]) => isSelected).map(([key]) => (
                                         <li
                                             key={key}
                                             className="border border-black bg-green-50 text-green-900 px-3 py-2 rounded flex justify-between items-center"
@@ -287,4 +287,3 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
         </div>
     );
 }
-

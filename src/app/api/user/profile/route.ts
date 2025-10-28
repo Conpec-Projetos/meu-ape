@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
     try {
-        // 1. Verify user session
+        // Verify user session
         const sessionCookie = request.cookies.get("session")?.value;
         if (!sessionCookie) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         }
         const userId = decodedClaims.uid;
 
-        // 2. Fetch user data from Firestore
+        // Fetch user data from Firestore
         const userDocRef = adminDb.collection("users").doc(userId);
         const userDoc = await userDocRef.get();
 
@@ -29,10 +29,7 @@ export async function GET(request: NextRequest) {
 
         const userData = userDoc.data() as User; // Cast to User type
 
-        // Opcional: Remover dados sensíveis se houver algum (senha hash, etc.)
-        // delete userData.passwordHash;
-
-        // 3. Return user data
+        // Return user data
         return NextResponse.json({ success: true, user: { id: userDoc.id, ...userData } });
     } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -54,7 +51,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
     try {
-        // 1. Verify user session
+        // Verify user session
         const sessionCookie = request.cookies.get("session")?.value;
         if (!sessionCookie) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -65,7 +62,7 @@ export async function PUT(request: NextRequest) {
         }
         const userId = decodedClaims.uid;
 
-        // 2. Get data from request body
+        // Get data from request body
         const dataToUpdate = await request.json();
 
         // Basic validation (optional, Zod handles stricter validation on client)
@@ -73,10 +70,10 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: "No data provided" }, { status: 400 });
         }
 
-        // 3. Call service function to update Firestore
+        // Call service function to update Firestore
         await updateUserProfileData(userId, dataToUpdate);
 
-        // 4. Return success response
+        // Return success response
         return NextResponse.json({ success: true, message: "Profile updated successfully" });
     } catch (error) {
         console.error("Error updating user profile:", error);
