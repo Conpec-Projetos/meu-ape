@@ -36,6 +36,60 @@ export default function Home() {
                 >
                     Ver Dashboard
                 </Button>
+                {/* Acesso rápido às páginas principais */}
+                <div className="mt-4 w-full">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-700 mb-2 text-center">Acesso Rápido</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/admin/property")}
+                            size={"fit"}
+                        >
+                            Gerenciar Imóveis (Admin)
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/admin/developers")}
+                            size={"fit"}
+                        >
+                            Construtoras (Admin)
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/admin/users")}
+                            size={"fit"}
+                        >
+                            Usuários (Admin)
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/property-search")}
+                            size={"fit"}
+                        >
+                            Busca de Imóveis
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/dashboard")}
+                            size={"fit"}
+                        >
+                            Dashboard
+                        </Button>
+                        <Button
+                            variant={"default"}
+                            className="cursor-pointer text-sm"
+                            onClick={() => router.push("/profile")}
+                            size={"fit"}
+                        >
+                            Perfil
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );
