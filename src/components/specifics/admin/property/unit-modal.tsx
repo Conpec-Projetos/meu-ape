@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Unit } from "@/interfaces/unit";
 import { Check, X } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 interface UnitModalProps {
@@ -123,7 +124,16 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={open => {
+                // Only call onClose when the dialog is being closed (open === false).
+                // Passing `onClose` directly caused the parent closer to be invoked
+                // when the Dialog attempted to sync/open, which made the modal
+                // immediately close after opening.
+                if (!open) onClose();
+            }}
+        >
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{unit?.id ? "Editar Unidade" : "Adicionar Nova Unidade"}</DialogTitle>
@@ -165,7 +175,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="price"
-                            type="number"
+                            type="text"
                             value={formData.price || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -178,7 +188,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="bedrooms"
-                            type="number"
+                            type="text"
                             value={formData.bedrooms || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -191,7 +201,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="baths"
-                            type="number"
+                            type="text"
                             value={formData.baths || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -204,7 +214,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="size_sqm"
-                            type="number"
+                            type="text"
                             value={formData.size_sqm || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -217,7 +227,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="garages"
-                            type="number"
+                            type="text"
                             value={formData.garages || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -230,7 +240,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="floor"
-                            type="number"
+                            type="text"
                             value={formData.floor || ""}
                             onChange={handleChange}
                             className="col-span-3"
@@ -247,6 +257,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                                 onCheckedChange={checked =>
                                     setFormData(prev => ({ ...prev, isAvailable: Boolean(checked) }))
                                 }
+                                className="cursor-pointer"
                             />
                         </div>
                     </div>
@@ -263,7 +274,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                                     className="hidden"
                                     onChange={e => onSelectFloorPlans(e.target.files)}
                                 />
-                                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="cursor-pointer"
+                                >
                                     Adicionar Imagens +
                                 </Button>
                             </div>
@@ -274,11 +290,16 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {floorPlanUrls.map((url, idx) => (
                                     <div key={`existing-${idx}`} className="relative group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt="Planta" className="h-24 w-full object-cover rounded" />
+                                        <Image
+                                            src={url}
+                                            alt="Planta"
+                                            width={500}
+                                            height={500}
+                                            className="h-24 w-full object-cover rounded"
+                                        />
                                         <button
                                             type="button"
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                             onClick={() => removeExistingFloorPlan(url)}
                                         >
                                             Remover
@@ -293,11 +314,16 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {floorPlanPreviews.map((url, idx) => (
                                     <div key={`new-${idx}`} className="relative group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt="Preview" className="h-24 w-full object-cover rounded" />
+                                        <Image
+                                            src={url}
+                                            alt="Preview"
+                                            width={500}
+                                            height={500}
+                                            className="h-24 w-full object-cover rounded"
+                                        />
                                         <button
                                             type="button"
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                             onClick={() => removeNewFloorPlan(idx)}
                                         >
                                             Remover
@@ -325,6 +351,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                                     type="button"
                                     variant="outline"
                                     onClick={() => imagesFileInputRef.current?.click()}
+                                    className="cursor-pointer"
                                 >
                                     Adicionar Imagens +
                                 </Button>
@@ -336,15 +363,16 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {imageUrls.map((url, idx) => (
                                     <div key={`img-existing-${idx}`} className="relative group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
+                                        <Image
                                             src={url}
                                             alt="Imagem da unidade"
                                             className="h-24 w-full object-cover rounded"
+                                            width={500}
+                                            height={500}
                                         />
                                         <button
                                             type="button"
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                             onClick={() => removeExistingImage(url)}
                                         >
                                             Remover
@@ -359,11 +387,16 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {imagePreviews.map((url, idx) => (
                                     <div key={`img-new-${idx}`} className="relative group">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={url} alt="Preview" className="h-24 w-full object-cover rounded" />
+                                        <Image
+                                            src={url}
+                                            alt="Preview"
+                                            width={500}
+                                            height={500}
+                                            className="h-24 w-full object-cover rounded"
+                                        />
                                         <button
                                             type="button"
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                             onClick={() => removeNewImage(idx)}
                                         >
                                             Remover
@@ -378,10 +411,10 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                     <p className="text-xs text-muted-foreground mr-auto self-center">
                         Campos marcados com * são obrigatórios.
                     </p>
-                    <Button variant="outline" onClick={onClose}>
+                    <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer">
                         <X className="w-4 h-4 mr-2" /> Cancelar
                     </Button>
-                    <Button onClick={handleSave}>
+                    <Button type="button" onClick={handleSave} className="cursor-pointer">
                         <Check className="w-4 h-4 mr-2" /> Salvar
                     </Button>
                 </DialogFooter>
