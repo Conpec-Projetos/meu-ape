@@ -13,14 +13,4 @@ export interface Property {
     areasImages?: string[];
     matterportUrls?: string[];
     groups: string[];
-    searchableUnitFeats: {
-        minPrice: number;
-        maxPrice: number;
-        bedrooms: number[];
-        baths: number[];
-        garages: number[];
-        minSize: number;
-        maxSize: number;
-        sizes: number[];
-    };
 }
