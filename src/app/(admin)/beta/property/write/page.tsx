@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/features/inputs/default-input";
 import { db } from "@/firebase/firebase-config";
 import { criarPropriedade } from "@/firebase/properties/service";
+import { PropertyOld } from "@/interfaces/propertyOld";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import imageCompression from "browser-image-compression";
@@ -127,7 +128,7 @@ export default function PropertyPage() {
         setIsLoading(true);
 
         try {
-            const propertyData = {
+            const propertyData: Omit<PropertyOld, "id" | "createdAt" | "updatedAt"> = {
                 name: values.name,
                 address: values.address,
                 deliveryDate: new Date(values.deliveryDate),

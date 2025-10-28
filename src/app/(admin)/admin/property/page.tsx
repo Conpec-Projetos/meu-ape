@@ -1,93 +1,86 @@
 "use client";
 
-import { PropertyModal } from "@/components/features/modals/property-modal";
-import { PropertiesTable } from "@/components/features/tables/properties-table";
-
+import { PropertiesTable } from "@/components/specifics/admin/property/properties-table";
+import { PropertyModal } from "@/components/specifics/admin/property/property-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import { useProperties } from "@/hooks/use-properties";
+import { Property } from "@/interfaces/property";
 import { Search } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
-import { deleteProperty, getPropertiesPage } from "@/firebase/properties/properties";
-import { Property } from "@/firebase/properties/property";
-
-// Hook para buscar imóveis com paginação
-function useProperties() {
-    const [properties, setProperties] = useState<Property[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const [hasMore, setHasMore] = useState(true);
-
-    const fetchInitialProperties = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const { properties: newProperties, lastDoc: newLastDoc, hasMore: newHasMore } = await getPropertiesPage();
-            setProperties(newProperties as Property[]);
-            setLastDoc(newLastDoc);
-            setHasMore(newHasMore);
-        } catch (e) {
-            console.error("Erro ao buscar imóveis:", e);
-            setError("Falha ao buscar imóveis.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const fetchMoreProperties = async () => {
-        if (!hasMore) return;
-        const {
-            properties: newProperties,
-            lastDoc: newLastDoc,
-            hasMore: newHasMore,
-        } = await getPropertiesPage(lastDoc);
-        setProperties(prev => [...prev, ...(newProperties as Property[])]);
-        setLastDoc(newLastDoc);
-        setHasMore(newHasMore);
-    };
-
-    useEffect(() => {
-        fetchInitialProperties();
-    }, []);
-
-    return { properties, isLoading, error, hasMore, fetchMoreProperties, refresh: fetchInitialProperties };
-}
+import { toast } from "sonner";
 
 function PropertyManagementContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const { properties, isLoading, error, hasMore, fetchMoreProperties, refresh: refreshProperties } = useProperties();
+    const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+    const { properties, isLoading, error, hasMore, fetchMoreProperties, refreshProperties, searchProperties } =
+        useProperties();
+    const [searchQuery, setSearchQuery] = useState("");
+    const debounceRef = useRef<number | null>(null);
+
+    // Debounce search input and trigger server search
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+        // window.setTimeout returns a number in browser environments
+        debounceRef.current = window.setTimeout(() => {
+            const q = searchQuery.trim();
+            // Use fuzzy search by default
+            // When the search input is cleared, pass an empty string so the
+            // hook treats it as an explicit (empty) query and clears the server-side filter.
+            searchProperties(q.length ? q : "", true);
+        }, 400) as unknown as number;
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [searchQuery, searchProperties]);
 
     const handleAddProperty = () => {
+        setSelectedProperty(null);
         setIsModalOpen(true);
     };
 
     const handleEditProperty = (property: Property) => {
-        // Lógica para abrir modal de edição
-        console.log("Editar imóvel:", property.id);
-        // Para edição, você usaria uma rota de interceptação similar, ex:
-        // <Link href={`/admin/property-management/${property.id}`}>
+        setSelectedProperty(property);
+        setIsModalOpen(true);
     };
 
     const handleDeleteProperty = async (property: Property) => {
-        // Lógica para abrir modal de confirmação de exclusão
-        if (confirm(`Tem certeza que deseja excluir o imóvel "${property.title}"?`)) {
+        if (confirm(`Tem certeza que deseja excluir o imóvel "${property.name}"?`)) {
             try {
-                await deleteProperty(property.id);
-                alert("Imóvel excluído com sucesso!");
-                refreshProperties(); // Para atualizar a lista após deletar
+                const response = await fetch(`/api/admin/properties/${property.id}`, {
+                    method: "DELETE",
+                });
+
+                if (!response.ok) {
+                    throw new Error("Falha ao excluir o imóvel.");
+                }
+
+                toast.success("Imóvel excluído com sucesso!");
+                refreshProperties();
             } catch (error) {
                 console.error("Erro ao excluir imóvel:", error);
-                alert("Falha ao excluir o imóvel.");
+                toast.error(error instanceof Error ? error.message : "Falha ao excluir o imóvel.");
             }
         }
     };
 
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setSelectedProperty(null);
+    };
+
+    const handleModalSave = () => {
+        handleModalClose();
+        refreshProperties();
+    };
+
     const renderContent = () => {
-        if (isLoading) {
-            // TODO: Criar um componente de Skeleton para a tabela de imóveis
+        if (isLoading && properties.length === 0) {
             return (
                 <div className="flex items-center justify-center py-16">
                     <p>Carregando imóveis...</p>
@@ -100,16 +93,20 @@ function PropertyManagementContent() {
         }
 
         return (
-            <div id="scrollableDiv" className="h-[60vh] overflow-y-auto">
+            // Use max-height so the container shrinks to fit small result sets
+            // but still scrolls when content exceeds the viewport fraction.
+            <div id="scrollableDiv" className="max-h-[60vh] overflow-y-auto">
                 <InfiniteScroll
                     dataLength={properties.length}
                     next={fetchMoreProperties}
                     hasMore={hasMore}
                     loader={<p className="text-center py-4">Carregando mais imóveis...</p>}
                     endMessage={
-                        <p className="text-center py-4">
-                            <b>Você chegou ao fim!</b>
-                        </p>
+                        properties.length > 0 && (
+                            <p className="text-center py-4">
+                                <b>Você chegou ao fim!</b>
+                            </p>
+                        )
                     }
                     scrollableTarget="scrollableDiv"
                 >
@@ -124,7 +121,6 @@ function PropertyManagementContent() {
     };
 
     return (
-        // Removido o h-screen para que a altura da página seja flexível
         <div className="container mx-auto py-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
@@ -136,12 +132,19 @@ function PropertyManagementContent() {
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <div className="relative w-full sm:max-w-xs">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Procurar por título ou endereço..." className="pl-8 w-full" />
+                    <Input
+                        value={searchQuery}
+                        onChange={e => setSearchQuery((e.target as HTMLInputElement).value)}
+                        placeholder="Procurar por título ou endereço..."
+                        className="pl-8 w-full"
+                    />
                 </div>
                 <Button onClick={handleAddProperty} className="cursor-pointer w-full sm:w-auto">
                     Adicionar Novo Imóvel
                 </Button>
             </div>
+
+            {/* search is handled via effect */}
 
             <Card>
                 <CardHeader>
@@ -150,7 +153,14 @@ function PropertyManagementContent() {
                 <CardContent>{renderContent()}</CardContent>
             </Card>
 
-            <PropertyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+            {isModalOpen && (
+                <PropertyModal
+                    isOpen={isModalOpen}
+                    onClose={handleModalClose}
+                    onSave={handleModalSave}
+                    property={selectedProperty}
+                />
+            )}
         </div>
     );
 }

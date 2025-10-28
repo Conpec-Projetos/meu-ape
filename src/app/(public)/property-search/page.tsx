@@ -1,6 +1,8 @@
 "use client";
 
-import { GoogleMapComponent, PropertyList, SearchBar } from "@/components/features/property-search";
+import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
+import { PropertyList } from "@/components/specifics/property-search/property-list";
+import { SearchBar } from "@/components/specifics/property-search/search-bar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,7 +13,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
-// --- MAIN PAGE COMPONENT ---
 function PropertySearchPageContent() {
     const searchParams = useSearchParams();
     const isMobile = useIsMobile();
@@ -21,6 +22,7 @@ function PropertySearchPageContent() {
     const [nextPageCursor, setNextPageCursor] = useState<string | null>(null);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [totalProperties, setTotalProperties] = useState(0);
 
     const { ref, inView } = useInView({
         threshold: 0,
@@ -28,18 +30,17 @@ function PropertySearchPageContent() {
     });
 
     const fetchProperties = useCallback(
-        async (cursor: string | null) => {
-            if (!cursor) {
+        async (pageToFetch: number) => {
+            if (pageToFetch === 1) {
                 setIsLoading(true);
+                setProperties([]); // Clear properties on a new search (page 1)
             } else {
                 setIsFetchingMore(true);
             }
             setError(null);
 
             const params = new URLSearchParams(searchParams.toString());
-            if (cursor) {
-                params.set("cursor", cursor);
-            }
+            params.set("page", String(pageToFetch));
 
             try {
                 const response = await fetch(`/api/properties?${params.toString()}`);
@@ -48,9 +49,10 @@ function PropertySearchPageContent() {
                 }
                 const data = await response.json();
 
-                setProperties(prev => (cursor ? [...prev, ...data.properties] : data.properties));
+                setProperties(prev => (pageToFetch === 1 ? data.properties : [...prev, ...data.properties]));
                 setNextPageCursor(data.nextPageCursor);
                 setHasNextPage(data.hasNextPage);
+                setTotalProperties(data.totalProperties || 0);
             } catch (e) {
                 setError(e instanceof Error ? e.message : "An unknown error occurred");
             } finally {
@@ -63,16 +65,15 @@ function PropertySearchPageContent() {
 
     // Effect for initial load and search param changes
     useEffect(() => {
-        setProperties([]);
-        setNextPageCursor(null);
-        setHasNextPage(true);
-        fetchProperties(null);
-    }, [fetchProperties]);
+        // This effect triggers whenever the search filters change.
+        // We reset the state and fetch the first page.
+        fetchProperties(1);
+    }, [searchParams, fetchProperties]);
 
     // Effect for infinite scroll
     useEffect(() => {
         if (inView && hasNextPage && !isLoading && !isFetchingMore && nextPageCursor) {
-            fetchProperties(nextPageCursor);
+            fetchProperties(Number(nextPageCursor));
         }
     }, [inView, hasNextPage, isLoading, isFetchingMore, nextPageCursor, fetchProperties]);
 
@@ -80,21 +81,24 @@ function PropertySearchPageContent() {
         return (
             <div className="pt-20 flex flex-col h-screen">
                 <SearchBar />
-                <Tabs defaultValue="list" className="flex-grow flex flex-col">
+                <Tabs defaultValue="list" className="grow flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
                         <TabsTrigger value="list" className="text-base h-full">
-                            <ListFilter className="mr-2" /> Lista
+                            <ListFilter className="mr-2" /> Lista ({totalProperties})
                         </TabsTrigger>
                         <TabsTrigger value="map" className="text-base h-full">
                             <Map className="mr-2" /> Mapa
                         </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="list" className="flex-grow overflow-y-auto">
+                    <TabsContent value="list" className="grow overflow-y-auto">
                         <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
                         {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                        {!hasNextPage && properties.length > 0 && (
+                            <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
+                        )}
                         {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                     </TabsContent>
-                    <TabsContent value="map" className="flex-grow">
+                    <TabsContent value="map" className="grow">
                         <GoogleMapComponent properties={properties} isLoading={isLoading} />
                     </TabsContent>
                 </Tabs>
@@ -105,15 +109,26 @@ function PropertySearchPageContent() {
     return (
         <div className="pt-20 flex flex-col h-screen">
             <SearchBar />
-            <ResizablePanelGroup direction="horizontal" className="flex-grow border-t">
+            <ResizablePanelGroup direction="horizontal" className="grow border-t">
                 <ResizablePanel defaultSize={55} minSize={30}>
                     <GoogleMapComponent properties={properties} isLoading={isLoading} />
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={45} minSize={30}>
-                    <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
-                    {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
-                    {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
+                    <div className="flex flex-col h-full">
+                        <div className="grow overflow-y-auto">
+                            <PropertyList
+                                properties={properties}
+                                isLoading={isLoading && !isFetchingMore}
+                                innerRef={ref}
+                            />
+                            {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
+                            {!hasNextPage && properties.length > 0 && (
+                                <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
+                            )}
+                            {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
+                        </div>
+                    </div>
                 </ResizablePanel>
             </ResizablePanelGroup>
         </div>
@@ -122,7 +137,7 @@ function PropertySearchPageContent() {
 
 export default function PropertySearchPage() {
     return (
-        <Suspense fallback={<div>Carregando...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-screen">Carregando...</div>}>
             <MapProvider>
                 <PropertySearchPageContent />
             </MapProvider>
