@@ -5,7 +5,6 @@ export interface Developer {
     website: string; // website da construtora
     email: string; // email da construtora
     phone: string; // telefone da construtora
-    properties: string[]; // uuids das propriedades (na tabela properties) que pertencem a construtora
     createdAt: Date; // timestampz no supabase
     updatedAt: Date; // timestampz no supabase
 }

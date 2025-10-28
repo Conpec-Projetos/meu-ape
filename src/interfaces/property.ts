@@ -1,5 +1,6 @@
 export interface Property {
     id?: string;
+    developerId?: string;
     name: string;
     address: string;
     description: string;
