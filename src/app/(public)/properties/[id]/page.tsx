@@ -1,13 +1,13 @@
 "use client";
 
 import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
-import { EmbeddedMatterportViewer } from "@/components/specifics/admin/property/embedded-matterport-viewer";
-import { PropertyHeader } from "@/components/specifics/admin/property/property-header";
-import { PropertyImageGallery } from "@/components/specifics/admin/property/property-image-gallery";
-import { UnitList } from "@/components/specifics/admin/property/unit-list";
-import { UnitSelector, UnitStructure } from "@/components/specifics/admin/property/unit-selector";
+import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
+import { PropertyHeader } from "@/components/specifics/properties/property-header";
+import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
 import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
+import { UnitList } from "@/components/specifics/properties/unit-list";
+import { UnitSelector, UnitStructure } from "@/components/specifics/properties/unit-selector";
 import { VisitModal } from "@/components/specifics/properties/visit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { actionRequirements } from "@/config/actionRequirements";

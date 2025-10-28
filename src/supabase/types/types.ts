@@ -90,6 +90,7 @@ export type Database = {
           name: string
           original_firestore_id: string | null
           property_images: string[] | null
+          search_tsv: unknown
           search_vector: unknown
           units_per_floor: number | null
           updated_at: string
@@ -111,6 +112,7 @@ export type Database = {
           name: string
           original_firestore_id?: string | null
           property_images?: string[] | null
+          search_tsv?: unknown
           search_vector?: unknown
           units_per_floor?: number | null
           updated_at?: string
@@ -132,6 +134,7 @@ export type Database = {
           name?: string
           original_firestore_id?: string | null
           property_images?: string[] | null
+          search_tsv?: unknown
           search_vector?: unknown
           units_per_floor?: number | null
           updated_at?: string
@@ -623,6 +626,12 @@ export type Database = {
           units_per_floor: number
         }[]
       }
+      search_properties_fuzzy_with_total: {
+        Args: { p_limit: number; p_offset: number; query_text: string }
+        Returns: Json
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
