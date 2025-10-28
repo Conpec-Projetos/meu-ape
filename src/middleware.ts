@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("session")?.value;
@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
     // Call the internal API to verify the session using POST
     const verifyUrl = new URL("/api/auth/verify-session", request.url);
     const response = await fetch(verifyUrl, {
-        method: "POST", // Use POST
+        method: "POST",
         headers: {
             "Content-Type": "application/json",
         },

@@ -1,30 +1,27 @@
 "use client";
 
-import { JustInTimeDataModal } from "@/components/features/modals/justIn-time-data-modal";
-import { ReservationModal } from "@/components/features/modals/reservation-modal";
-import { VisitModal } from "@/components/features/modals/visit-modal";
-// Importar o novo componente Matterport (que será criado/adaptado)
-import { EmbeddedMatterportViewer } from "@/components/features/property/embedded-matterport-viewer"; // Renomeado para clareza
-import { PropertyHeader } from "@/components/features/property/property-header";
-import { PropertyImageGallery } from "@/components/features/property/property-image-gallery";
-// Importar o GoogleMapComponent
-import { GoogleMapComponent } from "@/components/features/property-search";
-import { UnitList } from "@/components/features/property/unit-list";
-import { UnitSelector, UnitStructure } from "@/components/features/property/unit-selector";
+import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
+import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
+import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
+import { PropertyHeader } from "@/components/specifics/properties/property-header";
+import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
+import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
+import { UnitList } from "@/components/specifics/properties/unit-list";
+import { UnitSelector, UnitStructure } from "@/components/specifics/properties/unit-selector";
+import { VisitModal } from "@/components/specifics/properties/visit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
+import { PropertyOld } from "@/interfaces/propertyOld";
 import { Unit } from "@/interfaces/unit";
-// Importar o MapProvider
 import { MapProvider } from "@/providers/google-maps-provider";
-import { doc, DocumentData, DocumentReference, GeoPoint, getDoc, Timestamp } from "firebase/firestore";
+import { doc, DocumentData, GeoPoint, getDoc, Timestamp, type DocumentReference } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-// Mock data (MANTIDO PARA EXEMPLO, SUBSTITUIR POR CHAMADAS REAIS)
-const mockProperty: Property = {
+const mockProperty: PropertyOld = {
     id: "mock-property-id",
     name: "Residencial Elysian",
     address: "Rua Paraíso, 123, Arcádia",
@@ -64,24 +61,23 @@ const mockUnitStructure: UnitStructure = {
 const mockUnits: Unit[] = Array.from({ length: 5 }).map((_, i) => ({
     id: `unit-${i}`,
     identifier: `A${101 + i}`,
+    propertyId: "mock-property-id",
     price: 500000 + i * 10000,
-    size: 60,
+    size_sqm: 60 + i * 5,
     bedrooms: 2,
     baths: 1,
     garages: 1,
     isAvailable: true,
     floor: 10 + i,
     images: [],
-    developerRef: {} as DocumentReference,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
 }));
-// --- FIM DOS MOCKS ---
 
-function PropertyPageContent() { // Extraído para usar dentro do MapProvider
+function PropertyPageContent() {
     const params = useParams();
     const id = params.id as string;
-    const [property, setProperty] = useState<Property | null>(null);
+    const [property, setProperty] = useState<PropertyOld | null>(null);
     const [unitStructure, setUnitStructure] = useState<UnitStructure | null>(null);
     const [units, setUnits] = useState<Unit[]>([]);
     const [selectedBlock, setSelectedBlock] = useState<string | undefined>();
@@ -90,12 +86,8 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
-
-    // REMOVIDO: Estados relacionados ao modal Matterport
-    // const [matterportUrl, setMatterportUrl] = useState("");
-    // const [isMatterportOpen, setIsMatterportOpen] = useState(false);
-
     const [currentUser, setCurrentUser] = useState<DocumentData>();
+
     const refetchUserData = async () => {
         const user = auth.currentUser;
         if (!user) {
@@ -133,11 +125,10 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
 
     const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unitData: Unit) => {
         const required = actionRequirements[actionType];
-        await refetchUserData(); // Garante que temos os dados mais recentes
-
-        const userData = currentUser; // Usa o estado atualizado
+        await refetchUserData();
+        const userData = currentUser;
         const currentMissingFields: string[] = [];
-        const requiredDocs = ["addressProof", "incomeProof", "identityDoc"]; // marriageCert é opcional aqui? Verificar lógica original
+        const requiredDocs = ["addressProof", "incomeProof", "identityDoc"];
 
         required.forEach(field => {
             if (requiredDocs.includes(field)) {
@@ -149,16 +140,13 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
             }
         });
 
-        // Verificação específica para certidão de casamento em reservas, se aplicável
-        if (actionType === "REQUEST_RESERVATION" && actionRequirements.REQUEST_RESERVATION.includes('marriageCert')) {
-             if (!userData?.documents?.marriageCert || userData.documents.marriageCert.length === 0) {
-                 // Considerar se é realmente obrigatório ou apenas para alguns casos
-                 // Adicionar se for estritamente necessário: currentMissingFields.push('marriageCert');
-             }
+        if (actionType === "REQUEST_RESERVATION" && actionRequirements.REQUEST_RESERVATION.includes("marriageCert")) {
+            if (!userData?.documents?.marriageCert || userData.documents.marriageCert.length === 0) {
+                // currentMissingFields.push('marriageCert');
+            }
         }
 
-
-        setUnit(unitData); // Define a unidade para os modais
+        setUnit(unitData);
         setLastAction(actionType);
 
         if (currentMissingFields.length > 0) {
@@ -176,10 +164,9 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
     useEffect(() => {
         const fetchPropertyData = async () => {
             setIsLoading(true);
-            // TODO: Substituir mocks por chamadas reais à API/Firebase
-            const prop = mockProperty; // await getPropertyById(id);
+            const prop = mockProperty;
             setProperty(prop);
-            const structure = mockUnitStructure; // await getUnitStructureForProperty(id);
+            const structure = mockUnitStructure;
             setUnitStructure(structure);
             setIsLoading(false);
         };
@@ -190,30 +177,23 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
 
     useEffect(() => {
         if (!selectedBlock || !selectedCategory) return;
-
         const fetchUnits = async () => {
             setIsLoadingUnits(true);
-            // TODO: Substituir mock por chamada real
-            const newUnits = mockUnits; // await getUnitsPaginated(id, { block: selectedBlock, category: selectedCategory });
-            const nextCursor = "next-page-cursor"; // Simula cursor
-
+            const newUnits = mockUnits;
+            const nextCursor = "next-page-cursor";
             setUnits(newUnits);
             setCursor(nextCursor);
             setHasNextPage(!!nextCursor);
             setIsLoadingUnits(false);
         };
-
         fetchUnits();
     }, [selectedBlock, selectedCategory, id]);
 
     const handleLoadMore = async () => {
         if (!hasNextPage || isLoadingUnits) return;
-
         setIsLoadingUnits(true);
-        // TODO: Substituir mock por chamada real
-        const newUnits = mockUnits.map(u => ({ ...u, id: u.id + "-more" })); // Simula novos dados
-        const nextCursor = null; // Simula fim da lista
-
+        const newUnits = mockUnits.map(u => ({ ...u, id: u.id + "-more" }));
+        const nextCursor = null;
         setUnits(prev => [...prev, ...newUnits]);
         setCursor(nextCursor);
         setHasNextPage(!!nextCursor);
@@ -230,7 +210,7 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
 
     if (isLoading) {
         return (
-             <div className="container mx-auto px-4 py-8 space-y-8 pt-20">
+            <div className="container mx-auto px-4 py-8 space-y-8 pt-20">
                 <div className="flex justify-between items-center">
                     <Skeleton className="h-12 w-1/3" />
                     <Skeleton className="h-10 w-32" />
@@ -242,7 +222,7 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-48 w-full" />
                         <Skeleton className="h-64 w-full" />
-                        <Skeleton className="h-64 w-full" /> 
+                        <Skeleton className="h-64 w-full" />
                     </div>
                     <div className="md:col-span-2 space-y-4">
                         <Skeleton className="h-64 w-full" />
@@ -257,22 +237,26 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
         return <div className="text-center py-12 pt-20">Imóvel não encontrado.</div>;
     }
 
-    // Obter a URL do Matterport da propriedade (pegando a primeira, se houver)
+    // Adapter for GoogleMapComponent
+    const propertyForMap: Property = {
+        ...property,
+        location: { lat: property.location.latitude, lng: property.location.longitude },
+        deliveryDate: (property.deliveryDate as Timestamp).toDate(),
+        launchDate: (property.launchDate as Timestamp).toDate(),
+    };
+
     const propertyMatterportUrl = property.matterportUrl?.[0];
 
     return (
         <div className="py-15 bg-background text-foreground pt-20">
             <div className="container mx-auto px-4 py-8">
                 <PropertyHeader name={property.name} address={property.address} />
-
                 <div className="my-8 px-0 md:px-8 lg:px-16">
                     <div className="shadow-lg rounded-xl overflow-hidden">
                         <PropertyImageGallery images={property.propertyImages || []} propertyName={property.name} />
                     </div>
                 </div>
-
                 <div className="grid lg:grid-cols-5 gap-8 xl:gap-12 mt-12">
-                    {/* Left Column */}
                     <div className="lg:col-span-3 space-y-8">
                         <div>
                             <h2 className="text-2xl font-bold text-primary mb-4">Sobre o imóvel</h2>
@@ -300,27 +284,19 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                                 />
                             )}
                         </div>
-
-                        {/* Matterport Viewer Embutido */}
-                         {propertyMatterportUrl && (
+                        {propertyMatterportUrl && (
                             <div>
                                 <h3 className="text-xl font-semibold text-primary mb-4">Tour 3D Imersivo</h3>
                                 <EmbeddedMatterportViewer url={propertyMatterportUrl} />
                             </div>
-                         )}
-
-
-                        {/* Map Section - Usando GoogleMapComponent */}
+                        )}
                         <div>
                             <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
                             <div className="h-[800px] w-full rounded-lg overflow-hidden">
-                                 {/* Passa a propriedade inteira, ou apenas a localização */}
-                                <GoogleMapComponent properties={[property]} isLoading={false} />
+                                <GoogleMapComponent properties={[propertyForMap]} isLoading={false} />
                             </div>
                         </div>
                     </div>
-
-                    {/* Right Column: Unit List */}
                     <div className="lg:col-span-2">
                         {selectedBlock && selectedCategory ? (
                             <UnitList
@@ -328,7 +304,6 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                                 onLoadMore={handleLoadMore}
                                 hasNextPage={hasNextPage}
                                 isLoading={isLoadingUnits}
-                                // REMOVIDO: onViewMatterport
                                 handleGuardedAction={handleGuardedAction}
                             />
                         ) : (
@@ -342,9 +317,6 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                 </div>
             </div>
 
-            {/* REMOVIDO: Modal MatterportViewer */}
-
-            {/* JustInTime modal*/}
             <JustInTimeDataModal
                 missingFields={missingFields}
                 onClose={() => setIsJitModalOpen(false)}
@@ -352,53 +324,45 @@ function PropertyPageContent() { // Extraído para usar dentro do MapProvider
                 onSubmit={() => {
                     toast.success("Informações atualizadas com sucesso!");
                     setIsJitModalOpen(false);
-                    refetchUserData(); // Rebusca dados após JIT
-
-                    // Continua a ação original APÓS atualização
-                    if (unit) { // Verifica se 'unit' ainda está definido
-                         if (lastAction === "REQUEST_VISIT") {
+                    refetchUserData();
+                    if (unit) {
+                        if (lastAction === "REQUEST_VISIT") {
                             openVisitCalendarModal();
-                         } else if (lastAction === "REQUEST_RESERVATION") {
+                        } else if (lastAction === "REQUEST_RESERVATION") {
                             openReservationConfirmModal();
-                         }
+                        }
                     } else {
-                         console.error("Estado 'unit' perdido após JIT modal.");
-                         toast.error("Erro ao continuar ação. Tente novamente.");
+                        console.error("Estado 'unit' perdido após JIT modal.");
+                        toast.error("Erro ao continuar ação. Tente novamente.");
                     }
                 }}
             />
 
-
-            {/* Request Visit Modal*/}
-            {unit && property && ( // Garante que unit e property existem antes de renderizar
+            {unit && property && (
                 <VisitModal
                     onClose={() => setVisitModal(false)}
                     unit={unit}
-                    property={property}
+                    property={property as unknown as Property}
                     onSubmit={() => setVisitModal(false)}
                     isOpen={visitModal}
                 />
-             )}
+            )}
 
-
-            {/* Request Reservation modal*/}
-            {unit && property && ( // Garante que unit e property existem antes de renderizar
+            {unit && property && (
                 <ReservationModal
                     onClose={() => setReservationModal(false)}
                     unit={unit}
-                    property={property}
+                    property={property as unknown as Property}
                     onSubmit={() => setReservationModal(false)}
                     isOpen={reservationModal}
                 />
-             )}
+            )}
         </div>
     );
 }
 
-
 export default function PropertyPage() {
     return (
-        // Envolve o conteúdo com o MapProvider
         <MapProvider>
             <PropertyPageContent />
         </MapProvider>
