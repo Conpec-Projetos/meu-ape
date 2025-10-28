@@ -294,7 +294,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         try {
             let propertyId = property?.id;
 
-            // 1) Create when new (without images first)
+            // Create when new (without images first)
             if (!propertyId) {
                 const createRes = await fetch("/api/admin/properties", {
                     method: "POST",
@@ -313,7 +313,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 }
             }
 
-            // 2) Process image deletions (existing) - property and units
+            // Process image deletions (existing) - property and units
             const toDelete = [...imagesToRemoveProperty, ...imagesToRemoveAreas];
             // Collect unit floor plan deletions
             const unitDeletes = [
@@ -325,13 +325,13 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 await deleteImages(allDeletes);
             }
 
-            // 3) Upload new images (property)
+            // Upload new images (property)
             const uploadedPropertyUrls = newPropertyImages.length
                 ? await subirImagensEmLotes(newPropertyImages, propertyId)
                 : [];
             const uploadedAreaUrls = newAreaImages.length ? await subirImagensEmLotes(newAreaImages, propertyId) : [];
 
-            // 3b) Upload unit floor plan files and unit images per unit
+            // Upload unit floor plan files and unit images per unit
             const unitsWithMedia = await Promise.all(
                 units.map(async u => {
                     // Floor plans
@@ -350,7 +350,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 })
             );
 
-            // 4) Merge arrays
+            // Merge arrays
             const currentPropertyUrls = (form.propertyImages || []).filter(
                 url => !imagesToRemoveProperty.includes(url)
             );
@@ -373,7 +373,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 units: unitsPayload,
             };
 
-            // 5) Update (or re-update) the property with image URLs
+            // Update (or re-update) the property with image URLs
             const updateRes = await fetch(`/api/admin/properties/${propertyId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

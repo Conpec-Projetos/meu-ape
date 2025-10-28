@@ -1,11 +1,11 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
+import { geocodeAddress } from "@/lib/geocoding";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-// Helper to check admin role
 async function isAdmin(request: NextRequest): Promise<boolean> {
     const sessionCookie = request.cookies.get("session")?.value;
     if (!sessionCookie) return false;
@@ -13,14 +13,12 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
     return decodedClaims?.role === "admin";
 }
 
-// GET handler for fetching a specific property and its units
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
     if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = supabaseAdmin;
-    // Access params directly from context
     const { id } = await context.params;
 
     if (!id) {
@@ -28,7 +26,6 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 
     try {
-        // Fetch Property
         const { data: property, error: propertyError } = await supabase
             .from("properties")
             .select("*")
@@ -40,16 +37,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             return NextResponse.json({ error: "Propriedade não encontrada" }, { status: 404 });
         }
 
-        // Fetch Units associated with the property
         const { data: units, error: unitsError } = await supabase.from("units").select("*").eq("property_id", id);
 
         if (unitsError) {
             console.error("Supabase GET Units Error:", unitsError);
-            // Decide if you want to return the property even if units fail
             return NextResponse.json({ error: "Erro ao buscar unidades da propriedade" }, { status: 500 });
         }
 
-        // Add null check for units before returning
         return NextResponse.json({ ...property, units: units || [] });
     } catch (error) {
         console.error("API GET [id] Error:", error);
@@ -58,19 +52,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 }
 
-// PUT handler for updating a property and synchronizing its units
 export async function PUT(
     request: NextRequest,
-    // Directly type the context parameter
     context: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
-    // --- Authentication/Authorization ---
     if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const supabase = supabaseAdmin;
-    // Access params directly from context
     const { id } = await context.params;
 
     if (!id) {
@@ -102,13 +92,28 @@ export async function PUT(
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
             })
             .eq("id", id);
+        // If address provided (and possibly changed), try geocoding and set geography via RPC (best-effort)
+        if (typeof validatedPropertyData.address === "string" && validatedPropertyData.address.trim()) {
+            try {
+                const result = await geocodeAddress(validatedPropertyData.address);
+                if (result) {
+                    await supabase.rpc("set_property_location", {
+                        p_property_id: id,
+                        p_lat: result.lat,
+                        p_lng: result.lng,
+                    });
+                }
+            } catch (e) {
+                console.warn("Falha ao geocodificar endereço no update:", e);
+            }
+        }
 
         if (propertyUpdateError) {
             console.error("Supabase Update Property Error:", propertyUpdateError);
             throw new Error("Erro ao atualizar dados da propriedade.");
         }
 
-        // --- Unit Synchronization Logic ---
+        // Unit Synchronization Logic
         const unitsToInsert = validatedUnits.filter(u => u.status === "new" && !u.id);
         const unitsToUpdate = validatedUnits.filter(u => u.id && (u.status === "updated" || !u.status)); // Update if status is 'updated' or missing
         const unitIdsToDelete = validatedUnits
@@ -180,7 +185,6 @@ export async function PUT(
                 throw new Error("Erro ao deletar unidades marcadas.");
             }
         }
-        // --- End Unit Synchronization ---
 
         // Fetch the updated property with its units to return
         const { data: updatedProperty, error: fetchError } = await supabase
@@ -221,7 +225,6 @@ export async function DELETE(
     }
 
     const supabase = supabaseAdmin;
-    // Access params directly from context
     const { id } = await context.params;
 
     if (!id) {
@@ -229,12 +232,11 @@ export async function DELETE(
     }
 
     try {
-        // Delete the property. Units might be deleted via CASCADE constraint if set up in SQL.
+        // Delete the property. Units might be deleted via CASCADE constraint set up in SQL.
         const { error } = await supabase.from("properties").delete().eq("id", id);
 
         if (error) {
             console.error("Supabase DELETE Error:", error);
-            // Handle foreign key constraint error specifically if cascade delete isn't set up
             if (error.code === "23503") {
                 // Foreign key violation
                 return NextResponse.json(
@@ -242,7 +244,7 @@ export async function DELETE(
                         error: "Erro: Não é possível excluir a propriedade pois existem unidades associadas. Exclua as unidades primeiro.",
                     },
                     { status: 409 }
-                ); // Conflict
+                );
             }
             throw new Error("Erro ao excluir propriedade.");
         }

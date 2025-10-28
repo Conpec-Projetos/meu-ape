@@ -97,7 +97,7 @@ export function GoogleMapComponent({ properties, isLoading }: { properties: Prop
                                     position={{ lat: prop.location.lat, lng: prop.location.lng }}
                                     onClick={() => handleMarkerClick(prop.id!)}
                                 >
-                                    <Pin background={"#FBBC04"} borderColor={"#000"} glyphColor={"#000"} scale={1.5} />
+                                    <Pin background={"oklch(0.704 0.191 22.216)"} borderColor={"oklch(1 0 0)"} glyphColor={"oklch(1 0 0)"} scale={1} />
                                 </AdvancedMarker>
                             )
                     )}

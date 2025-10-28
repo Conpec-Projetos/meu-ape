@@ -78,7 +78,9 @@ function AdminDevelopersPageContent() {
                     <h1 className="text-3xl font-bold">Gerenciamento de Construtoras</h1>
                     <p className="text-muted-foreground">Adicione, edite e remova construtoras parceiras.</p>
                 </div>
-                <Button className="cursor-pointer" onClick={handleAdd}>Adicionar Nova Construtora</Button>
+                <Button className="cursor-pointer" onClick={handleAdd}>
+                    Adicionar Nova Construtora
+                </Button>
             </div>
 
             <Card>

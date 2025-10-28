@@ -630,6 +630,10 @@ export type Database = {
         Args: { p_limit: number; p_offset: number; query_text: string }
         Returns: Json
       }
+      set_property_location: {
+        Args: { p_lat: number; p_lng: number; p_property_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       st_3dclosestpoint: {

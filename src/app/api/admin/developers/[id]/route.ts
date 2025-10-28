@@ -15,7 +15,6 @@ const developerSchema = z.object({
     website: z.string().optional(),
     email: z.string().optional(),
     phone: z.string().optional(),
-    // Allow null so client can explicitly clear the logo
     logo_url: z.string().nullable().optional(),
 });
 
