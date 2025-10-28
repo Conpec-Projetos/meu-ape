@@ -8,14 +8,36 @@ import { Input } from "@/components/ui/input";
 import { useProperties } from "@/hooks/use-properties";
 import { Property } from "@/interfaces/property";
 import { Search } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { toast } from "sonner";
 
 function PropertyManagementContent() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-    const { properties, isLoading, error, hasMore, fetchMoreProperties, refreshProperties } = useProperties();
+    const { properties, isLoading, error, hasMore, fetchMoreProperties, refreshProperties, searchProperties } =
+        useProperties();
+    const [searchQuery, setSearchQuery] = useState("");
+    const debounceRef = useRef<number | null>(null);
+
+    // Debounce search input and trigger server search
+    useEffect(() => {
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+        // window.setTimeout returns a number in browser environments
+        debounceRef.current = window.setTimeout(() => {
+            const q = searchQuery.trim();
+            // Use fuzzy search by default
+            // When the search input is cleared, pass an empty string so the
+            // hook treats it as an explicit (empty) query and clears the server-side filter.
+            searchProperties(q.length ? q : "", true);
+        }, 400) as unknown as number;
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [searchQuery, searchProperties]);
 
     const handleAddProperty = () => {
         setSelectedProperty(null);
@@ -71,7 +93,9 @@ function PropertyManagementContent() {
         }
 
         return (
-            <div id="scrollableDiv" className="h-[60vh] overflow-y-auto">
+            // Use max-height so the container shrinks to fit small result sets
+            // but still scrolls when content exceeds the viewport fraction.
+            <div id="scrollableDiv" className="max-h-[60vh] overflow-y-auto">
                 <InfiniteScroll
                     dataLength={properties.length}
                     next={fetchMoreProperties}
@@ -108,12 +132,19 @@ function PropertyManagementContent() {
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <div className="relative w-full sm:max-w-xs">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Procurar por título ou endereço..." className="pl-8 w-full" />
+                    <Input
+                        value={searchQuery}
+                        onChange={e => setSearchQuery((e.target as HTMLInputElement).value)}
+                        placeholder="Procurar por título ou endereço..."
+                        className="pl-8 w-full"
+                    />
                 </div>
                 <Button onClick={handleAddProperty} className="cursor-pointer w-full sm:w-auto">
                     Adicionar Novo Imóvel
                 </Button>
             </div>
+
+            {/* search is handled via effect */}
 
             <Card>
                 <CardHeader>

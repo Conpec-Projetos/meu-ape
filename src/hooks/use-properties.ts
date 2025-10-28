@@ -13,15 +13,30 @@ export function useProperties() {
 
     // useRef to hold the current page number to avoid stale closures and effect loops
     const pageRef = useRef<number>(1);
+    // hold current search query so subsequent page fetches continue the same search
+    const currentQueryRef = useRef<string | undefined>(undefined);
+    // fuzzy search enabled by default
+    const fuzzyRef = useRef<boolean>(true);
 
-    const fetchProperties = useCallback(async (reset = false) => {
+    const fetchProperties = useCallback(async (reset = false, q?: string, fuzzy?: boolean) => {
         setIsLoading(true);
         setError(null);
 
         const currentPage = reset ? 1 : pageRef.current;
 
+        // update stored query when explicit q is provided (including empty string)
+        if (q !== undefined) {
+            currentQueryRef.current = q;
+        }
+        const queryToUse = q !== undefined ? q : currentQueryRef.current;
+        const fuzzyToUse = fuzzy !== undefined ? fuzzy : fuzzyRef.current;
+
         try {
-            const response = await fetch(`/api/admin/properties?page=${currentPage}&limit=${limit}`);
+            const url =
+                `/api/admin/properties?page=${currentPage}&limit=${limit}` +
+                (queryToUse ? `&q=${encodeURIComponent(queryToUse)}` : "") +
+                (fuzzyToUse ? `&fuzzy=true` : "");
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error("Falha ao buscar os imóveis.");
             }
@@ -57,8 +72,19 @@ export function useProperties() {
     const refreshProperties = useCallback(() => {
         setProperties([]); // Limpa as propriedades atuais
         pageRef.current = 1;
+        currentQueryRef.current = undefined;
         fetchProperties(true);
     }, [fetchProperties]);
+
+    const searchProperties = useCallback(
+        (q?: string, fuzzy?: boolean) => {
+            // Reset and fetch with query
+            setProperties([]);
+            pageRef.current = 1;
+            fetchProperties(true, q, fuzzy);
+        },
+        [fetchProperties]
+    );
 
     // Initial load on mount only
     useEffect(() => {
@@ -66,5 +92,13 @@ export function useProperties() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    return { properties, isLoading, error, hasMore, fetchMoreProperties: fetchProperties, refreshProperties };
+    return {
+        properties,
+        isLoading,
+        error,
+        hasMore,
+        fetchMoreProperties: fetchProperties,
+        refreshProperties,
+        searchProperties,
+    };
 }

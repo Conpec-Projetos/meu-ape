@@ -118,14 +118,24 @@ export async function PUT(
 
         // Insert new units
         if (unitsToInsert.length > 0) {
-            const insertPayload = unitsToInsert.map(({ ...unitData }) => ({
-                // Remove status before inserting
-                ...unitData,
-                property_id: id,
-                identifier: unitData.identifier || "", // Provide default if needed
-                // Ensure category is an array of strings or null
-                category: typeof unitData.category === "string" ? [unitData.category] : unitData.category,
-            }));
+            const insertPayload = unitsToInsert.map(u => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const unitData: any = { ...u };
+                delete unitData.status;
+                delete unitData.id;
+                return {
+                    ...unitData,
+                    property_id: id,
+                    identifier: unitData.identifier || "", // Provide default if needed
+                    // Ensure category is an array of strings or null
+                    category:
+                        typeof unitData.category === "string"
+                            ? [unitData.category]
+                            : Array.isArray(unitData.category)
+                              ? unitData.category
+                              : (unitData.category ?? null),
+                };
+            });
             const { error: insertError } = await supabase.from("units").insert(insertPayload);
             if (insertError) {
                 console.error("Supabase Insert Units Error:", insertError);
@@ -135,13 +145,22 @@ export async function PUT(
 
         // Update existing units
         for (const unit of unitsToUpdate) {
-            const { id: unitId, ...updateData } = unit; // Remove status before updating
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const temp: any = { ...unit };
+            const unitId = temp.id as string | undefined;
+            delete temp.id;
+            delete temp.status;
             if (unitId) {
                 const updatePayload = {
-                    ...updateData,
+                    ...temp,
                     updated_at: new Date().toISOString(),
                     // Ensure category is an array of strings or null
-                    category: typeof updateData.category === "string" ? [updateData.category] : updateData.category,
+                    category:
+                        typeof temp.category === "string"
+                            ? [temp.category]
+                            : Array.isArray(temp.category)
+                              ? temp.category
+                              : (temp.category ?? null),
                 };
                 const { error: updateError } = await supabase.from("units").update(updatePayload).eq("id", unitId);
                 if (updateError) {
