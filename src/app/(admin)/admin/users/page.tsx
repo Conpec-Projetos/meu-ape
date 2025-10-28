@@ -1,10 +1,10 @@
 "use client";
 
-import { DeleteConfirmationModal } from "@/components/features/modals/delete-confirmation-modal";
-import { DenialModal } from "@/components/features/modals/denial-modal";
-import { UserModal } from "@/components/features/modals/user-modal";
-import { AgentRequestTable } from "@/components/features/tables/agent-request-table";
-import { UserTable, UserTableSkeleton } from "@/components/features/tables/user-table";
+import { AgentRequestTable } from "@/components/specifics/admin/users/agent-request-table";
+import { DeleteConfirmationModal } from "@/components/specifics/admin/users/delete-confirmation-modal";
+import { DenialModal } from "@/components/specifics/admin/users/denial-modal";
+import { UserModal } from "@/components/specifics/admin/users/user-modal";
+import { UserTable, UserTableSkeleton } from "@/components/specifics/admin/users/user-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
