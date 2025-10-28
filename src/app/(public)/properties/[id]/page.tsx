@@ -243,17 +243,6 @@ function PropertyPageContent() {
         location: { lat: property.location.latitude, lng: property.location.longitude },
         deliveryDate: (property.deliveryDate as Timestamp).toDate(),
         launchDate: (property.launchDate as Timestamp).toDate(),
-        // Add a mock searchableUnitFeats to satisfy the Property type
-        searchableUnitFeats: {
-            minPrice: 0,
-            maxPrice: 0,
-            bedrooms: [],
-            baths: [],
-            garages: [],
-            minSize: 0,
-            maxSize: 0,
-            sizes: [],
-        },
     };
 
     const propertyMatterportUrl = property.matterportUrl?.[0];
