@@ -52,10 +52,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 }
 
-export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-): Promise<NextResponse> {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
     if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -3,6 +3,7 @@
 import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
 import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
+import { MatterportGallery } from "@/components/specifics/properties/matterport-gallery";
 import { PropertyHeader } from "@/components/specifics/properties/property-header";
 import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
 import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
@@ -13,76 +14,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
-import { PropertyOld } from "@/interfaces/propertyOld";
 import { Unit } from "@/interfaces/unit";
 import { MapProvider } from "@/providers/google-maps-provider";
-import { doc, DocumentData, GeoPoint, getDoc, Timestamp, type DocumentReference } from "firebase/firestore";
+import { doc, DocumentData, getDoc } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-const mockProperty: PropertyOld = {
-    id: "mock-property-id",
-    name: "Residencial Elysian",
-    address: "Rua Paraíso, 123, Arcádia",
-    propertyImages: ["/register/background.png", "/assets/background.png"],
-    description:
-        "Um empreendimento magnífico com muito a oferecer. Vistas deslumbrantes, lazer completo e a tranquilidade que você sempre sonhou.",
-    deliveryDate: Timestamp.now(),
-    launchDate: Timestamp.now(),
-    developerRef: {} as DocumentReference,
-    developerName: "Construtora Teste",
-    features: ["Piscina", "Academia", "Sauna", "Playground", "Salão de Festas", "Portaria 24h"],
-    floors: 20,
-    unitsPerFloor: 4,
-    location: new GeoPoint(34.0522, -118.2437),
-    matterportUrl: ["https://my.matterport.com/show/?m=EmsYeDcMSPu"],
-    searchableUnitFeats: {
-        minPrice: 500000,
-        maxPrice: 1200000,
-        sizes: [60, 70, 80],
-        bedrooms: [1, 2, 3],
-        baths: [1, 2],
-        garages: [1, 2],
-        minSize: 60,
-        maxSize: 80,
-    },
-    availableUnits: 10,
-    groups: [],
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-};
-
-const mockUnitStructure: UnitStructure = {
-    "Bloco A": ["Apartamentos de 60m²", "Apartamentos de 70m²"],
-    "Bloco B": ["Coberturas de 80m²"],
-};
-
-const mockUnits: Unit[] = Array.from({ length: 5 }).map((_, i) => ({
-    id: `unit-${i}`,
-    identifier: `A${101 + i}`,
-    propertyId: "mock-property-id",
-    price: 500000 + i * 10000,
-    size_sqm: 60 + i * 5,
-    bedrooms: 2,
-    baths: 1,
-    garages: 1,
-    isAvailable: true,
-    floor: 10 + i,
-    images: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-}));
+type DetailResponse = { property: Property; unitNavigation: UnitStructure };
 
 function PropertyPageContent() {
     const params = useParams();
     const id = params.id as string;
-    const [property, setProperty] = useState<PropertyOld | null>(null);
+    const [property, setProperty] = useState<Property | null>(null);
     const [unitStructure, setUnitStructure] = useState<UnitStructure | null>(null);
     const [units, setUnits] = useState<Unit[]>([]);
     const [selectedBlock, setSelectedBlock] = useState<string | undefined>();
     const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
-    const [, setCursor] = useState<string | null>(null);
+    const [cursor, setCursor] = useState<{ identifier: string; id: string } | null>(null);
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
@@ -157,41 +106,74 @@ function PropertyPageContent() {
 
     useEffect(() => {
         const fetchPropertyData = async () => {
-            setIsLoading(true);
-            const prop = mockProperty;
-            setProperty(prop);
-            const structure = mockUnitStructure;
-            setUnitStructure(structure);
-            setIsLoading(false);
+            try {
+                setIsLoading(true);
+                const res = await fetch(`/api/properties/${id}`);
+                if (!res.ok) throw new Error("Falha ao carregar dados do imóvel");
+                const data: DetailResponse = await res.json();
+                setProperty(data.property);
+                setUnitStructure(data.unitNavigation);
+            } catch (e) {
+                console.error(e);
+                setProperty(null);
+            } finally {
+                setIsLoading(false);
+            }
         };
-        if (id) {
-            fetchPropertyData();
-        }
+        if (id) fetchPropertyData();
     }, [id]);
 
     useEffect(() => {
         if (!selectedBlock || !selectedCategory) return;
         const fetchUnits = async () => {
-            setIsLoadingUnits(true);
-            const newUnits = mockUnits;
-            const nextCursor = "next-page-cursor";
-            setUnits(newUnits);
-            setCursor(nextCursor);
-            setHasNextPage(!!nextCursor);
-            setIsLoadingUnits(false);
+            try {
+                setIsLoadingUnits(true);
+                const url = new URL(`/api/properties/${id}/units`, window.location.origin);
+                url.searchParams.set("block", selectedBlock);
+                url.searchParams.set("category", selectedCategory);
+                const res = await fetch(url.toString());
+                if (!res.ok) throw new Error("Falha ao carregar unidades");
+                const data: {
+                    units: Unit[];
+                    nextCursor: { identifier: string; id: string } | null;
+                    hasNextPage: boolean;
+                } = await res.json();
+                setUnits(data.units);
+                setCursor(data.nextCursor);
+                setHasNextPage(data.hasNextPage);
+            } catch (e) {
+                console.error(e);
+                setUnits([]);
+                setCursor(null);
+                setHasNextPage(false);
+            } finally {
+                setIsLoadingUnits(false);
+            }
         };
         fetchUnits();
     }, [selectedBlock, selectedCategory, id]);
 
     const handleLoadMore = async () => {
-        if (!hasNextPage || isLoadingUnits) return;
-        setIsLoadingUnits(true);
-        const newUnits = mockUnits.map(u => ({ ...u, id: u.id + "-more" }));
-        const nextCursor = null;
-        setUnits(prev => [...prev, ...newUnits]);
-        setCursor(nextCursor);
-        setHasNextPage(!!nextCursor);
-        setIsLoadingUnits(false);
+        if (!hasNextPage || isLoadingUnits || !selectedBlock || !selectedCategory || !cursor) return;
+        try {
+            setIsLoadingUnits(true);
+            const url = new URL(`/api/properties/${id}/units`, window.location.origin);
+            url.searchParams.set("block", selectedBlock);
+            url.searchParams.set("category", selectedCategory);
+            url.searchParams.set("cursorIdentifier", cursor.identifier);
+            url.searchParams.set("cursorId", cursor.id);
+            const res = await fetch(url.toString());
+            if (!res.ok) throw new Error("Falha ao carregar mais unidades");
+            const data: { units: Unit[]; nextCursor: { identifier: string; id: string } | null; hasNextPage: boolean } =
+                await res.json();
+            setUnits(prev => [...prev, ...data.units]);
+            setCursor(data.nextCursor);
+            setHasNextPage(data.hasNextPage);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsLoadingUnits(false);
+        }
     };
 
     const handleSelectUnitType = (block: string, category: string) => {
@@ -231,15 +213,7 @@ function PropertyPageContent() {
         return <div className="text-center py-12 pt-20">Imóvel não encontrado.</div>;
     }
 
-    // Adapter for GoogleMapComponent
-    const propertyForMap: Property = {
-        ...property,
-        location: { lat: property.location.latitude, lng: property.location.longitude },
-        deliveryDate: (property.deliveryDate as Timestamp).toDate(),
-        launchDate: (property.launchDate as Timestamp).toDate(),
-    };
-
-    const propertyMatterportUrl = property.matterportUrl?.[0];
+    const matterportUrls = property.matterportUrls ?? [];
 
     return (
         <div className="py-15 bg-background text-foreground pt-20">
@@ -278,16 +252,20 @@ function PropertyPageContent() {
                                 />
                             )}
                         </div>
-                        {propertyMatterportUrl && (
+                        {matterportUrls.length > 0 && (
                             <div>
                                 <h3 className="text-xl font-semibold text-primary mb-4">Tour 3D Imersivo</h3>
-                                <EmbeddedMatterportViewer url={propertyMatterportUrl} />
+                                {matterportUrls.length > 1 ? (
+                                    <MatterportGallery urls={matterportUrls} />
+                                ) : (
+                                    <EmbeddedMatterportViewer url={matterportUrls[0]} />
+                                )}
                             </div>
                         )}
                         <div>
                             <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
                             <div className="h-[800px] w-full rounded-lg overflow-hidden">
-                                <GoogleMapComponent properties={[propertyForMap]} isLoading={false} />
+                                <GoogleMapComponent properties={[property]} isLoading={false} />
                             </div>
                         </div>
                     </div>
@@ -336,7 +314,7 @@ function PropertyPageContent() {
                 <VisitModal
                     onClose={() => setVisitModal(false)}
                     unit={unit}
-                    property={property as unknown as Property}
+                    property={property}
                     onSubmit={() => setVisitModal(false)}
                     isOpen={visitModal}
                 />
@@ -346,7 +324,7 @@ function PropertyPageContent() {
                 <ReservationModal
                     onClose={() => setReservationModal(false)}
                     unit={unit}
-                    property={property as unknown as Property}
+                    property={property}
                     onSubmit={() => setReservationModal(false)}
                     isOpen={reservationModal}
                 />
