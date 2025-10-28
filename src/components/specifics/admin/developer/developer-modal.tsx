@@ -153,7 +153,7 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
                                     className="hidden"
                                     onChange={handleFile}
                                 />
-                                <Button type="button" variant="outline" onClick={() => logoInputRef.current?.click()}>
+                                <Button type="button" variant="outline" onClick={() => logoInputRef.current?.click()} className="cursor-pointer">
                                     Adicionar Imagem +
                                 </Button>
                             </div>
@@ -173,7 +173,7 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
                                     </div>
                                     <button
                                         type="button"
-                                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
+                                        className="cursor-pointer absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded"
                                         onClick={() => {
                                             if (logoPreview) {
                                                 URL.revokeObjectURL(logoPreview);
@@ -194,10 +194,10 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
                     <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">Campos marcados com * são obrigatórios.</p>
                         <div className="flex gap-2">
-                            <Button variant="outline" onClick={onClose} type="button">
+                            <Button variant="outline" onClick={onClose} type="button" className="cursor-pointer">
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={isSubmitting}>
+                            <Button type="submit" disabled={isSubmitting} className="cursor-pointer">
                                 {isSubmitting ? "Salvando..." : "Salvar"}
                             </Button>
                         </div>
