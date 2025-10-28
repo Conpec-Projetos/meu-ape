@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     try {
         // Select the necessary columns, including image arrays and location
         const selectQuery = `
-            id, name, address, description, delivery_date, launch_date, features, floors, units_per_floor, property_images, areas_images, matterport_urls, groups, created_at,
+            id, developer_id, name, address, description, delivery_date, launch_date, features, floors, units_per_floor, property_images, areas_images, matterport_urls, groups, created_at,
             location
         `;
 
@@ -88,6 +88,7 @@ export async function GET(request: NextRequest) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const formattedProperties: Property[] = (rows || []).map((p: any) => ({
                         id: p.id,
+                        developerId: p.developer_id,
                         name: p.name,
                         address: p.address ?? "",
                         description: p.description ?? "",
@@ -203,6 +204,10 @@ export async function GET(request: NextRequest) {
 
             return {
                 id: p.id,
+                developerId:
+                    typeof (p as { developer_id?: unknown }).developer_id === "string"
+                        ? (p as { developer_id?: string }).developer_id
+                        : undefined,
                 name: p.name,
                 address: p.address ?? "", // Default null address to empty string
                 description: p.description ?? "", // Default null description to empty string

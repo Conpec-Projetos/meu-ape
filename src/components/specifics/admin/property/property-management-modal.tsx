@@ -54,11 +54,8 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [imagesToRemoveProperty, setImagesToRemoveProperty] = useState<string[]>([]);
     const [imagesToRemoveAreas, setImagesToRemoveAreas] = useState<string[]>([]);
 
-    // Mock data
-    const [developers] = useState([
-        { id: "00000000-0000-0000-0000-000000000000", name: "Construtora X" },
-        { id: "00000000-0000-0000-0000-000000000001", name: "Construtora Y" },
-    ]);
+    // Developers will be loaded from the admin API so the select shows the real construtoras
+    const [developers, setDevelopers] = useState<{ id: string; name: string }[]>([]);
     const [groups] = useState([
         { id: "corretores-sp", name: "Corretores SP" },
         { id: "corretores-rj", name: "Corretores RJ" },
@@ -97,18 +94,48 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setImagesToRemoveAreas([]);
     }, [property]);
 
-    // When editing an existing property that was loaded from a list without units,
-    // fetch units from the API and map snake_case -> camelCase for the UI.
+    // Load developers list from the admin API so the Select shows the actual construtoras
     useEffect(() => {
-        async function fetchUnitsIfMissing() {
+        let mounted = true;
+        async function fetchDevelopers() {
+            try {
+                const res = await fetch(`/api/admin/developers`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!mounted) return;
+                // API returns { developers: [...] } or an array
+                const list = Array.isArray(data) ? data : data?.developers || [];
+                setDevelopers(
+                    (list || []).map((d: unknown) => {
+                        const dev = d as { id?: string; name?: string };
+                        return { id: dev.id || "", name: dev.name || "" };
+                    })
+                );
+            } catch (e) {
+                console.error("Falha ao buscar construtoras:", e);
+            }
+        }
+        fetchDevelopers();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    // When editing an existing property, fetch the full data from API once
+    // so we can ensure we have units and the associated developer_id.
+    useEffect(() => {
+        async function fetchPropertyDetails() {
             if (!property?.id) return;
-            if (Array.isArray(units) && units.length > 0) return; // already have units
             try {
                 const res = await fetch(`/api/admin/properties/${property.id}`);
                 if (!res.ok) return;
                 const data = await res.json();
+                // Set developerId from API if available
+                if (data?.developer_id && typeof data.developer_id === "string") {
+                    setDeveloperId(data.developer_id);
+                }
                 const apiUnits: unknown = data?.units || [];
-                if (Array.isArray(apiUnits)) {
+                if (Array.isArray(apiUnits) && (!Array.isArray(units) || units.length === 0)) {
                     const mapped = apiUnits.map((u: Record<string, unknown>) => {
                         const category = Array.isArray(u.category) ? (u.category[0] ?? "") : (u.category ?? "");
                         const draft: DraftUnit = {
@@ -139,7 +166,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 console.error("Falha ao buscar unidades da API:", e);
             }
         }
-        fetchUnitsIfMissing();
+        fetchPropertyDetails();
         // Only run when property id changes; 'units' in deps would re-run after setUnits.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [property?.id]);
