@@ -7,22 +7,21 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/use-auth"; // Hook para obter userId
+import { useAuth } from "@/hooks/use-auth"
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
 import { Timestamp } from "firebase/firestore";
-import { Inbox, Loader2 } from "lucide-react"; // Ícones
+import { Inbox, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-// --- Componente Reutilizável para Item da Lista ---
+// Componente Reutilizável para Item da Lista 
 interface RequestItemProps {
     request: VisitRequest | ReservationRequest;
-    onClick: () => void; // Para abrir o Sheet
+    onClick: () => void;
 }
 
 function RequestItem({ request, onClick }: RequestItemProps) {
-    // ... (Keep the existing RequestItem component as it is from the previous response)
     const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
         const lowerStatus = status.toLowerCase();
         switch (lowerStatus) {
@@ -70,13 +69,12 @@ function RequestItem({ request, onClick }: RequestItemProps) {
     );
 }
 
-// --- Componente Reutilizável para Detalhes no Sheet ---
+// Componente Reutilizável para Detalhes no Sheet
 interface RequestDetailsProps {
     request: VisitRequest | ReservationRequest | null;
 }
 
 function RequestDetails({ request }: RequestDetailsProps) {
-    // ... (Keep the existing RequestDetails component as it is from the previous response)
     if (!request) return null;
 
     const formatDateTime = (date: Date | Timestamp | undefined): string => {
@@ -192,7 +190,7 @@ function RequestDetails({ request }: RequestDetailsProps) {
     );
 }
 
-// --- Componente Principal da Página ---
+// Componente Principal da Página
 export default function DashboardPage() {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<"visitas" | "reservas">("visitas");
@@ -203,7 +201,7 @@ export default function DashboardPage() {
     const [loadingMore, setLoadingMore] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<VisitRequest | ReservationRequest | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
-    const [fetchTrigger, setFetchTrigger] = useState(0); // State to manually trigger fetch
+    const [fetchTrigger, setFetchTrigger] = useState(0);
 
     const fetchData = useCallback(
         async (tab: "visitas" | "reservas", loadMore = false) => {

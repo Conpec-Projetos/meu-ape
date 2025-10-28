@@ -54,6 +54,8 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [areaImagePreviews, setAreaImagePreviews] = useState<string[]>([]);
     const [imagesToRemoveProperty, setImagesToRemoveProperty] = useState<string[]>([]);
     const [imagesToRemoveAreas, setImagesToRemoveAreas] = useState<string[]>([]);
+    // Features (tags) input state
+    const [featureInput, setFeatureInput] = useState("");
 
     // Developers will be loaded from the admin API so the select shows the real construtoras
     const [developers, setDevelopers] = useState<{ id: string; name: string }[]>([]);
@@ -94,6 +96,26 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setImagesToRemoveProperty([]);
         setImagesToRemoveAreas([]);
     }, [property]);
+
+    // Helpers for features (tags)
+    function addFeatureTag(raw?: string) {
+        const value = (raw ?? featureInput).trim();
+        if (!value) return;
+        const lower = value.toLowerCase();
+        const current = Array.isArray(form.features) ? form.features : [];
+        const exists = current.some(f => (f || "").toLowerCase() === lower);
+        if (exists) {
+            setFeatureInput("");
+            return;
+        }
+        setForm(prev => ({ ...prev, features: [...current, value] }));
+        setFeatureInput("");
+    }
+
+    function removeFeatureTag(value: string) {
+        const current = Array.isArray(form.features) ? form.features : [];
+        setForm(prev => ({ ...prev, features: current.filter(f => f !== value) }));
+    }
 
     // Load developers list from the admin API so the Select shows the actual construtoras
     useEffect(() => {
@@ -272,7 +294,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         try {
             let propertyId = property?.id;
 
-            // 1) Create when new (without images first)
+            // Create when new (without images first)
             if (!propertyId) {
                 const createRes = await fetch("/api/admin/properties", {
                     method: "POST",
@@ -291,7 +313,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 }
             }
 
-            // 2) Process image deletions (existing) - property and units
+            // Process image deletions (existing) - property and units
             const toDelete = [...imagesToRemoveProperty, ...imagesToRemoveAreas];
             // Collect unit floor plan deletions
             const unitDeletes = [
@@ -303,13 +325,13 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 await deleteImages(allDeletes);
             }
 
-            // 3) Upload new images (property)
+            // Upload new images (property)
             const uploadedPropertyUrls = newPropertyImages.length
                 ? await subirImagensEmLotes(newPropertyImages, propertyId)
                 : [];
             const uploadedAreaUrls = newAreaImages.length ? await subirImagensEmLotes(newAreaImages, propertyId) : [];
 
-            // 3b) Upload unit floor plan files and unit images per unit
+            // Upload unit floor plan files and unit images per unit
             const unitsWithMedia = await Promise.all(
                 units.map(async u => {
                     // Floor plans
@@ -328,7 +350,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 })
             );
 
-            // 4) Merge arrays
+            // Merge arrays
             const currentPropertyUrls = (form.propertyImages || []).filter(
                 url => !imagesToRemoveProperty.includes(url)
             );
@@ -351,7 +373,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 units: unitsPayload,
             };
 
-            // 5) Update (or re-update) the property with image URLs
+            // Update (or re-update) the property with image URLs
             const updateRes = await fetch(`/api/admin/properties/${propertyId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -449,6 +471,54 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>
                             <Textarea id="description" value={form.description || ""} onChange={handleChange} />
+                        </div>
+
+                        {/* Features (tags) */}
+                        <div className="space-y-2">
+                            <Label htmlFor="featureInput">Características</Label>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    id="featureInput"
+                                    value={featureInput}
+                                    onChange={e => setFeatureInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            addFeatureTag();
+                                        }
+                                    }}
+                                    placeholder="Digite e pressione Enter"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addFeatureTag()}
+                                    className="cursor-pointer"
+                                >
+                                    <PlusCircle className="h-4 w-4 mr-2" /> Adicionar
+                                </Button>
+                            </div>
+                            {Array.isArray(form.features) && form.features.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {form.features.map((feat, idx) => (
+                                        <span
+                                            key={`${feat}-${idx}`}
+                                            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs"
+                                        >
+                                            {feat}
+                                            <button
+                                                type="button"
+                                                aria-label={`Remover ${feat}`}
+                                                className="ml-1 text-muted-foreground hover:text-foreground cursor-pointer"
+                                                onClick={() => removeFeatureTag(feat)}
+                                            >
+                                                <X className="text-red-400 h-3 w-3" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -59,7 +59,7 @@ export default function ProfilePage() {
     const [newPasswordVisible, setNewPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
-    // --- Formulário de Dados Pessoais ---
+    // Formulário de Dados Pessoais
     const form = useForm<ProfileUpdate>({
         resolver: zodResolver(profileUpdateSchema) as unknown as Resolver<ProfileUpdate>,
         defaultValues: {
@@ -70,7 +70,7 @@ export default function ProfilePage() {
         },
     });
 
-    // --- Formulário do Modal de Senha ---
+    // Formulário do Modal de Senha
     const passwordForm = useForm<PasswordChangeData>({
         resolver: zodResolver(passwordChangeSchema),
         defaultValues: {
@@ -80,7 +80,7 @@ export default function ProfilePage() {
         },
     });
 
-    // --- Funções de Formatação ---
+    // Funções de Formatação
     const onlyDigits = (v: string) => (v || "").toString().replace(/\D/g, "");
 
     const formatCPF = useCallback((v: string) => {
@@ -102,7 +102,7 @@ export default function ProfilePage() {
         return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
     }, []);
 
-    // --- Busca de Dados Iniciais ---
+    // Busca de Dados Iniciais
     const fetchProfile = useCallback(
         async (signal?: AbortSignal) => {
             setLoadingProfile(true);
@@ -137,7 +137,7 @@ export default function ProfilePage() {
         return () => controller.abort();
     }, [fetchProfile]);
 
-    // --- Salvar Dados Pessoais ---
+    // Salvar Dados Pessoais
     const onProfileSubmit = (data: ProfileUpdate) => {
         const payload = {
             ...data,
@@ -168,7 +168,7 @@ export default function ProfilePage() {
         });
     };
 
-    // --- Upload de Documento (Função Auxiliar) ---
+    // Upload de Documento (Função Auxiliar)
     const uploadDocument = async (file: File | null, documentType: string): Promise<string | null> => {
         if (!file) return null;
         const formData = new FormData();
@@ -182,7 +182,7 @@ export default function ProfilePage() {
         return data.urls?.[documentType]?.[0] || null;
     };
 
-    // --- Salvar Documentos ---
+    // Salvar Documentos
     const handleSaveDocuments = async () => {
         const filesToUpload = Object.entries(pendingFiles).filter(([, file]) => file !== null);
         if (filesToUpload.length === 0) {
@@ -226,7 +226,7 @@ export default function ProfilePage() {
         setPendingFiles(p => ({ ...p, [documentType]: file }));
     };
 
-    // --- Componente para Linha de Documento ---
+    // Componente para Linha de Documento
     const DocumentRow: React.FC<{
         label: string;
         typeKey: string;
@@ -237,7 +237,7 @@ export default function ProfilePage() {
         const inputId = `doc-${typeKey}`;
         const fileName = pendingFile?.name;
         const hasExisting = existingUrls && existingUrls.length > 0;
-        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : UploadCloud; // Alterado para UploadCloud
+        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : UploadCloud;
         const iconColor = pendingFile ? "text-green-600" : hasExisting ? "text-green-600" : "text-muted-foreground";
 
         return (
@@ -251,13 +251,13 @@ export default function ProfilePage() {
                     <Label
                         htmlFor={inputId}
                         className={cn(
-                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed h-[90px] w-[120px] shrink-0", // Altura e largura fixas, shrink-0
+                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed h-[90px] w-[120px] shrink-0",
                             uploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50",
                             pendingFile ? "border-green-600" : "border-input",
                             "transition-colors"
                         )}
                     >
-                        <Icon className={cn("size-6 mb-1", iconColor)} /> {/* Ícone ligeiramente maior */}
+                        <Icon className={cn("size-6 mb-1", iconColor)} />
                         <span
                             className={cn(
                                 "text-xs font-medium text-center",
@@ -277,7 +277,6 @@ export default function ProfilePage() {
                     />
                     <div className="text-sm min-w-0">
                         {" "}
-                        {/* min-w-0 para permitir truncamento */}
                         {fileName && <p className="text-foreground truncate font-medium">Novo: {fileName}</p>}
                         {hasExisting && !pendingFile && (
                             <div className="flex flex-col gap-1">
@@ -301,7 +300,7 @@ export default function ProfilePage() {
         );
     };
 
-    // --- Lógica de Alteração de Senha ---
+    // Lógica de Alteração de Senha
     const onPasswordSubmit = async (data: PasswordChangeData) => {
         const user = auth.currentUser;
         if (!user || !user.email) {
@@ -341,12 +340,11 @@ export default function ProfilePage() {
         });
     };
 
-    // --- Renderização ---
+    // Renderização
     if (loadingProfile) {
         return (
             <div className="container mx-auto py-10 px-4 pt-20">
                 {" "}
-                {/* Adicionado pt-20 */}
                 <Card className="max-w-3xl mx-auto">
                     <CardHeader>
                         <Skeleton className="h-8 w-1/2" />
@@ -382,7 +380,6 @@ export default function ProfilePage() {
         return (
             <div className="container mx-auto py-10 px-4 pt-20 text-center text-destructive">
                 {" "}
-                {/* Adicionado pt-20 */}
                 Erro ao carregar perfil: {apiError}. Tente recarregar.
             </div>
         );
@@ -391,11 +388,9 @@ export default function ProfilePage() {
     return (
         <div className="container mx-auto py-10 px-4 pt-20">
             {" "}
-            {/* Adicionado pt-20 */}
             <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                     {" "}
-                    {/* Adicionado mb-6 */}
                     <TabsTrigger value="conta">Conta</TabsTrigger>
                     <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 </TabsList>
