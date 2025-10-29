@@ -15,7 +15,6 @@ import { actionRequirements } from "@/config/actionRequirements";
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { MapProvider } from "@/providers/google-maps-provider";
 import { doc, DocumentData, getDoc } from "firebase/firestore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -334,9 +333,5 @@ function PropertyPageContent() {
 }
 
 export default function PropertyPage() {
-    return (
-        <MapProvider>
-            <PropertyPageContent />
-        </MapProvider>
-    );
+    return <PropertyPageContent />;
 }

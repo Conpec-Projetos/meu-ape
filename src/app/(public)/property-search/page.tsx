@@ -7,7 +7,6 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
-import { MapProvider } from "@/providers/google-maps-provider";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
@@ -138,9 +137,7 @@ function PropertySearchPageContent() {
 export default function PropertySearchPage() {
     return (
         <Suspense fallback={<div className="flex items-center justify-center h-screen">Carregando...</div>}>
-            <MapProvider>
-                <PropertySearchPageContent />
-            </MapProvider>
+            <PropertySearchPageContent />
         </Suspense>
     );
 }
