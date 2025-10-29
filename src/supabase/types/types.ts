@@ -542,6 +542,27 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_property_with_latlng: {
+        Args: { p_id: string }
+        Returns: {
+          address: string
+          areas_images: string[]
+          delivery_date: string
+          description: string
+          developer_id: string
+          features: string[]
+          floors: number
+          groups: string
+          id: string
+          lat: number
+          launch_date: string
+          lng: number
+          matterport_urls: string[]
+          name: string
+          property_images: string[]
+          units_per_floor: number
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:

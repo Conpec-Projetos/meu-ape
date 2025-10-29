@@ -66,6 +66,21 @@ export const listAgentRequests = async (status: string, page: number, limitSize:
     return { requests: items as AgentRegistrationRequest[], totalPages, total };
 };
 
+export const listAdminEmails = async (): Promise<string[]> => {
+    const usersCollection = db.collection("users");
+    const querySnapshot = await usersCollection.where("role", "==", "admin").get()
+    const emails: string[] = [];
+
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.email) {
+        emails.push(data.email);
+        }
+    });
+    
+    return emails;
+}
+
 export const createUser = async (userData: Partial<User> & { password?: string }) => {
     const { email, password, ...profileData } = userData;
     if (!email || !password) {
