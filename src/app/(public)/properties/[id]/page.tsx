@@ -1,6 +1,6 @@
 "use client";
 
-import { GoogleMapComponent } from "@/components/features/maps/google-map-component";
+import { PropertyLocationMap } from "@/components/features/maps/property-location-map";
 import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
 import { MatterportGallery } from "@/components/specifics/properties/matterport-gallery";
@@ -265,7 +265,7 @@ function PropertyPageContent() {
                         <div>
                             <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
                             <div className="h-[800px] w-full rounded-lg overflow-hidden">
-                                <GoogleMapComponent properties={[property]} isLoading={false} />
+                                <PropertyLocationMap property={property} />
                             </div>
                         </div>
                     </div>

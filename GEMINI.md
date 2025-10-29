@@ -157,7 +157,7 @@ At a high level:
 - Clients:
     - `src/supabase/supabase.ts`: Browser-safe client (anon key). Use in client components and hooks. Subject to RLS.
     - `src/supabase/supabase-admin.ts`: Server-side client with Service Role for API routes/server actions only. Never expose this to the browser.
-- Service Layer: Put domain-specific query modules under `src/supabase/{domain}/` (e.g., `properties/`). Keep raw SQL or views under `src/supabase/sql/` if needed.
+- Service Layer: Put domain-specific query modules under `src/supabase/{domain}/` (e.g., `properties/`). Keep raw SQL or views under `src/supabase/tables/` if needed.
 - Typing: Prefer generated database types in `src/supabase/types/` for fully typed queries and rows. Avoid duplicating Postgres table shapes in `src/interfaces/`.
 - RLS & Security: Assume Row Level Security is enabled. Only use the admin client on the server. Client-side code should operate with the anon client respecting RLS.
 - API/Server Usage: API routes under `src/app/api/` can call Supabase via the admin client for privileged operations; validate input with Zod and return typed responses.
