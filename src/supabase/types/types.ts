@@ -180,6 +180,7 @@ export type Database = {
           block: string | null
           category: string[] | null
           created_at: string
+          final: number | null
           floor: number | null
           floor_plan_urls: string[] | null
           garages: number | null
@@ -190,6 +191,7 @@ export type Database = {
           price: number | null
           property_id: string
           size_sqm: number | null
+          suites: number | null
           updated_at: string
         }
         Insert: {
@@ -198,6 +200,7 @@ export type Database = {
           block?: string | null
           category?: string[] | null
           created_at?: string
+          final?: number | null
           floor?: number | null
           floor_plan_urls?: string[] | null
           garages?: number | null
@@ -208,6 +211,7 @@ export type Database = {
           price?: number | null
           property_id: string
           size_sqm?: number | null
+          suites?: number | null
           updated_at?: string
         }
         Update: {
@@ -216,6 +220,7 @@ export type Database = {
           block?: string | null
           category?: string[] | null
           created_at?: string
+          final?: number | null
           floor?: number | null
           floor_plan_urls?: string[] | null
           garages?: number | null
@@ -226,6 +231,7 @@ export type Database = {
           price?: number | null
           property_id?: string
           size_sqm?: number | null
+          suites?: number | null
           updated_at?: string
         }
         Relationships: [
