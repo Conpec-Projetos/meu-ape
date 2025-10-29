@@ -56,10 +56,8 @@ export async function sendEmailAdmin(data: sendEmailAdminProp) {
             throw new Error("Undefined email type");
     }
 
-    // TEMP ==============================================================
-    const emails = await listAdminEmails(); // 'let' to 'const'
+    const emails = await listAdminEmails();
 
-    // ===================================================================
     for (let i = 0; i < emails.length; i += 50) {
         const emailBatch = emails.slice(i, i+ 50);
         const { error } = await resend.emails.send({

@@ -4,15 +4,19 @@ export interface VisitRequest {
     id?: string; // id do documento no Firebase
     status: "pending" | "approved" | "denied" | "completed";
     client: {
-        ref: DocumentReference; // referência ao documento do cliente na coleção users
+        ref: DocumentReference; // referência ao documento do cliente na coleção users (mantida para consultas)
         fullName: string; // nome do cliente que fez a solicitação
     };
     property: {
-        ref: DocumentReference; // referência ao imóvel pai na coleção properties
+        // ref removida do fluxo principal; manter opcional por compatibilidade
+        ref?: DocumentReference; // referência ao imóvel no Firebase (se existir)
+        id: string; // id do imóvel no Supabase
         name: string; // nome do imóvel/empreendimento
     };
     unit: {
-        ref: DocumentReference; // referência à unidade específica em /properties/{id}/units/{id}
+        // ref removida do fluxo principal; manter opcional por compatibilidade
+        ref?: DocumentReference; // referência à unidade no Firebase (se existir)
+        id: string; // id da unidade no Supabase
         identifier: string; // identificador da unidade
         block: string; // bloco ao qual a unidade pertence
     };
