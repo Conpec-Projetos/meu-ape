@@ -20,20 +20,16 @@ export const agentSchema = z
         city: z.string().nonempty("Cidade é obrigatória").min(2, "Cidade muito curta"),
         creci: z.string().nonempty("CRECI é obrigatório"),
         creciCardPhoto: z
-            .any()
-            .refine(files => (files instanceof FileList || Array.isArray(files)) && files.length >= 1, {
-                message: "Carteirinha do CRECI obrigatória",
-            })
+            .array(z.instanceof(File))
+            .min(1, { message: "Carteirinha do CRECI obrigatória" })
             .refine(files => files[0]?.size > 0, {
-                message: "Arquivo inválido",
+                message: "Arquivo inválido.",
             }),
         creciCert: z
-            .any()
-            .refine(files => (files instanceof FileList || Array.isArray(files)) && files.length >= 1, {
-                message: "Certidão de regularidade do CRECI obrigatória",
-            })
+            .array(z.instanceof(File))
+            .min(1, { message: "Certidão de regularidade do CRECI obrigatória" })
             .refine(files => files[0]?.size > 0, {
-                message: "Arquivo inválido",
+                message: "Arquivo inválido.",
             }),
         password: z.string().nonempty("Senha é obrigatória").min(8, "Senha deve ter no mínimo 8 caracteres"),
         confirmPassword: z

@@ -47,14 +47,14 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1"
+                            className="cursor-pointer flex-1"
                             onClick={() => handleGuardedAction("REQUEST_VISIT", unit)}
                         >
                             Agendar Visita
                         </Button>
                         <Button
                             size="sm"
-                            className="flex-1"
+                            className="cursor-pointer flex-1"
                             onClick={() => handleGuardedAction("REQUEST_RESERVATION", unit)}
                         >
                             Solicitar Reserva

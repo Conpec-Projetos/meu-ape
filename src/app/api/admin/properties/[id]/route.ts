@@ -1,5 +1,5 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
-import { geocodeAddress } from "@/lib/geocoding";
+import { geocodeAddressSmart } from "@/lib/geocoding";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
@@ -52,10 +52,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     }
 }
 
-export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-): Promise<NextResponse> {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
     if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -74,6 +71,11 @@ export async function PUT(
 
         // Validate property data (allow partial updates)
         const validatedPropertyData = propertySchema.partial().parse(propertyData);
+        // Prefer client-provided coordinates when available and valid
+        const clientLat = typeof body?.lat === "number" ? body.lat : Number(body?.lat);
+        const clientLng = typeof body?.lng === "number" ? body.lng : Number(body?.lng);
+        const hasValidClientCoords =
+            Number.isFinite(clientLat) && Number.isFinite(clientLng) && !(clientLat === 0 && clientLng === 0);
         // Validate units data
         const validatedUnits = z
             .array(
@@ -92,19 +94,39 @@ export async function PUT(
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
             })
             .eq("id", id);
-        // If address provided (and possibly changed), try geocoding and set geography via RPC (best-effort)
-        if (typeof validatedPropertyData.address === "string" && validatedPropertyData.address.trim()) {
+        // If client supplied coords, trust them; otherwise, try geocoding when address provided
+        let geocodingFailed = false;
+        if (hasValidClientCoords) {
             try {
-                const result = await geocodeAddress(validatedPropertyData.address);
+                await supabase.from("properties").update({ location: null }).eq("id", id);
+                await supabase.rpc("set_property_location", {
+                    p_property_id: id,
+                    p_lat: clientLat,
+                    p_lng: clientLng,
+                });
+            } catch (e) {
+                console.warn("Falha ao aplicar coordenadas do cliente:", e);
+                geocodingFailed = true;
+            }
+        } else if (typeof validatedPropertyData.address === "string" && validatedPropertyData.address.trim()) {
+            try {
+                const result = await geocodeAddressSmart(validatedPropertyData.address);
+                // Some environments only set location when it's null; proactively clear then set.
                 if (result) {
+                    await supabase.from("properties").update({ location: null }).eq("id", id);
                     await supabase.rpc("set_property_location", {
                         p_property_id: id,
                         p_lat: result.lat,
                         p_lng: result.lng,
                     });
+                } else {
+                    // If geocoding failed, avoid stale coords by clearing location
+                    await supabase.from("properties").update({ location: null }).eq("id", id);
+                    geocodingFailed = true;
                 }
             } catch (e) {
                 console.warn("Falha ao geocodificar endereço no update:", e);
+                geocodingFailed = true;
             }
         }
 
@@ -197,10 +219,16 @@ export async function PUT(
             console.error("Failed to fetch updated property:", fetchError);
             // Return success but indicate fetch failure, or handle as an error?
             // Returning the validated data might be better than nothing if fetch fails
-            return NextResponse.json({ message: "Propriedade atualizada, mas erro ao buscar dados finais." });
+            return NextResponse.json({
+                message: "Propriedade atualizada, mas erro ao buscar dados finais.",
+                ...(geocodingFailed ? { geocodingFailed: true } : {}),
+            });
         }
 
-        return NextResponse.json(updatedProperty); // Return updated property with units
+        return NextResponse.json({
+            ...updatedProperty,
+            ...(geocodingFailed ? { geocodingFailed: true } : {}),
+        }); // Return updated property with units and optional geocoding flag
     } catch (error) {
         console.error("API PUT [id] Error:", error);
         let status = 500;
