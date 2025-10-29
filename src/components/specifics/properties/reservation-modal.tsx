@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader } from "@/components/features/cards/defau
 import { Button } from "@/components/features/buttons/default-button";
 import { useEffect, useState } from "react";
 import React from "react";
-import { toast } from "sonner";
 import { Unit } from "@/interfaces/unit";
 import { Loader, SquareCheck, SquareX } from "lucide-react";
 import { Property } from "@/interfaces/property";

@@ -1,4 +1,4 @@
-import { Unit } from "@/interfaces/unit";
+import Link from "next/link";
 
 interface EmailTemplateProps {
     clientName: string,
@@ -15,7 +15,7 @@ export function EmailTemplateReservationRequest({ clientName, propertyName, unit
                 O cliente <strong>{clientName}</strong> solicitou uma reserva para o <strong>{propertyName}, {unitIdentifier}</strong>{unitBlock && `, bloco ${unitBlock}`}.
             </p>
             <p>
-                Veja as informações no <a href="/">Painel de Gerenciamento</a>
+                Veja as informações no <Link href="/">Painel de Gerenciamento</Link>
             </p>
         </div>
     );

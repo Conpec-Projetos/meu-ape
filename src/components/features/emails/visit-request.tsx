@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 interface EmailTemplateProps {
     clientName: string;
     propertyName: string;
@@ -11,7 +13,7 @@ export function EmailTemplateVisitRequest({ clientName, propertyName }: EmailTem
                 O cliente <strong>{clientName}</strong> solicitou uma visita para o <strong>{propertyName}</strong>.
             </p>
             <p>
-                Veja as informações no <a href="/">Painel de Gerenciamento</a>
+                Veja as informações no <Link href="/">Painel de Gerenciamento</Link>
             </p>
         </div>
     );

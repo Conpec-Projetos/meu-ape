@@ -62,7 +62,7 @@ export async function sendEmailAdmin(data: sendEmailAdminProp) {
     // ===================================================================
     for (let i = 0; i < emails.length; i += 50) {
         const emailBatch = emails.slice(i, i+ 50);
-        const { data, error } = await resend.emails.send({
+        const { error } = await resend.emails.send({
         from: `Meu Apê <${process.env.NEXT_PUBLIC_EMAIL_FROM}>`,
         to: emailBatch,
         subject: emailInfo.subject,

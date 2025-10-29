@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 interface EmailTemplateProps {
     fullName: string;
 }
@@ -10,7 +12,7 @@ export function EmailTemplateAgentRequest({ fullName }: EmailTemplateProps) {
                 O corretor <strong>{fullName}</strong> solicitou um novo cadastro na plataforma.
             </p>
             <p>
-                Veja as informações no <a href="/">Painel de Gerenciamento de Usuários</a>
+                Veja as informações no <Link href="/">Painel de Gerenciamento de Usuários</Link>
             </p>
         </div>
     );

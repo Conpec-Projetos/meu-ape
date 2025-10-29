@@ -7,15 +7,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth";
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
-import { Timestamp } from "firebase/firestore";
+// Timestamp type not required; dates are coerced from unknown
 import { Inbox, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-// Componente Reutilizável para Item da Lista 
+// Componente Reutilizável para Item da Lista
 interface RequestItemProps {
     request: VisitRequest | ReservationRequest;
     onClick: () => void;
@@ -40,9 +40,28 @@ function RequestItem({ request, onClick }: RequestItemProps) {
         }
     };
 
-    const formatDate = (date: Date | Timestamp | undefined): string => {
-        if (!date) return "N/A";
-        const d = date instanceof Date ? date : new Date(); // Fallback seguro
+    const coerceDate = (val: unknown): Date | undefined => {
+        if (!val) return undefined;
+        if (val instanceof Date) return val;
+        // Firestore Timestamp-like object
+        if (typeof val === "object" && val !== null && "toDate" in (val as Record<string, unknown>)) {
+            try {
+                const ts = val as unknown as { toDate: () => Date };
+                const d = ts.toDate();
+                if (d instanceof Date && !isNaN(d.getTime())) return d;
+            } catch {}
+        }
+        if (typeof val === "string") {
+            const t = Date.parse(val);
+            if (!Number.isNaN(t)) return new Date(t);
+        }
+        if (typeof val === "number") return new Date(val);
+        return undefined;
+    };
+
+    const formatDate = (date: unknown): string => {
+        const d = coerceDate(date);
+        if (!d) return "N/A";
         return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
     };
 
@@ -77,13 +96,31 @@ interface RequestDetailsProps {
 function RequestDetails({ request }: RequestDetailsProps) {
     if (!request) return null;
 
-    const formatDateTime = (date: Date | Timestamp | undefined): string => {
-        if (!date) return "N/A";
-        const d = date instanceof Date ? date : new Date(); // Fallback
+    const coerceDate = (val: unknown): Date | undefined => {
+        if (!val) return undefined;
+        if (val instanceof Date) return val;
+        if (typeof val === "object" && val !== null && "toDate" in (val as Record<string, unknown>)) {
+            try {
+                const ts = val as unknown as { toDate: () => Date };
+                const d = ts.toDate();
+                if (d instanceof Date && !isNaN(d.getTime())) return d;
+            } catch {}
+        }
+        if (typeof val === "string") {
+            const t = Date.parse(val);
+            if (!Number.isNaN(t)) return new Date(t);
+        }
+        if (typeof val === "number") return new Date(val);
+        return undefined;
+    };
+
+    const formatDateTime = (date: unknown): string => {
+        const d = coerceDate(date);
+        if (!d) return "N/A";
         return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
     };
 
-    const formatSlots = (slots: (Date | Timestamp)[] | undefined): string => {
+    const formatSlots = (slots: unknown[] | undefined): string => {
         if (!slots || slots.length === 0) return "N/A";
         return slots.map(slot => formatDateTime(slot)).join(" | ");
     };
