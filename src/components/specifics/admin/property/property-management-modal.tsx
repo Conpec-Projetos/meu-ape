@@ -1,6 +1,7 @@
 "use client";
 
 import UnitTable from "@/components/specifics/admin/property/unit-table";
+import AddressPreviewMap from "@/components/specifics/maps/address-preview-map";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -16,9 +17,10 @@ import { deleteImages, subirImagensEmLotes } from "@/firebase/properties/service
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
+import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface PropertyManagementFormProps {
@@ -44,6 +46,29 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [units, setUnits] = useState<DraftUnit[]>([]);
     const [developerId, setDeveloperId] = useState<string | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [placeId, setPlaceId] = useState<string | undefined>(undefined);
+    const [addrPredictions, setAddrPredictions] = useState<Array<{ description: string; place_id: string }>>([]);
+    const [addrOpen, setAddrOpen] = useState(false);
+    const addrContainerRef = useRef<HTMLDivElement | null>(null);
+    const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [isAddrFocused, setIsAddrFocused] = useState(false);
+
+    // Places Autocomplete
+    const placesLib = useMapsLibrary("places");
+    const autocompleteService = useMemo(() => {
+        if (!placesLib || !google?.maps?.places?.AutocompleteService) return null;
+        return new google.maps.places.AutocompleteService();
+    }, [placesLib]);
+    const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null);
+
+    useEffect(() => {
+        if (!placesLib || !google?.maps?.places?.PlacesService) return;
+        if (!placesServiceRef.current) {
+            // We can create a PlacesService without a visible map using a dummy div
+            const dummy = document.createElement("div");
+            placesServiceRef.current = new google.maps.places.PlacesService(dummy);
+        }
+    }, [placesLib]);
 
     // Image management state
     const propertyImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -64,6 +89,14 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         { id: "corretores-rj", name: "Corretores RJ" },
     ]);
 
+    // Utility to validate coordinates (avoid 0,0)
+    const isValidCoords = (c: unknown): c is { lat: number; lng: number } => {
+        const obj = c as { lat?: unknown; lng?: unknown };
+        const lat = typeof obj?.lat === "number" ? obj.lat : Number.NaN;
+        const lng = typeof obj?.lng === "number" ? obj.lng : Number.NaN;
+        return Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
+    };
+
     useEffect(() => {
         if (property) {
             const {
@@ -74,6 +107,9 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             setForm(restOfProperty);
             setUnits(propertyUnits || []);
             setDeveloperId(propDeveloperId);
+            const rp = restOfProperty as Property;
+            if (isValidCoords(rp?.location)) setSelectedCoords(rp.location);
+            else setSelectedCoords(null);
         } else {
             setForm({
                 name: "",
@@ -87,7 +123,9 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             });
             setUnits([]);
             setDeveloperId(undefined);
+            setSelectedCoords(null);
         }
+        setPlaceId(undefined);
         // reset image local states
         setNewPropertyImages([]);
         setNewAreaImages([]);
@@ -96,6 +134,38 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setImagesToRemoveProperty([]);
         setImagesToRemoveAreas([]);
     }, [property]);
+
+    // If opening with address filled but coords missing or invalid (e.g., 0,0), try to resolve via Places text query
+    useEffect(() => {
+        const address = (form.address || "").toString().trim();
+        if (!placesServiceRef.current) return;
+        // If already have valid coords, don't override
+        if (selectedCoords && isValidCoords(selectedCoords)) return;
+        // Try fallback to form.location
+        if (isValidCoords(form.location)) {
+            setSelectedCoords(form.location as { lat: number; lng: number });
+            return;
+        }
+        if (!address || address.length < 3) return;
+
+        let cancelled = false;
+        placesServiceRef.current.findPlaceFromQuery({ query: address, fields: ["geometry"] }, (results, status) => {
+            if (cancelled) return;
+            if (
+                status === google.maps.places.PlacesServiceStatus.OK &&
+                Array.isArray(results) &&
+                results[0]?.geometry?.location
+            ) {
+                const loc = results[0].geometry.location;
+                const coords = { lat: loc.lat(), lng: loc.lng() };
+                setSelectedCoords(coords);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [placesServiceRef.current, form.address]);
 
     // Helpers for features (tags)
     function addFeatureTag(raw?: string) {
@@ -198,6 +268,9 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         const { id, value, type } = e.target;
         const finalValue = type === "number" ? (value === "" ? null : Number(value)) : value;
         setForm({ ...form, [id]: finalValue });
+        if (id === "address") {
+            setPlaceId(undefined);
+        }
     }
 
     const handleMatterportChange = (index: number, value: string) => {
@@ -300,13 +373,44 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     // Create property first without images and units; we'll attach both on the subsequent PUT
-                    body: JSON.stringify({ ...result.data, property_images: [], areas_images: [], units: [] }),
+                    body: JSON.stringify({
+                        ...result.data,
+                        placeId,
+                        // send client coords if available
+                        lat:
+                            selectedCoords?.lat ??
+                            (isValidCoords(form.location)
+                                ? (form.location as { lat: number; lng: number }).lat
+                                : undefined),
+                        lng:
+                            selectedCoords?.lng ??
+                            (isValidCoords(form.location)
+                                ? (form.location as { lat: number; lng: number }).lng
+                                : undefined),
+                        property_images: [],
+                        areas_images: [],
+                        units: [],
+                    }),
                 });
                 if (!createRes.ok) {
                     const errorData = await safeJson(createRes);
                     throw new Error(errorData?.message || "Falha ao criar o imóvel.");
                 }
                 const created = await safeJson(createRes);
+                // If server indicates geocoding failed, block save and try to rollback the newly created property
+                if (created?.geocodingFailed) {
+                    const createdId = created?.id || created?.property?.id || created?.data?.id;
+                    toast.error("Falha ao geocodificar o endereço. Ajuste o endereço e tente novamente.");
+                    if (createdId) {
+                        try {
+                            await fetch(`/api/admin/properties/${createdId}`, { method: "DELETE" });
+                        } catch {
+                            // best-effort rollback; ignore if it fails
+                        }
+                    }
+                    setIsSubmitting(false);
+                    return;
+                }
                 propertyId = created?.id || created?.property?.id || created?.data?.id;
                 if (!propertyId) {
                     throw new Error("O endpoint de criação não retornou o id do imóvel.");
@@ -379,6 +483,14 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
 
             const finalBody = {
                 ...result.data,
+                placeId,
+                // send client coords if available
+                lat:
+                    selectedCoords?.lat ??
+                    (isValidCoords(form.location) ? (form.location as { lat: number; lng: number }).lat : undefined),
+                lng:
+                    selectedCoords?.lng ??
+                    (isValidCoords(form.location) ? (form.location as { lat: number; lng: number }).lng : undefined),
                 property_images: [...currentPropertyUrls, ...uploadedPropertyUrls],
                 areas_images: [...currentAreaUrls, ...uploadedAreaUrls],
                 units: unitsPayload,
@@ -394,6 +506,12 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 const errorData = await safeJson(updateRes);
                 throw new Error(errorData?.message || "Falha ao salvar as imagens do imóvel.");
             }
+            const updated = await safeJson(updateRes);
+            if (updated?.geocodingFailed) {
+                toast.error("Falha ao geocodificar o endereço. Ajuste o endereço e tente novamente.");
+                setIsSubmitting(false);
+                return;
+            }
 
             toast.success(`Imóvel ${property ? "atualizado" : "criado"} com sucesso!`);
             onSave();
@@ -404,6 +522,77 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             setIsSubmitting(false);
         }
     }
+
+    // Address autocomplete side-effects
+    useEffect(() => {
+        if (!autocompleteService) return;
+        const term = (form.address || "").toString().trim();
+        // Only fetch/open suggestions when the input is focused (user interaction)
+        if (!isAddrFocused || term.length < 3) {
+            setAddrPredictions([]);
+            setAddrOpen(false);
+            return;
+        }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            autocompleteService.getPlacePredictions(
+                {
+                    input: term,
+                    componentRestrictions: { country: "br" },
+                },
+                (result, status) => {
+                    if (controller.signal.aborted) return;
+                    if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(result)) {
+                        const mapped = result.map(r => ({ description: r.description, place_id: r.place_id! }));
+                        setAddrPredictions(mapped);
+                        // Open only if still focused
+                        setAddrOpen(true);
+                    } else {
+                        setAddrPredictions([]);
+                        setAddrOpen(false);
+                    }
+                }
+            );
+        }, 250);
+        return () => {
+            controller.abort();
+            clearTimeout(timeout);
+        };
+    }, [form.address, autocompleteService, isAddrFocused]);
+
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            if (addrContainerRef.current && !addrContainerRef.current.contains(e.target as Node)) {
+                setAddrOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, []);
+
+    const onPickAddress = async (p: { description: string; place_id: string }) => {
+        setForm(prev => ({ ...prev, address: p.description }));
+        setPlaceId(p.place_id);
+        setAddrOpen(false);
+        // Resolve coordinates for the selected place
+        try {
+            if (!placesServiceRef.current) return;
+            await new Promise<void>(resolve => {
+                placesServiceRef.current!.getDetails({ placeId: p.place_id, fields: ["geometry"] }, (res, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && res?.geometry?.location) {
+                        const coords = {
+                            lat: res.geometry.location.lat(),
+                            lng: res.geometry.location.lng(),
+                        };
+                        setSelectedCoords(coords);
+                    }
+                    resolve();
+                });
+            });
+        } catch (e) {
+            console.error("Falha ao obter detalhes do local:", e);
+        }
+    };
 
     function onSelectImages(kind: "property" | "area", files: FileList | null) {
         if (!files || files.length === 0) return;
@@ -475,9 +664,65 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                             </Label>
                             <Input id="name" value={form.name || ""} onChange={handleChange} aria-required="true" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2" ref={addrContainerRef}>
                             <Label htmlFor="address">Localização</Label>
-                            <Input id="address" value={form.address || ""} onChange={handleChange} />
+                            <div className="relative">
+                                <Input
+                                    id="address"
+                                    value={form.address || ""}
+                                    onChange={handleChange}
+                                    onFocus={() => setIsAddrFocused(true)}
+                                    onBlur={() => {
+                                        setIsAddrFocused(false);
+                                        setAddrOpen(false);
+                                    }}
+                                />
+                                {addrOpen && addrPredictions.length > 0 && (
+                                    <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow">
+                                        <ul className="max-h-72 overflow-auto py-1">
+                                            {addrPredictions.map(p => (
+                                                <li
+                                                    key={p.place_id}
+                                                    className="px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                                                    onMouseDown={e => e.preventDefault()}
+                                                    onClick={() => onPickAddress(p)}
+                                                >
+                                                    {p.description}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Preview map for selected address */}
+                            <div className="mt-3">
+                                <AddressPreviewMap
+                                    center={
+                                        selectedCoords ?? (form.location as { lat: number; lng: number } | undefined)
+                                    }
+                                    marker={
+                                        (selectedCoords ??
+                                            (form.location as { lat: number; lng: number } | undefined)) ||
+                                        null
+                                    }
+                                    className="h-48 w-full rounded border"
+                                />
+                                {(selectedCoords || form.location) && (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                        {(() => {
+                                            const coords =
+                                                selectedCoords ||
+                                                (form.location as { lat: number; lng: number } | undefined);
+                                            if (!coords) return null;
+                                            return (
+                                                <>
+                                                    Coordenadas: {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
+                                                </>
+                                            );
+                                        })()}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>

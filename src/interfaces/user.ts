@@ -1,10 +1,10 @@
-import { DocumentReference, Timestamp } from "firebase/firestore";
+import { DocumentReference, FieldValue, Timestamp } from "firebase/firestore";
 
 interface UserDocuments {
     addressProof?: string[]; // URLs dos comprovantes de endereço no Cloud Storage
     incomeProof?: string[]; // URLs dos comprovantes de renda no Cloud Storage
     identityDoc?: string[]; // URLs dos RGs e CINs no Cloud Storage
-    marriageCert?: string[]; // URLs das certidões de casamento no Cloud Storage
+    bmCert?: string[]; // URLs das certidões de casamento no Cloud Storage
 }
 
 interface AgentProfile {
@@ -31,6 +31,6 @@ export interface User {
     documents?: UserDocuments;
     favorited?: DocumentReference[]; // ou string[] se preferir armazenar os IDs
     agentProfile?: AgentProfile;
-    createdAt: Date | Timestamp;
-    updatedAt: Date | Timestamp;
+    createdAt: Date | Timestamp | FieldValue;
+    updatedAt: Date | Timestamp | FieldValue;
 }

@@ -53,7 +53,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value, type } = e.target;
-        const finalValue = type === "number" ? Number(value) : value;
+        const finalValue = type === "number" ? (value === "" ? undefined : Number(value)) : value;
         setFormData(prev => ({ ...prev, [id]: finalValue }));
     };
 
@@ -171,8 +171,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="price"
-                            type="text"
-                            value={formData.price || ""}
+                            type="number"
+                            value={formData.price ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                             aria-required="true"
@@ -184,8 +184,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="bedrooms"
-                            type="text"
-                            value={formData.bedrooms || ""}
+                            type="number"
+                            value={formData.bedrooms ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                             aria-required="true"
@@ -197,8 +197,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="baths"
-                            type="text"
-                            value={formData.baths || ""}
+                            type="number"
+                            value={formData.baths ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                             aria-required="true"
@@ -210,8 +210,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="size_sqm"
-                            type="text"
-                            value={formData.size_sqm || ""}
+                            type="number"
+                            value={formData.size_sqm ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                             aria-required="true"
@@ -223,8 +223,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="garages"
-                            type="text"
-                            value={formData.garages || ""}
+                            type="number"
+                            value={formData.garages ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                             aria-required="true"
@@ -236,8 +236,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         </Label>
                         <Input
                             id="floor"
-                            type="text"
-                            value={formData.floor || ""}
+                            type="number"
+                            value={formData.floor ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                         />

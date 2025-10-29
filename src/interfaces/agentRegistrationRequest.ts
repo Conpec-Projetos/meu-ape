@@ -1,4 +1,4 @@
-import { DocumentReference, Timestamp } from "firebase/firestore";
+import { DocumentReference, FieldValue, Timestamp } from "firebase/firestore";
 
 interface ApplicantData {
     email: string; // email do corretor
@@ -16,7 +16,7 @@ export interface AgentRegistrationRequest {
     id?: string; // id do documento no Firebase
     requesterId: DocumentReference; // referência ao documento do corretor na coleção users
     status: "pending" | "approved" | "denied";
-    submittedAt: Date | Timestamp;
+    submittedAt: Date | Timestamp | FieldValue;
     resolvedAt?: Date | Timestamp;
     resolvedBy?: DocumentReference; // referência ao administrador que analisou (na coleção users)
     applicantData: ApplicantData;
