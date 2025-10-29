@@ -82,9 +82,11 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                             <TableHead>Bloco</TableHead>
                             <TableHead>Categoria</TableHead>
                             <TableHead>Quartos</TableHead>
+                            <TableHead>Suítes</TableHead>
                             <TableHead>Banheiros</TableHead>
                             <TableHead>Área (m²)</TableHead>
                             <TableHead>Andar</TableHead>
+                            <TableHead>Final</TableHead>
                             <TableHead>Imagens</TableHead>
                             <TableHead>Plantas</TableHead>
                             <TableHead>Vagas</TableHead>
@@ -108,11 +110,13 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                         <TableCell>{unit.block || "-"}</TableCell>
                                         <TableCell>{unit.category || "-"}</TableCell>
                                         <TableCell>{unit.bedrooms}</TableCell>
+                                        <TableCell>{typeof unit.suites === "number" ? unit.suites : "-"}</TableCell>
                                         <TableCell>{unit.baths}</TableCell>
                                         <TableCell>
                                             {typeof unit.size_sqm === "number" ? `${unit.size_sqm} m²` : "-"}
                                         </TableCell>
                                         <TableCell>{typeof unit.floor === "number" ? unit.floor : "-"}</TableCell>
+                                        <TableCell>{typeof unit.final === "number" ? unit.final : "-"}</TableCell>
                                         <TableCell>
                                             <div className="flex gap-2 items-center">
                                                 {((unit.images || [])[0] || (unit.imagePreviews || [])[0]) && (
@@ -172,7 +176,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                 ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={13} className="text-center h-24 text-muted-foreground">
+                                <TableCell colSpan={15} className="text-center h-24 text-muted-foreground">
                                     Nenhuma unidade cadastrada.
                                 </TableCell>
                             </TableRow>

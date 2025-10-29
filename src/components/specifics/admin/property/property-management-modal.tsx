@@ -239,6 +239,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                             price: typeof u.price === "number" ? (u.price as number) : Number(u.price) || 0,
                             size_sqm: typeof u.size_sqm === "number" ? (u.size_sqm as number) : Number(u.size_sqm) || 0,
                             bedrooms: typeof u.bedrooms === "number" ? (u.bedrooms as number) : Number(u.bedrooms) || 0,
+                            suites: typeof u.suites === "number" ? (u.suites as number) : Number(u.suites) || 0,
                             garages: typeof u.garages === "number" ? (u.garages as number) : Number(u.garages) || 0,
                             baths: typeof u.baths === "number" ? (u.baths as number) : Number(u.baths) || 0,
                             floor:
@@ -247,6 +248,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     : u.floor !== undefined
                                       ? Number(u.floor)
                                       : undefined,
+                            final: typeof u.final === "number" ? (u.final as number) : Number(u.final) || 0,
                             images: Array.isArray(u.images) ? (u.images as string[]) : [],
                             isAvailable: (u.is_available as boolean | undefined) ?? undefined,
                             floorPlanUrls: Array.isArray(u.floor_plan_urls) ? (u.floor_plan_urls as string[]) : [],
@@ -342,9 +344,11 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             price: typeof u.price === "number" ? u.price : Number(u.price) || 0,
             size_sqm: typeof u.size_sqm === "number" ? u.size_sqm : Number(u.size_sqm) || 0,
             bedrooms: typeof u.bedrooms === "number" ? u.bedrooms : Number(u.bedrooms) || 0,
+            suites: typeof u.suites === "number" ? u.suites : u.suites !== undefined ? Number(u.suites) : undefined,
             garages: typeof u.garages === "number" ? u.garages : Number(u.garages) || 0,
             baths: typeof u.baths === "number" ? u.baths : Number(u.baths) || 0,
             floor: typeof u.floor === "number" ? u.floor : u.floor !== undefined ? Number(u.floor) : undefined,
+            final: typeof u.final === "number" ? u.final : u.final !== undefined ? Number(u.final) : undefined,
             images: Array.isArray(u.images) ? u.images : undefined,
             is_available: u.isAvailable ?? undefined,
             floor_plan_urls: u.floorPlanUrls || [],

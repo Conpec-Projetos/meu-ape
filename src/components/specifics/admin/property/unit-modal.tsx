@@ -192,6 +192,18 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="suites" className="text-right">
+                            Suítes
+                        </Label>
+                        <Input
+                            id="suites"
+                            type="number"
+                            value={formData.suites ?? ""}
+                            onChange={handleChange}
+                            className="col-span-3"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="baths" className="text-right">
                             Banheiros <span className="text-red-500">*</span>
                         </Label>
@@ -238,6 +250,18 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             id="floor"
                             type="number"
                             value={formData.floor ?? ""}
+                            onChange={handleChange}
+                            className="col-span-3"
+                        />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="final" className="text-right">
+                            Final
+                        </Label>
+                        <Input
+                            id="final"
+                            type="number"
+                            value={formData.final ?? ""}
                             onChange={handleChange}
                             className="col-span-3"
                         />

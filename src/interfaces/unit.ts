@@ -7,9 +7,11 @@ export interface Unit {
     price: number; // preço da unidade
     size_sqm: number; // tamanho em m^2
     bedrooms: number; // número de dormitórios
+    suites?: number; // número de suítes da unidade
     garages: number; // número de vagas de garagem
     baths: number; // número de banheiros
     floor: number; // pavimento/andar da unidade
+    final?: number; // lado do prédio (1/2/3/4/etc)
     images: string[]; // URLs das imagens da unidade no Cloud Storage
     isAvailable: boolean;
     floorPlanUrls?: string[]; // URLs para a planta baixa da unidade no Cloud Storage
