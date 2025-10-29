@@ -16,9 +16,10 @@ import { deleteImages, subirImagensEmLotes } from "@/firebase/properties/service
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
+import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface PropertyManagementFormProps {
@@ -44,6 +45,17 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [units, setUnits] = useState<DraftUnit[]>([]);
     const [developerId, setDeveloperId] = useState<string | undefined>(undefined);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [placeId, setPlaceId] = useState<string | undefined>(undefined);
+    const [addrPredictions, setAddrPredictions] = useState<Array<{ description: string; place_id: string }>>([]);
+    const [addrOpen, setAddrOpen] = useState(false);
+    const addrContainerRef = useRef<HTMLDivElement | null>(null);
+
+    // Places Autocomplete
+    const placesLib = useMapsLibrary("places");
+    const autocompleteService = useMemo(() => {
+        if (!placesLib || !google?.maps?.places?.AutocompleteService) return null;
+        return new google.maps.places.AutocompleteService();
+    }, [placesLib]);
 
     // Image management state
     const propertyImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -88,6 +100,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             setUnits([]);
             setDeveloperId(undefined);
         }
+        setPlaceId(undefined);
         // reset image local states
         setNewPropertyImages([]);
         setNewAreaImages([]);
@@ -198,6 +211,9 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         const { id, value, type } = e.target;
         const finalValue = type === "number" ? (value === "" ? null : Number(value)) : value;
         setForm({ ...form, [id]: finalValue });
+        if (id === "address") {
+            setPlaceId(undefined);
+        }
     }
 
     const handleMatterportChange = (index: number, value: string) => {
@@ -300,13 +316,27 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     // Create property first without images and units; we'll attach both on the subsequent PUT
-                    body: JSON.stringify({ ...result.data, property_images: [], areas_images: [], units: [] }),
+                    body: JSON.stringify({ ...result.data, placeId, property_images: [], areas_images: [], units: [] }),
                 });
                 if (!createRes.ok) {
                     const errorData = await safeJson(createRes);
                     throw new Error(errorData?.message || "Falha ao criar o imóvel.");
                 }
                 const created = await safeJson(createRes);
+                // If server indicates geocoding failed, block save and try to rollback the newly created property
+                if (created?.geocodingFailed) {
+                    const createdId = created?.id || created?.property?.id || created?.data?.id;
+                    toast.error("Falha ao geocodificar o endereço. Ajuste o endereço e tente novamente.");
+                    if (createdId) {
+                        try {
+                            await fetch(`/api/admin/properties/${createdId}`, { method: "DELETE" });
+                        } catch {
+                            // best-effort rollback; ignore if it fails
+                        }
+                    }
+                    setIsSubmitting(false);
+                    return;
+                }
                 propertyId = created?.id || created?.property?.id || created?.data?.id;
                 if (!propertyId) {
                     throw new Error("O endpoint de criação não retornou o id do imóvel.");
@@ -379,6 +409,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
 
             const finalBody = {
                 ...result.data,
+                placeId,
                 property_images: [...currentPropertyUrls, ...uploadedPropertyUrls],
                 areas_images: [...currentAreaUrls, ...uploadedAreaUrls],
                 units: unitsPayload,
@@ -394,6 +425,12 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 const errorData = await safeJson(updateRes);
                 throw new Error(errorData?.message || "Falha ao salvar as imagens do imóvel.");
             }
+            const updated = await safeJson(updateRes);
+            if (updated?.geocodingFailed) {
+                toast.error("Falha ao geocodificar o endereço. Ajuste o endereço e tente novamente.");
+                setIsSubmitting(false);
+                return;
+            }
 
             toast.success(`Imóvel ${property ? "atualizado" : "criado"} com sucesso!`);
             onSave();
@@ -404,6 +441,57 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             setIsSubmitting(false);
         }
     }
+
+    // Address autocomplete side-effects
+    useEffect(() => {
+        if (!autocompleteService) return;
+        const term = (form.address || "").toString().trim();
+        if (term.length < 3) {
+            setAddrPredictions([]);
+            setAddrOpen(false);
+            return;
+        }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            autocompleteService.getPlacePredictions(
+                {
+                    input: term,
+                    componentRestrictions: { country: "br" },
+                },
+                (result, status) => {
+                    if (controller.signal.aborted) return;
+                    if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(result)) {
+                        const mapped = result.map(r => ({ description: r.description, place_id: r.place_id! }));
+                        setAddrPredictions(mapped);
+                        setAddrOpen(true);
+                    } else {
+                        setAddrPredictions([]);
+                        setAddrOpen(false);
+                    }
+                }
+            );
+        }, 250);
+        return () => {
+            controller.abort();
+            clearTimeout(timeout);
+        };
+    }, [form.address, autocompleteService]);
+
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            if (addrContainerRef.current && !addrContainerRef.current.contains(e.target as Node)) {
+                setAddrOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", onDocClick);
+        return () => document.removeEventListener("mousedown", onDocClick);
+    }, []);
+
+    const onPickAddress = async (p: { description: string; place_id: string }) => {
+        setForm(prev => ({ ...prev, address: p.description }));
+        setPlaceId(p.place_id);
+        setAddrOpen(false);
+    };
 
     function onSelectImages(kind: "property" | "area", files: FileList | null) {
         if (!files || files.length === 0) return;
@@ -475,9 +563,33 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                             </Label>
                             <Input id="name" value={form.name || ""} onChange={handleChange} aria-required="true" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2" ref={addrContainerRef}>
                             <Label htmlFor="address">Localização</Label>
-                            <Input id="address" value={form.address || ""} onChange={handleChange} />
+                            <div className="relative">
+                                <Input
+                                    id="address"
+                                    value={form.address || ""}
+                                    onChange={handleChange}
+                                    onFocus={() => addrPredictions.length > 0 && setAddrOpen(true)}
+                                />
+                                {addrOpen && addrPredictions.length > 0 && (
+                                    <div className="absolute z-20 mt-1 w-full rounded-md border bg-background shadow">
+                                        <ul className="max-h-72 overflow-auto py-1">
+                                            {addrPredictions.map(p => (
+                                                <li
+                                                    key={p.place_id}
+                                                    className="px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                                                    onMouseDown={e => e.preventDefault()}
+                                                    onClick={() => onPickAddress(p)}
+                                                >
+                                                    {p.description}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Preview map removed; geocoding will occur server-side using placeId on save */}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="description">Descrição</Label>

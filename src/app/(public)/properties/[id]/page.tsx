@@ -279,7 +279,7 @@ function PropertyPageContent() {
                                 handleGuardedAction={handleGuardedAction}
                             />
                         ) : (
-                            <div className="flex items-center justify-center h-full bg-secondary/30 rounded-xl p-8">
+                            <div className="flex items-start justify-center h-full bg-secondary/30 rounded-xl p-8">
                                 <p className="text-muted-foreground text-center">
                                     Selecione um bloco e uma tipologia para ver as unidades disponíveis.
                                 </p>

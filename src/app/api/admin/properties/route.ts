@@ -1,6 +1,6 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import type { Property } from "@/interfaces/property"; // Make sure Property interface path is correct
-import { geocodeAddress } from "@/lib/geocoding";
+import { geocodeAddressSmart } from "@/lib/geocoding";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
@@ -285,18 +285,26 @@ export async function POST(request: NextRequest) {
         }
 
         // If we have an address, attempt to geocode and update PostGIS location via RPC (if available)
+        let geocodingFailed = false;
         if (newProperty?.id && typeof validatedProperty.address === "string" && validatedProperty.address.trim()) {
             try {
-                const result = await geocodeAddress(validatedProperty.address);
+                const result = await geocodeAddressSmart(validatedProperty.address);
                 if (result) {
+                    // Clear first to ensure the function updates regardless of existing value
+                    await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
                     await supabase.rpc("set_property_location", {
                         p_property_id: newProperty.id,
                         p_lat: result.lat,
                         p_lng: result.lng,
                     });
+                } else {
+                    // Geocoding failed; clear location to avoid stale coordinates
+                    await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
+                    geocodingFailed = true;
                 }
             } catch (e) {
                 console.warn("Falha ao geocodificar endereço ou atualizar localização:", e);
+                geocodingFailed = true;
             }
         }
 
@@ -329,10 +337,22 @@ export async function POST(request: NextRequest) {
         if (fetchError || !createdPropertyWithUnits) {
             console.error("Failed to fetch created property with units:", fetchError);
             // Return the basic property data if fetching units fails
-            return NextResponse.json(newProperty, { status: 201 });
+            return NextResponse.json(
+                {
+                    ...newProperty,
+                    ...(geocodingFailed ? { geocodingFailed: true } : {}),
+                },
+                { status: 201 }
+            );
         }
 
-        return NextResponse.json(createdPropertyWithUnits, { status: 201 }); // Return property with units
+        return NextResponse.json(
+            {
+                ...createdPropertyWithUnits,
+                ...(geocodingFailed ? { geocodingFailed: true } : {}),
+            },
+            { status: 201 }
+        ); // Return property with units and optional geocoding flag
     } catch (error) {
         console.error("API POST Error:", error);
         let status = 500;

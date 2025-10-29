@@ -11,7 +11,7 @@ interface Client {
     addressProof: string[]; // URLs dos comprovantes de endereço no Cloud Storage
     incomeProof: string[]; // URLs dos comprovantes de renda no Cloud Storage
     identityDoc: string[]; // URLs dos RGs e CINs no Cloud Storage
-    marriageCert?: string[]; // URLs das certidões de casamento no Cloud Storage
+    bmCert?: string[]; // URLs das certidões de casamento no Cloud Storage
 }
 
 export interface ReservationRequest {

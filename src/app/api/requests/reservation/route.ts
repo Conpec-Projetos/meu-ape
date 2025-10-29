@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
         // Transaction
         try {
             await runTransaction(db, async transaction => {
-
                 // Create Request
                 const docRef = doc(collection(db, "reservationRequests"));
 
@@ -101,6 +100,11 @@ export async function POST(req: NextRequest) {
                         incomeProof: userData.documents
                             ? userData.documents.incomeProof
                                 ? userData.documents?.incomeProof
+                                : []
+                            : [],
+                        bmCert: userData.documents
+                            ? userData.documents.bmCert
+                                ? userData.documents.bmCert
                                 : []
                             : [],
                         ref: userRef,
@@ -165,7 +169,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Return success response
-        return NextResponse.json({ success: true, message: "Visit requested  successfully" });
+        return NextResponse.json({ success: true, message: "Reservation requested successfully" });
     } catch (error) {
         console.error("Error creating reservation request:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
