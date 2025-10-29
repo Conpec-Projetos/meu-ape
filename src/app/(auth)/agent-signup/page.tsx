@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createAgentRegistrationRequest } from "@/firebase/agentRegistrationRequest/service";
 import { AgentFormData, agentSchema } from "@/schemas/agentRegistrationRequestSchema";
+import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, FileCheck, FileText, FileWarning } from "lucide-react";
 import Image from "next/image";
@@ -44,26 +44,64 @@ export default function RegisterPage() {
     });
 
     // Função de submissão do formulário
-    const onSubmit = (data: AgentFormData) => {
-        console.log(data);
+    const onSubmit = async (formData: AgentFormData) => {
+        console.log(formData);
         setFirebaseError(null);
         setIsUploading(true);
-        createAgentRegistrationRequest(data)
-            .then(() => {
-                router.push("/agent-signup/accepted");
-            })
-            .catch(err => {
-                console.error(err);
 
-                if (typeof err === "object" && err !== null && "message" in err && "path" in err) {
-                    setFirebaseError(err);
-                } else {
-                    alert("Erro ao enviar solicitação. Tente novamente.");
-                }
-            })
-            .finally(() => {
-                setIsUploading(false);
+        // Convert AgentFormData to real FormData object
+        const formPayload = new FormData();
+
+        formPayload.append("email", formData.email);
+        formPayload.append("fullName", formData.fullName);
+        formPayload.append("cpf", formData.cpf);
+        formPayload.append("rg", formData.rg);
+        formPayload.append("address", formData.address);
+        formPayload.append("city", formData.city);
+        formPayload.append("creci", formData.creci);
+        formPayload.append("password", formData.password);
+        formPayload.append("confirmPassword", formData.confirmPassword);
+        formPayload.append("phone", formData.phone);
+
+        // Files: loop through and append each one
+        formData.creciCardPhoto.forEach(file => {
+            formPayload.append("creciCardPhoto", file);
+        });
+
+        formData.creciCert.forEach(file => {
+            formPayload.append("creciCert", file);
+        });
+
+        try{
+            const res = await fetch('api/auth/signup-agent', {
+                method: "POST",
+                body: formPayload,
             });
+
+            const data = await res.json();
+
+            if(res.ok) {
+                notifySuccess("Registro solicitado com sucesso!");
+                router.push("/agent-signup/accepted");
+            } else {
+                const message = data.error || "Erro ao enviar solicitação. Tente novamente.";
+
+                if(data.path){
+                    setFirebaseError({
+                        message: message,
+                        path: data.path
+                    });
+                } else {
+                    notifyError(message);
+                }
+            }
+        } catch(error){
+            console.error(error);
+            notifyError("Erro de conexão com o servidor");
+        } finally {
+            setIsUploading(false);
+        }
+
     };
 
     return (
@@ -220,7 +258,7 @@ export default function RegisterPage() {
                             <div className="col-span-1 md:col-span-2 mt-4">
                                 <Label className="text-lg">Documentos</Label>
                                 {(errors.creciCardPhoto || errors.creciCert) && (
-                                    <span className="text-sm text-red-600">*Documento obrigatório</span>
+                                    <span className="text-sm text-red-600">*Documento obrigatório {errors.creciCardPhoto?.message}</span>
                                 )}
                                 <div className="flex flex-row gap-10 justify-center">
                                     <Label
@@ -242,7 +280,7 @@ export default function RegisterPage() {
                                         </div>
                                         <div className="flex flex-col items-center space-y-1">
                                             {watch("creciCardPhoto")?.[0] &&
-                                                Array.from(watch("creciCardPhoto") as FileList).map((file: File) => (
+                                                Array.from(watch("creciCardPhoto")).map((file: File) => (
                                                     <span key={file.name} className="text-center text-sm">
                                                         {file.name}
                                                     </span>
@@ -257,10 +295,9 @@ export default function RegisterPage() {
                                         accept="image/*,.pdf"
                                         {...register("creciCardPhoto", {
                                             onChange: e => {
-                                                const file = e.target.files?.[0];
-                                                setCreciCardPhotoSelected(!!file);
-                                                // Important: setValue to keep RHF in sync and trigger validation
-                                                setValue("creciCardPhoto", e.target.files, { shouldValidate: true });
+                                                const files = e.target.files ? Array.from(e.target.files) as File[]: [];
+                                                setCreciCardPhotoSelected(files.length > 0);
+                                                setValue("creciCardPhoto", files, { shouldValidate: true });
                                             },
                                         })}
                                         className="hidden"
@@ -288,7 +325,7 @@ export default function RegisterPage() {
                                         </div>
                                         <div className="flex flex-col items-center space-y-1">
                                             {watch("creciCert")?.[0] &&
-                                                Array.from(watch("creciCert") as FileList).map((file: File) => (
+                                                Array.from(watch("creciCert")).map((file: File) => (
                                                     <span key={file.name} className="text-center text-sm">
                                                         {file.name}
                                                     </span>
@@ -303,11 +340,9 @@ export default function RegisterPage() {
                                         accept="image/*,.pdf"
                                         {...register("creciCert", {
                                             onChange: e => {
-                                                const file = e.target.files?.[0];
-                                                setCreciCertSelected(!!file);
-                                                // Important: setValue to keep RHF in sync and trigger validation
-                                                setValue("creciCert", e.target.files, { shouldValidate: true });
-                                            },
+                                                const files = e.target.files ? Array.from(e.target.files) as File[] : [];
+                                                setCreciCertSelected(files.length > 0);
+                                                setValue("creciCert", files, { shouldValidate: true });                                            },
                                         })}
                                         className="hidden"
                                         disabled={isUploading}
