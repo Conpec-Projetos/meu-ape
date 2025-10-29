@@ -284,27 +284,46 @@ export async function POST(request: NextRequest) {
             throw new Error("Erro ao criar propriedade.");
         }
 
-        // If we have an address, attempt to geocode and update PostGIS location via RPC (if available)
+        // If client provided coordinates, prefer them; otherwise attempt to geocode from address
         let geocodingFailed = false;
-        if (newProperty?.id && typeof validatedProperty.address === "string" && validatedProperty.address.trim()) {
-            try {
-                const result = await geocodeAddressSmart(validatedProperty.address);
-                if (result) {
-                    // Clear first to ensure the function updates regardless of existing value
+        if (newProperty?.id) {
+            const clientLat = typeof body?.lat === "number" ? body.lat : Number(body?.lat);
+            const clientLng = typeof body?.lng === "number" ? body.lng : Number(body?.lng);
+            const hasValidClientCoords =
+                Number.isFinite(clientLat) && Number.isFinite(clientLng) && !(clientLat === 0 && clientLng === 0);
+
+            if (hasValidClientCoords) {
+                try {
                     await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
                     await supabase.rpc("set_property_location", {
                         p_property_id: newProperty.id,
-                        p_lat: result.lat,
-                        p_lng: result.lng,
+                        p_lat: clientLat,
+                        p_lng: clientLng,
                     });
-                } else {
-                    // Geocoding failed; clear location to avoid stale coordinates
-                    await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
+                } catch (e) {
+                    console.warn("Falha ao aplicar coordenadas do cliente (create):", e);
                     geocodingFailed = true;
                 }
-            } catch (e) {
-                console.warn("Falha ao geocodificar endereço ou atualizar localização:", e);
-                geocodingFailed = true;
+            } else if (typeof validatedProperty.address === "string" && validatedProperty.address.trim()) {
+                try {
+                    const result = await geocodeAddressSmart(validatedProperty.address);
+                    if (result) {
+                        // Clear first to ensure the function updates regardless of existing value
+                        await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
+                        await supabase.rpc("set_property_location", {
+                            p_property_id: newProperty.id,
+                            p_lat: result.lat,
+                            p_lng: result.lng,
+                        });
+                    } else {
+                        // Geocoding failed; clear location to avoid stale coordinates
+                        await supabase.from("properties").update({ location: null }).eq("id", newProperty.id);
+                        geocodingFailed = true;
+                    }
+                } catch (e) {
+                    console.warn("Falha ao geocodificar endereço ou atualizar localização:", e);
+                    geocodingFailed = true;
+                }
             }
         }
 

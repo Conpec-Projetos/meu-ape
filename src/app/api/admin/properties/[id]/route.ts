@@ -71,6 +71,11 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
         // Validate property data (allow partial updates)
         const validatedPropertyData = propertySchema.partial().parse(propertyData);
+        // Prefer client-provided coordinates when available and valid
+        const clientLat = typeof body?.lat === "number" ? body.lat : Number(body?.lat);
+        const clientLng = typeof body?.lng === "number" ? body.lng : Number(body?.lng);
+        const hasValidClientCoords =
+            Number.isFinite(clientLat) && Number.isFinite(clientLng) && !(clientLat === 0 && clientLng === 0);
         // Validate units data
         const validatedUnits = z
             .array(
@@ -89,9 +94,21 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
                 updated_at: new Date().toISOString(), // Ensure updated_at is set
             })
             .eq("id", id);
-        // If address provided (and possibly changed), geocode using natural address only
+        // If client supplied coords, trust them; otherwise, try geocoding when address provided
         let geocodingFailed = false;
-        if (typeof validatedPropertyData.address === "string" && validatedPropertyData.address.trim()) {
+        if (hasValidClientCoords) {
+            try {
+                await supabase.from("properties").update({ location: null }).eq("id", id);
+                await supabase.rpc("set_property_location", {
+                    p_property_id: id,
+                    p_lat: clientLat,
+                    p_lng: clientLng,
+                });
+            } catch (e) {
+                console.warn("Falha ao aplicar coordenadas do cliente:", e);
+                geocodingFailed = true;
+            }
+        } else if (typeof validatedPropertyData.address === "string" && validatedPropertyData.address.trim()) {
             try {
                 const result = await geocodeAddressSmart(validatedPropertyData.address);
                 // Some environments only set location when it's null; proactively clear then set.
