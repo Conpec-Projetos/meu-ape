@@ -3,6 +3,9 @@
 import UnitTable from "@/components/specifics/admin/property/unit-table";
 import AddressPreviewMap from "@/components/specifics/maps/address-preview-map";
 import { Button } from "@/components/ui/button";
+// Calendar is used via DatePicker
+// import { Calendar } from "@/components/ui/calendar";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -21,6 +24,7 @@ import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ptBR } from "react-day-picker/locale";
 import { toast } from "sonner";
 
 interface PropertyManagementFormProps {
@@ -310,6 +314,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         const n = typeof val === "string" ? parseInt(val, 10) : (val as number);
         return Number.isFinite(n) ? n : undefined;
     }
+
+    const coerceDate = (val: unknown): Date | undefined => {
+        if (!val) return undefined;
+        if (val instanceof Date) return val;
+        if (typeof val === "string" || typeof val === "number") {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return undefined;
+    };
 
     function isUuid(value: unknown): value is string {
         return (
@@ -782,26 +796,20 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="launchDate">Data de lançamento</Label>
-                                <Input
-                                    id="launchDate"
-                                    value={form.launchDate ? new Date(form.launchDate).toISOString().split("T")[0] : ""}
-                                    onChange={handleChange}
-                                    type="date"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="deliveryDate">Data de entrega</Label>
-                                <Input
-                                    id="deliveryDate"
-                                    value={
-                                        form.deliveryDate ? new Date(form.deliveryDate).toISOString().split("T")[0] : ""
-                                    }
-                                    onChange={handleChange}
-                                    type="date"
-                                />
-                            </div>
+                            <DatePicker
+                                id="launchDate"
+                                label="Data de lançamento"
+                                value={coerceDate(form.launchDate)}
+                                onChange={d => setForm(prev => ({ ...prev, launchDate: d || undefined }))}
+                                locale={ptBR}
+                            />
+                            <DatePicker
+                                id="deliveryDate"
+                                label="Data de entrega"
+                                value={coerceDate(form.deliveryDate)}
+                                onChange={d => setForm(prev => ({ ...prev, deliveryDate: d || undefined }))}
+                                locale={ptBR}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

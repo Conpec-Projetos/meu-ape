@@ -10,6 +10,7 @@ import { notifyError } from "@/services/notificationService";
 import { Loader } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { ptBR } from "react-day-picker/locale";
 
 interface VisitModalProps {
     unit: Unit;
@@ -18,8 +19,6 @@ interface VisitModalProps {
     onSubmit: () => void;
     isOpen: boolean;
 }
-
-// Removed old getNextDays; we now use a calendar selector
 
 const times = Array.from({ length: 20 }, (_, i) => {
     const hour = 8 + Math.floor(i / 2);
@@ -294,6 +293,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                                     onSelect={setSelectedDay}
                                     fromDate={tomorrow}
                                     toDate={endDate}
+                                    locale={ ptBR }
                                     disabled={{ before: tomorrow, after: endDate }}
                                 />
                             </div>
