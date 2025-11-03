@@ -15,7 +15,7 @@ RETURNS TABLE (
     property_images text[],
     areas_images text[],
     matterport_urls text[],
-    groups text,
+    groups text[],
     lat double precision,
     lng double precision
 ) AS $$
