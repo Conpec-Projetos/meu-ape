@@ -13,7 +13,7 @@ CREATE OR REPLACE FUNCTION search_properties(
     page_offset INT DEFAULT 0
 )
 RETURNS TABLE (
-    -- Retorne todas as colunas da tabela 'properties' que você precisa
+    -- Retorna todas as colunas da tabela 'properties' necessárias
     id UUID,
     name TEXT,
     address TEXT,
@@ -26,10 +26,9 @@ RETURNS TABLE (
     property_images TEXT[],
     areas_images TEXT[],
     matterport_urls TEXT[],
-    groups TEXT,
+    groups TEXT[],
     lat DOUBLE PRECISION,
     lng DOUBLE PRECISION,
-    -- Inclua campos agregados de 'units' se necessário
     min_unit_price NUMERIC,
     max_unit_price NUMERIC,
     available_bedrooms INT[],
@@ -44,7 +43,7 @@ AS $$
 DECLARE
     total_properties_count BIGINT;
 BEGIN
-    -- Primeiro, calcula a contagem total de propriedades que correspondem aos filtros.
+    -- Calcula a contagem total de propriedades que correspondem aos filtros
     SELECT INTO total_properties_count COUNT(DISTINCT p.id)
     FROM
         properties p
@@ -70,7 +69,7 @@ BEGIN
     AND
         u.is_available = TRUE;
 
-    -- Então, retorna os dados paginados com a contagem total.
+    -- Retorna os dados paginados com a contagem total.
     RETURN QUERY
     SELECT
         p.id, p.name, p.address, p.description, p.delivery_date, p.launch_date, p.features, p.floors, p.units_per_floor, p.property_images, p.areas_images, p.matterport_urls, p.groups,
