@@ -16,7 +16,7 @@ CREATE TABLE properties (
     property_images TEXT[],
     areas_images TEXT[],
     matterport_urls TEXT[],
-    groups TEXT,
+    groups TEXT[],
     search_vector TSVECTOR, -- Coluna otimizada para busca full-text 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),

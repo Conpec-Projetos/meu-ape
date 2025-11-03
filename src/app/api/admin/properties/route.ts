@@ -119,7 +119,14 @@ export async function GET(request: NextRequest) {
                         features: p.features || [],
                         floors: p.floors ?? 0,
                         unitsPerFloor: p.units_per_floor ?? 0,
-                        groups: p.groups ? p.groups.split(",") : [],
+                        groups: Array.isArray(p.groups)
+                            ? (p.groups as string[])
+                            : typeof p.groups === "string"
+                              ? (p.groups as string)
+                                    .split(",")
+                                    .map(s => s.trim())
+                                    .filter(Boolean)
+                              : [],
                         searchableUnitFeats: {
                             minPrice: 0,
                             maxPrice: 0,
@@ -218,7 +225,14 @@ export async function GET(request: NextRequest) {
                 features: p.features || [],
                 floors: p.floors ?? 0, // Default null to 0
                 unitsPerFloor: p.units_per_floor ?? 0, // Default null to 0
-                groups: p.groups ? p.groups.split(",") : [],
+                groups: Array.isArray(p.groups)
+                    ? (p.groups as string[])
+                    : typeof p.groups === "string"
+                      ? (p.groups as string)
+                            .split(",")
+                            .map(s => s.trim())
+                            .filter(Boolean)
+                      : [],
                 // Default structure for searchableUnitFeats
                 searchableUnitFeats: {
                     minPrice: 0,

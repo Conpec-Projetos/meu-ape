@@ -8,8 +8,8 @@ export function useProperties() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [hasMore, setHasMore] = useState(true);
-    const limit = 10; // Define quantos itens por página
+    const [hasMore, setHasMore] = useState(false);
+    const limit = 15; // Define quantos itens por página
 
     // useRef to hold the current page number to avoid stale closures and effect loops
     const pageRef = useRef<number>(1);
@@ -86,8 +86,11 @@ export function useProperties() {
         [fetchProperties]
     );
 
-    // Initial load on mount only
+    // Initial load on mount only (guard against React Strict Mode double-invoke in dev)
+    const didInitRef = useRef(false);
     useEffect(() => {
+        if (didInitRef.current) return;
+        didInitRef.current = true;
         fetchProperties(true); // Carga inicial
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

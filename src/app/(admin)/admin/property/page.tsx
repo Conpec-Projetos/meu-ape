@@ -21,7 +21,13 @@ function PropertyManagementContent() {
     const debounceRef = useRef<number | null>(null);
 
     // Debounce search input and trigger server search
+    // Debounced search: skip initial run to avoid duplicating the initial load from the hook
+    const didMountRef = useRef(false);
     useEffect(() => {
+        if (!didMountRef.current) {
+            didMountRef.current = true;
+            return;
+        }
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
         }
