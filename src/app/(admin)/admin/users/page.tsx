@@ -375,7 +375,7 @@ function UserManagementContent() {
     );
 
     return (
-        <div className="min-h-screen container mx-auto px-4 sm:px-6 py-6 sm:py-20">
+        <div className="min-h-screen container mx-auto px-4 py-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
