@@ -22,10 +22,9 @@ interface JustInTimeDataModalProps {
     missingFields: string[];
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: () => void; // Called after successful data submission
+    onSubmit: () => void;
 }
 
-// Map field names to human-readable labels and component types
 const fieldConfig: Record<
     string,
     { label: string; type: "text" | "tel" | "file"; placeholder?: string; accept?: string }
@@ -42,12 +41,9 @@ const fieldConfig: Record<
 
 export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }: JustInTimeDataModalProps) {
     const [isUploading, setIsUploading] = useState(false);
-    // State to track selected files for UI feedback
     const [selectedFiles, setSelectedFiles] = useState<Record<string, boolean>>({});
-    // Force remount of specific file inputs to clear native value on remove
     const [fileInputKeys, setFileInputKeys] = useState<Record<string, number>>({});
 
-    // Dynamically create the Zod schema based on missing fields
     const activeSchema = useMemo(() => {
         type SchemaKeys = keyof typeof userDataSchema.shape;
         const pickFields: Partial<Record<SchemaKeys, true>> = {};
@@ -64,7 +60,7 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
     const form = useForm<UserDataForm>({
         resolver: zodResolver(activeSchema),
         mode: "onSubmit",
-        reValidateMode: "onChange", // Provide feedback as user types
+        reValidateMode: "onChange",
     });
 
     const {
@@ -76,7 +72,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         formState: { errors },
     } = form;
 
-    // Reset form and file selection state when modal opens/closes
     useEffect(() => {
         if (isOpen) {
             reset();
@@ -84,7 +79,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         }
     }, [isOpen, reset]);
 
-    // Scroll locking effect
     useEffect(() => {
         if (isOpen) {
             const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -95,7 +89,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         }
     }, [isOpen]);
 
-    // Handle form submission
     const handleFormSubmit = async (data: UserDataForm) => {
         setIsUploading(true);
 
@@ -103,7 +96,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         const dataFields: Record<string, string> = {};
         const fileFields: Record<string, FileList> = {};
 
-        // Separate data and file fields
         Object.entries(data).forEach(([key, value]) => {
             if (value instanceof FileList && value.length > 0) {
                 fileFields[key] = value;
@@ -112,10 +104,8 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
             }
         });
 
-        // Create Promises for API Calls
         const promises: Promise<Response>[] = [];
 
-        // Promise for updating profile data (if any)
         if (Object.keys(dataFields).length > 0) {
             promises.push(
                 fetch("/api/user/profile", {
@@ -126,7 +116,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
             );
         }
 
-        // Promise for uploading documents (if any)
         if (Object.keys(fileFields).length > 0) {
             const formData = new FormData();
             Object.entries(fileFields).forEach(([fieldName, fileList]) => {
@@ -143,13 +132,10 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
             );
         }
 
-        // Create the combined promise with .finally() attached
         const combinedPromise = Promise.all(promises).finally(() => {
-            // <-- Move finally here
             setIsUploading(false);
         });
 
-        // Execute Promises and Handle Results using notifyPromise
         notifyPromise(combinedPromise, {
             loading: "Salvando informações...",
             success: responses => {
@@ -159,7 +145,7 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                     return "Informações salvas com sucesso!";
                 } else {
                     const failedResponse = responses.find(res => !res.ok);
-                    console.error("API Error:", failedResponse?.status, failedResponse?.statusText); // Log status too
+                    console.error("API Error:", failedResponse?.status, failedResponse?.statusText);
                     throw new Error("Erro ao salvar algumas informações. Verifique os dados e tente novamente.");
                 }
             },
@@ -170,7 +156,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         });
     };
 
-    // Function to render the correct input based on field type
     const renderFormField = (field: string) => {
         const config = fieldConfig[field];
         if (!config) return null;
@@ -189,9 +174,8 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                     name={field as keyof UserDataForm}
                     render={() => (
                         <FormItem className="w-full text-center">
-                            {/* Make Label the direct child of FormControl */}
                             <FormControl>
-                                <Label // <-- Label is now the direct child
+                                <Label
                                     htmlFor={field}
                                     className={`relative group flex flex-col items-center justify-center space-y-2 border-2 rounded-lg p-4 border-dashed min-h-[120px] w-full ${isUploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50"}
                                    ${isSelected ? "border-green-600" : fieldError ? "border-destructive" : "border-input"} transition-colors`}
@@ -237,13 +221,12 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                                     )}
                                 </Label>
                             </FormControl>
-                            {/* Input remains outside FormControl but linked via htmlFor */}
                             <Input
                                 key={`file-${field}-${fileInputKeys[field] || 0}`}
                                 type="file"
                                 id={field}
                                 accept={config.accept}
-                                className="hidden" // Keep it hidden, Label handles interaction
+                                className="hidden"
                                 disabled={isUploading}
                                 {...register(field as keyof UserDataForm, {
                                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,7 +244,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                 />
             );
         } else {
-            // Render text or tel inputs
             return (
                 <FormField
                     key={field}
@@ -350,12 +332,22 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                                     );
                                 })()}
 
-                                {/* Footer fixo, alinhado ao padrão dos outros modais */}
+                                {/* Footer fixo alinhado ao padrão dos outros modais */}
                                 <div className="mt-6 pt-4 border-t sticky -bottom-4 bg-background flex justify-end gap-2">
-                                    <Button type="button" variant="outline" onClick={onClose} disabled={isUploading} className="cursor-pointer">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={onClose}
+                                        disabled={isUploading}
+                                        className="cursor-pointer"
+                                    >
                                         Cancelar
                                     </Button>
-                                    <Button type="submit" disabled={isUploading} className="min-w-[140px] cursor-pointer">
+                                    <Button
+                                        type="submit"
+                                        disabled={isUploading}
+                                        className="min-w-[140px] cursor-pointer"
+                                    >
                                         {isUploading ? (
                                             <Loader className="animate-spin size-4" />
                                         ) : (

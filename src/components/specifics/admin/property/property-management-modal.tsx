@@ -1,8 +1,9 @@
 "use client";
 
+import AddressPreviewMap from "@/components/features/maps/address-preview-map";
 import UnitTable from "@/components/specifics/admin/property/unit-table";
-import AddressPreviewMap from "@/components/specifics/maps/address-preview-map";
 import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -21,6 +22,7 @@ import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ptBR } from "react-day-picker/locale";
 import { toast } from "sonner";
 
 interface PropertyManagementFormProps {
@@ -64,13 +66,11 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     useEffect(() => {
         if (!placesLib || !google?.maps?.places?.PlacesService) return;
         if (!placesServiceRef.current) {
-            // We can create a PlacesService without a visible map using a dummy div
             const dummy = document.createElement("div");
             placesServiceRef.current = new google.maps.places.PlacesService(dummy);
         }
     }, [placesLib]);
 
-    // Image management state
     const propertyImageInputRef = useRef<HTMLInputElement | null>(null);
     const areaImageInputRef = useRef<HTMLInputElement | null>(null);
     const [newPropertyImages, setNewPropertyImages] = useState<File[]>([]);
@@ -79,17 +79,14 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [areaImagePreviews, setAreaImagePreviews] = useState<string[]>([]);
     const [imagesToRemoveProperty, setImagesToRemoveProperty] = useState<string[]>([]);
     const [imagesToRemoveAreas, setImagesToRemoveAreas] = useState<string[]>([]);
-    // Features (tags) input state
     const [featureInput, setFeatureInput] = useState("");
 
-    // Developers will be loaded from the admin API so the select shows the real construtoras
     const [developers, setDevelopers] = useState<{ id: string; name: string }[]>([]);
     const [groups] = useState([
         { id: "corretores-sp", name: "Corretores SP" },
         { id: "corretores-rj", name: "Corretores RJ" },
     ]);
 
-    // Utility to validate coordinates (avoid 0,0)
     const isValidCoords = (c: unknown): c is { lat: number; lng: number } => {
         const obj = c as { lat?: unknown; lng?: unknown };
         const lat = typeof obj?.lat === "number" ? obj.lat : Number.NaN;
@@ -126,7 +123,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             setSelectedCoords(null);
         }
         setPlaceId(undefined);
-        // reset image local states
         setNewPropertyImages([]);
         setNewAreaImages([]);
         setPropertyImagePreviews([]);
@@ -135,13 +131,10 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setImagesToRemoveAreas([]);
     }, [property]);
 
-    // If opening with address filled but coords missing or invalid (e.g., 0,0), try to resolve via Places text query
     useEffect(() => {
         const address = (form.address || "").toString().trim();
         if (!placesServiceRef.current) return;
-        // If already have valid coords, don't override
         if (selectedCoords && isValidCoords(selectedCoords)) return;
-        // Try fallback to form.location
         if (isValidCoords(form.location)) {
             setSelectedCoords(form.location as { lat: number; lng: number });
             return;
@@ -167,7 +160,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [placesServiceRef.current, form.address]);
 
-    // Helpers for features (tags)
     function addFeatureTag(raw?: string) {
         const value = (raw ?? featureInput).trim();
         if (!value) return;
@@ -187,7 +179,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setForm(prev => ({ ...prev, features: current.filter(f => f !== value) }));
     }
 
-    // Load developers list from the admin API so the Select shows the actual construtoras
     useEffect(() => {
         let mounted = true;
         async function fetchDevelopers() {
@@ -196,7 +187,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 if (!res.ok) return;
                 const data = await res.json();
                 if (!mounted) return;
-                // API returns { developers: [...] } or an array
                 const list = Array.isArray(data) ? data : data?.developers || [];
                 setDevelopers(
                     (list || []).map((d: unknown) => {
@@ -214,8 +204,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         };
     }, []);
 
-    // When editing an existing property, fetch the full data from API once
-    // so we can ensure we have units and the associated developer_id.
     useEffect(() => {
         async function fetchPropertyDetails() {
             if (!property?.id) return;
@@ -223,7 +211,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 const res = await fetch(`/api/admin/properties/${property.id}`);
                 if (!res.ok) return;
                 const data = await res.json();
-                // Set developerId from API if available
                 if (data?.developer_id && typeof data.developer_id === "string") {
                     setDeveloperId(data.developer_id);
                 }
@@ -262,7 +249,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             }
         }
         fetchPropertyDetails();
-        // Only run when property id changes; 'units' in deps would re-run after setUnits.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [property?.id]);
 
@@ -311,6 +297,16 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         return Number.isFinite(n) ? n : undefined;
     }
 
+    const coerceDate = (val: unknown): Date | undefined => {
+        if (!val) return undefined;
+        if (val instanceof Date) return val;
+        if (typeof val === "string" || typeof val === "number") {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return undefined;
+    };
+
     function isUuid(value: unknown): value is string {
         return (
             typeof value === "string" &&
@@ -320,7 +316,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
 
     function mapFormToSchemaShape() {
         return {
-            developer_id: developerId, // must be uuid per schema
+            developer_id: developerId,
             name: form.name || "",
             address: form.address || undefined,
             description: form.description || undefined,
@@ -371,16 +367,13 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         try {
             let propertyId = property?.id;
 
-            // Create when new (without images first)
             if (!propertyId) {
                 const createRes = await fetch("/api/admin/properties", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    // Create property first without images and units; we'll attach both on the subsequent PUT
                     body: JSON.stringify({
                         ...result.data,
                         placeId,
-                        // send client coords if available
                         lat:
                             selectedCoords?.lat ??
                             (isValidCoords(form.location)
@@ -401,7 +394,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     throw new Error(errorData?.message || "Falha ao criar o imóvel.");
                 }
                 const created = await safeJson(createRes);
-                // If server indicates geocoding failed, block save and try to rollback the newly created property
                 if (created?.geocodingFailed) {
                     const createdId = created?.id || created?.property?.id || created?.data?.id;
                     toast.error("Falha ao geocodificar o endereço. Ajuste o endereço e tente novamente.");
@@ -409,7 +401,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         try {
                             await fetch(`/api/admin/properties/${createdId}`, { method: "DELETE" });
                         } catch {
-                            // best-effort rollback; ignore if it fails
                         }
                     }
                     setIsSubmitting(false);
@@ -421,9 +412,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 }
             }
 
-            // Process image deletions (existing) - property and units
             const toDelete = [...imagesToRemoveProperty, ...imagesToRemoveAreas];
-            // Collect unit floor plan deletions
             const unitDeletes = [
                 ...units.flatMap(u => u.floorPlanToRemove || []),
                 ...units.flatMap(u => u.imagesToRemove || []),
@@ -433,22 +422,18 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 await deleteImages(allDeletes);
             }
 
-            // Upload new images (property)
             const uploadedPropertyUrls = newPropertyImages.length
                 ? await subirImagensEmLotes(newPropertyImages, propertyId)
                 : [];
             const uploadedAreaUrls = newAreaImages.length ? await subirImagensEmLotes(newAreaImages, propertyId) : [];
 
-            // Upload unit floor plan files and unit images per unit
             const unitsWithMedia = await Promise.all(
                 units.map(async u => {
-                    // Floor plans
                     const fpFiles = u.floorPlanFiles || [];
                     const fpUploaded = fpFiles.length ? await subirImagensEmLotes(fpFiles, propertyId!) : [];
                     const fpKept = u.floorPlanUrls || [];
                     const finalFloorPlans = [...fpKept, ...fpUploaded];
 
-                    // Unit images
                     const imgFiles = u.imageFiles || [];
                     const imgUploaded = imgFiles.length ? await subirImagensEmLotes(imgFiles, propertyId!) : [];
                     const keptImages = (u.images || []).filter(url => !(u.imagesToRemove || []).includes(url));
@@ -458,13 +443,11 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 })
             );
 
-            // Merge arrays
             const currentPropertyUrls = (form.propertyImages || []).filter(
                 url => !imagesToRemoveProperty.includes(url)
             );
             const currentAreaUrls = (form.areasImages || []).filter(url => !imagesToRemoveAreas.includes(url));
 
-            // Build units payloads for POST/PUT respecting deletion marks
             const unitsPayload = unitsWithMedia.reduce(
                 (acc: Array<{ id?: string; status: "new" | "updated" | "deleted"; [k: string]: unknown }>, u) => {
                     const hasValidId = isUuid(u.id);
@@ -488,7 +471,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             const finalBody = {
                 ...result.data,
                 placeId,
-                // send client coords if available
                 lat:
                     selectedCoords?.lat ??
                     (isValidCoords(form.location) ? (form.location as { lat: number; lng: number }).lat : undefined),
@@ -500,7 +482,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                 units: unitsPayload,
             };
 
-            // Update (or re-update) the property with image URLs
             const updateRes = await fetch(`/api/admin/properties/${propertyId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -527,11 +508,9 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         }
     }
 
-    // Address autocomplete side-effects
     useEffect(() => {
         if (!autocompleteService) return;
         const term = (form.address || "").toString().trim();
-        // Only fetch/open suggestions when the input is focused (user interaction)
         if (!isAddrFocused || term.length < 3) {
             setAddrPredictions([]);
             setAddrOpen(false);
@@ -549,7 +528,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(result)) {
                         const mapped = result.map(r => ({ description: r.description, place_id: r.place_id! }));
                         setAddrPredictions(mapped);
-                        // Open only if still focused
                         setAddrOpen(true);
                     } else {
                         setAddrPredictions([]);
@@ -578,7 +556,6 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         setForm(prev => ({ ...prev, address: p.description }));
         setPlaceId(p.place_id);
         setAddrOpen(false);
-        // Resolve coordinates for the selected place
         try {
             if (!placesServiceRef.current) return;
             await new Promise<void>(resolve => {
@@ -698,7 +675,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                     </div>
                                 )}
                             </div>
-                            {/* Preview map for selected address */}
+                            {/* Preview map */}
                             <div className="mt-3">
                                 <AddressPreviewMap
                                     center={
@@ -782,26 +759,20 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="launchDate">Data de lançamento</Label>
-                                <Input
-                                    id="launchDate"
-                                    value={form.launchDate ? new Date(form.launchDate).toISOString().split("T")[0] : ""}
-                                    onChange={handleChange}
-                                    type="date"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="deliveryDate">Data de entrega</Label>
-                                <Input
-                                    id="deliveryDate"
-                                    value={
-                                        form.deliveryDate ? new Date(form.deliveryDate).toISOString().split("T")[0] : ""
-                                    }
-                                    onChange={handleChange}
-                                    type="date"
-                                />
-                            </div>
+                            <DatePicker
+                                id="launchDate"
+                                label="Data de lançamento"
+                                value={coerceDate(form.launchDate)}
+                                onChange={d => setForm(prev => ({ ...prev, launchDate: d || undefined }))}
+                                locale={ptBR}
+                            />
+                            <DatePicker
+                                id="deliveryDate"
+                                label="Data de entrega"
+                                value={coerceDate(form.deliveryDate)}
+                                onChange={d => setForm(prev => ({ ...prev, deliveryDate: d || undefined }))}
+                                locale={ptBR}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

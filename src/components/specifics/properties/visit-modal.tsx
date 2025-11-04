@@ -9,6 +9,7 @@ import { Unit } from "@/interfaces/unit";
 import { notifyError } from "@/services/notificationService";
 import { Loader } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { ptBR } from "react-day-picker/locale";
 import { toast } from "sonner";
 
 interface VisitModalProps {
@@ -19,8 +20,6 @@ interface VisitModalProps {
     isOpen: boolean;
 }
 
-// Removed old getNextDays; we now use a calendar selector
-
 const times = Array.from({ length: 20 }, (_, i) => {
     const hour = 8 + Math.floor(i / 2);
     const minutes = i % 2 === 0 ? "00" : "30";
@@ -28,14 +27,12 @@ const times = Array.from({ length: 20 }, (_, i) => {
 });
 
 export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitModalProps) {
-    // Selected calendar day (defaults to tomorrow)
     const [selectedDay, setSelectedDay] = useState<Date | undefined>(() => {
         const d = new Date();
         d.setDate(d.getDate() + 1);
         return d;
     });
 
-    // Selected slots across days (keys: "seg. 01/01-12:30")
     const [selected, setSelected] = useState<Record<string, boolean>>({});
     const [disabledKeys, setDisabledKeys] = useState<Set<string>>(new Set());
     const [conflictLoading, setConflictLoading] = useState(false);
@@ -61,7 +58,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
     };
 
     const makeDayLabel = (date: Date) => {
-        const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" }); // e.g., "seg."
+        const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" });
         const dd = String(date.getDate()).padStart(2, "0");
         const mm = String(date.getMonth() + 1).padStart(2, "0");
         return `${weekday} ${dd}/${mm}`;
@@ -71,9 +68,9 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
 
     const toggleTime = (time: string) => {
         if (!selectedDay) return;
-        if (!isDateInAllowedRange(selectedDay)) return; // não permite fora da janela
+        if (!isDateInAllowedRange(selectedDay)) return; // Não permite fora da janela
         const key = makeKey(selectedDay, time);
-        if (disabledKeys.has(key)) return; // bloqueia horários já solicitados
+        if (disabledKeys.has(key)) return; // Bloqueia horários já solicitados
         setSelected(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
@@ -81,10 +78,8 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
         if (isOpen) {
             const originalStyle = window.getComputedStyle(document.body).overflow;
 
-            // Lock scroll
             document.body.style.overflow = "hidden";
 
-            // On cleanup, unlock scroll
             return () => {
                 document.body.style.overflow = originalStyle;
             };
@@ -94,7 +89,6 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
     const [loading, setLoading] = useState(false);
     const SELECT_PERSIST_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
-    // Persistência temporária: carregar ao abrir
     useEffect(() => {
         if (!isOpen) return;
         try {
@@ -118,7 +112,6 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, property.id, unit.id]);
 
-    // Persistência temporária: salvar enquanto aberto
     useEffect(() => {
         if (!isOpen) return;
         try {
@@ -134,7 +127,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
         } catch {}
     }, [isOpen, selected, selectedDay, property.id, unit.id]);
 
-    // Conflitos (desabilitar horários já solicitados)
+    // Desabilitar horários já solicitados
     const coerceDate = (val: unknown): Date | undefined => {
         if (!val) return undefined;
         if (val instanceof Date) return val;
@@ -245,10 +238,8 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
     };
 
     function parseDateTime(str: string) {
-        // Exemplo: "dom. 05/10-12:00"
-        // Remove "dom. " -> "05/10-12:00"
-        const parts = str.split(" ")[1]; // "05/10-12:00"
-        const [datePart, timePart] = parts.split("-"); // "05/10" e "12:00"
+        const parts = str.split(" ")[1];
+        const [datePart, timePart] = parts.split("-");
         const [day, month] = datePart.split("/").map(Number);
         const [hour, minute] = timePart.split(":").map(Number);
 
@@ -294,6 +285,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                                     onSelect={setSelectedDay}
                                     fromDate={tomorrow}
                                     toDate={endDate}
+                                    locale={ptBR}
                                     disabled={{ before: tomorrow, after: endDate }}
                                 />
                             </div>

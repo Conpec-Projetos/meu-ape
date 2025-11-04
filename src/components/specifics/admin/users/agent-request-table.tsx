@@ -12,7 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
-import { Check, Eye, X } from "lucide-react";
+import { Check, Eye, Inbox, X } from "lucide-react";
 
 interface AgentRequestTableProps {
     requests: AgentRegistrationRequest[];
@@ -63,87 +63,159 @@ export function AgentRequestTable({
         return d.toLocaleDateString("pt-BR");
     };
 
+    if (!requests || requests.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center text-center py-16">
+                <Inbox className="h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Nenhuma solicitação encontrada</h3>
+                <p className="text-gray-500">Parece que não há solicitações para exibir no momento.</p>
+            </div>
+        );
+    }
+
     return (
         <TooltipProvider>
             <div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Nome do Solicitante</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>CRECI</TableHead>
-                            <TableHead>Data da Solicitação</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {requests.map(request => (
-                            <TableRow key={request.id} onClick={() => onReview(request)}>
-                                <TableCell>{request.applicantData.fullName}</TableCell>
-                                <TableCell>{request.applicantData.email}</TableCell>
-                                <TableCell>{request.applicantData.creci}</TableCell>
-                                <TableCell>{formatDate(request.submittedAt)}</TableCell>
-                                <TableCell className="text-right space-x-2">
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            {/* The View button click is suppressed as the row click handles the review/view */}
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="cursor-pointer"
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    onReview(request);
-                                                }}
-                                            >
-                                                <Eye className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Visualizar Detalhes</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="cursor-pointer border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    onApprove(request);
-                                                }}
-                                            >
-                                                <Check className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Aprovar</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                                                onClick={e => {
-                                                    e.stopPropagation();
-                                                    onDeny(request);
-                                                }}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p>Negar</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TableCell>
+                {/* Desktop / Tablet table - hidden on small screens */}
+                <div className="hidden sm:block overflow-x-auto">
+                    <Table className="min-w-full">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nome do Solicitante</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>CRECI</TableHead>
+                                <TableHead>Data da Solicitação</TableHead>
+                                <TableHead className="text-right">Ações</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {requests.map(request => (
+                                <TableRow key={request.id} onClick={() => onReview(request)}>
+                                    <TableCell>{request.applicantData.fullName}</TableCell>
+                                    <TableCell>{request.applicantData.email}</TableCell>
+                                    <TableCell>{request.applicantData.creci}</TableCell>
+                                    <TableCell>{formatDate(request.submittedAt)}</TableCell>
+                                    <TableCell className="text-right space-x-2">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                {/* The View button click is suppressed as the row click handles the review/view */}
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="cursor-pointer"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        onReview(request);
+                                                    }}
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Visualizar Detalhes</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="cursor-pointer border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        onApprove(request);
+                                                    }}
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Aprovar</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                                    onClick={e => {
+                                                        e.stopPropagation();
+                                                        onDeny(request);
+                                                    }}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p>Negar</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Mobile card list - visible on small screens */}
+                <div className="block sm:hidden space-y-3">
+                    {requests.map(request => (
+                        <div
+                            key={request.id}
+                            onClick={() => onReview(request)}
+                            className="bg-card border rounded-lg p-3 flex items-start justify-between gap-3"
+                        >
+                            <div className="space-y-1">
+                                <div className="text-sm font-medium">{request.applicantData.fullName}</div>
+                                <div className="text-xs text-muted-foreground">{request.applicantData.email}</div>
+                                <div className="text-xs text-muted-foreground">
+                                    CRECI: {request.applicantData.creci || "N/A"}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    Enviado: {formatDate(request.submittedAt)}
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="cursor-pointer"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            onReview(request);
+                                        }}
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="cursor-pointer border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            onApprove(request);
+                                        }}
+                                    >
+                                        <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                        onClick={e => {
+                                            e.stopPropagation();
+                                            onDeny(request);
+                                        }}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
                 {totalPages > 1 && (
                     <Pagination className="mt-4">
                         <PaginationContent>

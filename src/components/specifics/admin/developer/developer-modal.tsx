@@ -50,7 +50,6 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0] || null;
-        // cleanup previous preview
         setLogoPreview(prev => {
             if (prev) URL.revokeObjectURL(prev);
             return null;
@@ -60,7 +59,6 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
             const url = URL.createObjectURL(f);
             setLogoPreview(url);
         }
-        // if user picks a new logo, clear removal flag
         setRemovedExistingLogo(false);
     };
 
@@ -68,14 +66,11 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
         e.preventDefault();
         setIsSubmitting(true);
         try {
-            // Determine final logo url
             let logoUrl = !removedExistingLogo ? form.logo_url : undefined;
             const oldUrl = form.logo_url;
             if (logoFile) {
                 logoUrl = await uploadDeveloperLogo(logoFile);
-                // If there's an old logo and user replaced it, optionally delete the old file
                 if (oldUrl && oldUrl !== logoUrl) {
-                    // Non-blocking deletion; avoid throwing if it fails
                     try {
                         await deleteDeveloperLogo(oldUrl);
                     } catch {}
@@ -87,7 +82,6 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
                 website: form.website || undefined,
                 email: form.email || undefined,
                 phone: form.phone || undefined,
-                // To clear the logo in DB, send null explicitly
                 logo_url: removedExistingLogo && !logoFile ? null : logoUrl || undefined,
             };
 
@@ -153,7 +147,12 @@ export default function DeveloperModal({ isOpen, onClose, onSave, developer }: P
                                     className="hidden"
                                     onChange={handleFile}
                                 />
-                                <Button type="button" variant="outline" onClick={() => logoInputRef.current?.click()} className="cursor-pointer">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => logoInputRef.current?.click()}
+                                    className="cursor-pointer"
+                                >
                                     Adicionar Imagem +
                                 </Button>
                             </div>

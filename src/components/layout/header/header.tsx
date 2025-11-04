@@ -154,7 +154,7 @@ function Header({ variant }: HeaderProps) {
                                     className={`flex cursor-pointer items-center gap-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-primary`}
                                 >
                                     <Avatar className="h-9 w-9">
-                                        <AvatarImage src={undefined} alt={user?.fullName} />
+                                        <AvatarImage src={user?.photoUrl} alt={user?.fullName} />
                                         <AvatarFallback>
                                             {user?.fullName ? getInitials(user.fullName) : <CircleUserRound />}
                                         </AvatarFallback>
@@ -175,7 +175,7 @@ function Header({ variant }: HeaderProps) {
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
-                                <DropdownMenuItem onClick={() => router.push("/settings")}>
+                                <DropdownMenuItem onClick={() => router.push("/profile")}>
                                     <Settings className="mr-2 h-4 w-4" />
                                     <span>Configurações</span>
                                 </DropdownMenuItem>
@@ -200,7 +200,10 @@ function Header({ variant }: HeaderProps) {
             <div className="lg:hidden">
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button size="icon" className="text-primary-foreground">
+                        <Button
+                            size="icon"
+                            className="bg-primary-foreground hover:bg-secondary text-foreground cursor-pointer"
+                        >
                             <Menu className="h-6 w-6" />
                         </Button>
                     </SheetTrigger>
@@ -208,8 +211,11 @@ function Header({ variant }: HeaderProps) {
                         <div className="flex items-center gap-4 border-b pb-4">
                             {user ? (
                                 <>
-                                    <Avatar className="cursor-pointer h-12 w-12">
-                                        <AvatarImage src={undefined} alt={user.fullName} />
+                                    <Avatar
+                                        className="cursor-pointer h-12 w-12"
+                                        onClick={() => router.push("/profile")}
+                                    >
+                                        <AvatarImage src={user.photoUrl} alt={user.fullName} />
                                         <AvatarFallback className="text-lg">
                                             {getInitials(user.fullName)}
                                         </AvatarFallback>
@@ -234,7 +240,7 @@ function Header({ variant }: HeaderProps) {
                             )}
                         </div>
 
-                        <nav className="flex-grow mt-6">
+                        <nav className="grow mt-6">
                             <ul className="flex flex-col gap-4">
                                 {links.map(link => (
                                     <li key={link.label}>
@@ -255,7 +261,7 @@ function Header({ variant }: HeaderProps) {
                                 <ul className="flex flex-col gap-2">
                                     <li>
                                         <Link
-                                            href="/settings"
+                                            href="/profile"
                                             className="flex items-center gap-3 p-2 rounded-md font-medium hover:bg-muted"
                                         >
                                             <Settings className="h-5 w-5" />

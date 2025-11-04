@@ -28,7 +28,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
     const [editingUnit, setEditingUnit] = useState<Partial<Unit> | null>(null);
 
     const handleAddNew = () => {
-        setEditingUnit(null); // Garante que o modal esteja vazio para adicionar
+        setEditingUnit(null);
         setIsModalOpen(true);
     };
 
@@ -40,8 +40,6 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
     const handleDelete = (unitId: string) => {
         if (confirm("Tem certeza que deseja excluir esta unidade?")) {
             const isPersisted = unitId && !String(unitId).startsWith("temp-");
-            // For persisted units, mark as deleted so API can remove them on save.
-            // For temp (unsaved) units, just remove from the list.
             const updatedUnits = isPersisted
                 ? units.map(u => (u.id === unitId ? { ...u, status: "deleted" } : u))
                 : units.filter(u => u.id !== unitId);
@@ -52,10 +50,8 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
     const handleSaveUnit = (unit: Unit) => {
         let updatedUnits;
         if (unit.id) {
-            // Editando unidade existente
             updatedUnits = units.map(u => (u.id === unit.id ? unit : u));
         } else {
-            // Adicionando nova unidade (com um ID temporário)
             updatedUnits = [...units, { ...unit, id: `temp-${Date.now()}` }];
         }
         onUnitsChange(updatedUnits);
