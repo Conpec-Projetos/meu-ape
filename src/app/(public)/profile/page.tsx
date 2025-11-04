@@ -40,8 +40,9 @@ import { cn } from "@/lib/utils";
 import { ProfileUpdate, profileUpdateSchema } from "@/schemas/profileUpdateSchema";
 import { notifyError, notifyInfo, notifyPromise } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, signOut, updatePassword } from "firebase/auth";
 import { Eye, EyeOff, FileCheck, Loader, UploadCloud } from "lucide-react";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import type { Resolver } from "react-hook-form";
 import { useForm } from "react-hook-form";
@@ -61,6 +62,7 @@ const passwordChangeSchema = z
 type PasswordChangeData = z.infer<typeof passwordChangeSchema>;
 
 export default function ProfilePage() {
+    const router = useRouter();
     const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
     const [apiError, setApiError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -73,6 +75,11 @@ export default function ProfilePage() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [newPasswordVisible, setNewPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletePassword, setDeletePassword] = useState("");
+    const [deletePasswordVisible, setDeletePasswordVisible] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     // Formulário de Dados Pessoais
     const form = useForm<ProfileUpdate>({
@@ -452,6 +459,55 @@ export default function ProfilePage() {
         });
     };
 
+    // Lógica de Exclusão de Conta
+    const onDeleteAccountSubmit = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        setDeleteError(null);
+        const user = auth.currentUser;
+        if (!user || !user.email) {
+            notifyError("Usuário não autenticado.");
+            return;
+        }
+        try {
+            setDeletingAccount(true);
+            const credential = EmailAuthProvider.credential(user.email, deletePassword);
+            const promise = reauthenticateWithCredential(user, credential)
+                .then(async () => {
+                    const res = await fetch("/api/user/delete", { method: "DELETE" });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                        throw new Error(err.error || "Falha ao excluir conta.");
+                    }
+                })
+                .then(async () => {
+                    try {
+                        await signOut(auth);
+                    } catch {
+                        // ignore
+                    }
+                    setIsDeleteModalOpen(false);
+                    setDeletePassword("");
+                    router.replace("/");
+                })
+                .finally(() => setDeletingAccount(false));
+
+            notifyPromise(promise, {
+                loading: "Confirmando e excluindo sua conta...",
+                success: "Conta excluída com sucesso.",
+                error: (err: Error) => err.message || "Erro ao excluir conta.",
+            });
+        } catch (err) {
+            setDeletingAccount(false);
+            const code = (err as { code?: string } | null)?.code;
+            if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+                setDeleteError("Senha incorreta.");
+                notifyError("Senha incorreta.");
+            } else {
+                notifyError(err instanceof Error ? err.message : "Erro na confirmação de senha");
+            }
+        }
+    };
+
     // Renderização
     if (loadingProfile) {
         return (
@@ -503,8 +559,12 @@ export default function ProfilePage() {
             <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                     {" "}
-                    <TabsTrigger value="conta" className="cursor-pointer">Conta</TabsTrigger>
-                    <TabsTrigger value="documentos" className="cursor-pointer">Documentos</TabsTrigger>
+                    <TabsTrigger value="conta" className="cursor-pointer">
+                        Conta
+                    </TabsTrigger>
+                    <TabsTrigger value="documentos" className="cursor-pointer">
+                        Documentos
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Aba Conta */}
@@ -656,10 +716,15 @@ export default function ProfilePage() {
                                             )}
                                         />
                                     </div>
-                                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4">
+                                    <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-4">
                                         <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
                                             <DialogTrigger asChild>
-                                                <Button type="button" variant="link" className="p-0 h-auto text-sm">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="lg"
+                                                    className="cursor-pointer"
+                                                >
                                                     Alterar Senha
                                                 </Button>
                                             </DialogTrigger>
@@ -816,7 +881,8 @@ export default function ProfilePage() {
                                         <Button
                                             type="submit"
                                             disabled={form.formState.isSubmitting}
-                                            className="w-full sm:w-auto"
+                                            size="lg"
+                                            className="w-full sm:w-auto font-semibold shadow-sm cursor-pointer"
                                         >
                                             {form.formState.isSubmitting && (
                                                 <Loader className="mr-2 h-4 w-4 animate-spin" />
@@ -824,10 +890,80 @@ export default function ProfilePage() {
                                             Salvar Alterações
                                         </Button>
                                     </div>
-                                    {/* Botão Excluir Conta - Adicionar Lógica onClick */}
-                                    <Button type="button" variant="destructive" className="w-full mt-4">
-                                        Excluir Conta
-                                    </Button>
+                                    {/* Excluir conta - botão discreto + Dialog de confirmação com senha */}
+                                    <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="mt-2 w-auto self-start text-sm text-muted-foreground hover:text-destructive/90 hover:bg-destructive/5 cursor-pointer"
+                                            >
+                                                Excluir conta
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[425px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Excluir conta</DialogTitle>
+                                                <DialogDescription>
+                                                    Esta ação é permanente e apagará seus dados, documentos e acesso.
+                                                    Para confirmar, digite sua senha.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <form onSubmit={onDeleteAccountSubmit} className="space-y-4">
+                                                <div>
+                                                    <Label htmlFor="delete-password">Senha</Label>
+                                                    <div className="relative mt-1">
+                                                        <Input
+                                                            id="delete-password"
+                                                            type={deletePasswordVisible ? "text" : "password"}
+                                                            value={deletePassword}
+                                                            onChange={e => setDeletePassword(e.target.value)}
+                                                            required
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                                                            onClick={() => setDeletePasswordVisible(v => !v)}
+                                                        >
+                                                            {deletePasswordVisible ? (
+                                                                <EyeOff className="h-4 w-4" />
+                                                            ) : (
+                                                                <Eye className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                    {deleteError && (
+                                                        <p className="text-sm text-destructive mt-2">{deleteError}</p>
+                                                    )}
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="cursor-pointer"
+                                                        onClick={() => setIsDeleteModalOpen(false)}
+                                                        disabled={deletingAccount}
+                                                    >
+                                                        Cancelar
+                                                    </Button>
+                                                    <Button
+                                                        type="submit"
+                                                        variant="destructive"
+                                                        disabled={deletingAccount}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        {deletingAccount && (
+                                                            <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                                        )}
+                                                        Confirmar exclusão
+                                                    </Button>
+                                                </DialogFooter>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
                                 </form>
                             </Form>
                         </CardContent>
@@ -865,11 +1001,11 @@ export default function ProfilePage() {
                                 onFileSelect={f => setPendingFile("incomeProof", f)}
                             />
                             <DocumentRow
-                                label="Certidão de Casamento (Opcional)"
-                                typeKey="marriageCert"
-                                existingUrls={uploadedUrls["marriageCert"] || []}
-                                pendingFile={pendingFiles["marriageCert"] || null}
-                                onFileSelect={f => setPendingFile("marriageCert", f)}
+                                label="Certidão (Nascimente/Casamento)"
+                                typeKey="bmCert"
+                                existingUrls={uploadedUrls["bmCert"] || []}
+                                pendingFile={pendingFiles["bmCert"] || null}
+                                onFileSelect={f => setPendingFile("bmCert", f)}
                             />
 
                             <div className="flex justify-end mt-6">
