@@ -22,14 +22,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { User } from "@/interfaces/user";
 import { userSchema } from "@/schemas/userSchema";
-import { Download, ExternalLink, Eye, EyeOff } from "lucide-react"; // ADDED icons
+import { Download, ExternalLink, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
-// Define a schema for adding a new user with required password fields.
 const addSchema = userSchema
     .extend({
-        password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), // Password is required for ADD
-        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."), // Confirm Password is required for ADD
+        password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), 
+        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."),
         adminMsg: z.string().optional(),
     })
     .refine(data => data.password === data.confirmPassword, {
@@ -37,17 +36,14 @@ const addSchema = userSchema
         path: ["confirmPassword"],
     });
 
-// Define a schema for editing a user, omitting the password fields.
 const editSchema = userSchema.omit({ password: true }).extend({
     adminMsg: z.string().optional(),
 });
 
-// Define a schema for reviewing a user, omitting the password fields.
 const reviewSchema = z.object({
     adminMsg: z.string().min(1, "Motivo da recusa é obrigatório"),
 });
 
-// A base type for form values (use the most inclusive schema type for hooks)
 type FormValues = z.infer<typeof addSchema>;
 
 interface UserModalProps {
@@ -62,12 +58,11 @@ interface UserModalProps {
 }
 
 export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave, onApprove, onDeny }: UserModalProps) {
-    const [passwordVisible, setPasswordVisible] = useState(false); // ADDED state
-    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false); // ADDED state
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const [showDenialReason, setShowDenialReason] = useState(false);
 
-    const currentSchema = mode === "add" ? addSchema : editSchema; // Use dynamic schema
-
+    const currentSchema = mode === "add" ? addSchema : editSchema;
     const form = useForm<FormValues>({
         resolver: zodResolver(currentSchema as unknown as z.ZodTypeAny),
         defaultValues: {
@@ -77,8 +72,8 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             phone: "",
             address: "",
             role: "client",
-            password: "", // ADDED default value
-            confirmPassword: "", // ADDED default value
+            password: "",
+            confirmPassword: "",
             agentProfile: {
                 creci: "",
                 city: "",
@@ -91,8 +86,8 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
         if (isOpen) {
             let defaultValues: Partial<FormValues> = {
                 role: "client",
-                password: "", // Clear password fields
-                confirmPassword: "", // Clear password fields
+                password: "",
+                confirmPassword: "",
             };
             if (mode === "edit" || mode === "view") {
                 defaultValues = userData || {};
@@ -115,7 +110,6 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
 
     const role = form.watch("role");
 
-    // Clear agentProfile fields when role is not 'agent'
     useEffect(() => {
         if (role !== "agent") {
             form.setValue("agentProfile.creci", "");
@@ -218,7 +212,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                     )}
                 />
 
-                {mode === "add" && ( // ADDED: Password fields only for 'add' mode
+                {mode === "add" && (
                     <>
                         <FormField
                             control={form.control}
@@ -362,7 +356,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                             {/* Documentos enviados - visível em view/edit/review */}
                             {(mode === "view" || mode === "edit" || mode === "review") &&
                                 (() => {
-                                    // Coleta documentos do usuário (se houver)
+                                    // Coleta documentos do usuário
                                     const userDocs = userData
                                         ? {
                                               // Documentos gerais do usuário (clientes/qualquer role)

@@ -1,12 +1,11 @@
 "use client";
 
-import { ChevronDownIcon } from "lucide-react";
-import * as React from "react";
-
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDownIcon } from "lucide-react";
+import * as React from "react";
 import { ptBR } from "react-day-picker/locale";
 
 type DatePickerProps = {
