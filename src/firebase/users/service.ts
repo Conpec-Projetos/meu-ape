@@ -263,6 +263,9 @@ export const updateUserProfileData = async (userId: string, dataToUpdate: Partia
 };
 
 // --- New function to upload documents ---
+// Recognized agent document keys
+const AGENT_DOCUMENT_KEYS = new Set(["creciCardPhoto", "creciCert"]);
+
 export const uploadUserDocuments = async (
     userId: string,
     filesByField: Record<string, File[]>
@@ -275,13 +278,20 @@ export const uploadUserDocuments = async (
     const uploadedUrls: Record<string, string[]> = {};
 
     const uploadPromises = Object.entries(filesByField).map(async ([fieldName, files]) => {
+        const isAgentDoc = AGENT_DOCUMENT_KEYS.has(fieldName);
         const fieldUrls: string[] = [];
         for (const file of files) {
+            // Enforce 5MB max per file server-side as well
+            if (file.size && file.size > 5 * 1024 * 1024) {
+                console.warn(`Skipping file over 5MB for field ${fieldName}: ${file.name}`);
+                continue;
+            }
             // Generate a unique filename
             const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
             const fileExtension = file.name.split(".").pop() || "";
             const uniqueFileName = `${fieldName}-${uniqueSuffix}.${fileExtension}`;
-            const filePath = `clientFiles/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
+            const baseFolder = isAgentDoc ? "agentFiles" : "clientFiles";
+            const filePath = `${baseFolder}/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
             const fileUpload = bucket.file(filePath);
 
             // Convert File to Buffer (required for admin SDK upload)
@@ -303,10 +313,17 @@ export const uploadUserDocuments = async (
 
         // Update Firestore document with the URLs for this specific field
         // Use dot notation for nested fields
-        await userRef.update({
-            [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
-            updatedAt: AdminTimestamp.now(), // Update timestamp
-        });
+        if (isAgentDoc) {
+            await userRef.update({
+                [`agentProfile.documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls),
+                updatedAt: AdminTimestamp.now(),
+            });
+        } else {
+            await userRef.update({
+                [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
+                updatedAt: AdminTimestamp.now(), // Update timestamp
+            });
+        }
 
         uploadedUrls[fieldName] = fieldUrls;
     });
@@ -314,6 +331,54 @@ export const uploadUserDocuments = async (
     await Promise.all(uploadPromises);
     console.log(`User documents updated for userId: ${userId}`);
     return uploadedUrls;
+};
+
+// Delete a single user document file (client or agent) by URL and update Firestore arrays accordingly
+export const deleteUserDocument = async (userId: string, fieldName: string, fileUrl: string): Promise<void> => {
+    if (!userId) throw new Error("User ID is required.");
+    if (!fileUrl) throw new Error("File URL is required.");
+
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    // Try to derive the storage path from the public URL
+    let storagePath: string | null = null;
+    try {
+        const u = new URL(fileUrl);
+        const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+        if (pathParts[0] === bucketName && pathParts.length > 1) {
+            storagePath = pathParts.slice(1).join("/");
+        } else {
+            const ix = fileUrl.indexOf(`${bucketName}/`);
+            if (ix !== -1) {
+                storagePath = decodeURIComponent(fileUrl.slice(ix + bucketName.length + 1));
+            }
+        }
+    } catch {
+        // ignore, we'll try best effort below
+    }
+
+    if (storagePath) {
+        try {
+            await bucket.file(storagePath).delete({ ignoreNotFound: true });
+        } catch {
+            console.warn("Error deleting user document from storage:");
+        }
+    }
+
+    const isAgentDoc = AGENT_DOCUMENT_KEYS.has(fieldName);
+    if (isAgentDoc) {
+        await userRef.update({
+            [`agentProfile.documents.${fieldName}`]: FieldValue.arrayRemove(fileUrl),
+            updatedAt: AdminTimestamp.now(),
+        });
+    } else {
+        await userRef.update({
+            [`documents.${fieldName}`]: FieldValue.arrayRemove(fileUrl),
+            updatedAt: AdminTimestamp.now(),
+        });
+    }
 };
 
 export const uploadUserProfilePhoto = async (userId: string, file: File): Promise<string> => {

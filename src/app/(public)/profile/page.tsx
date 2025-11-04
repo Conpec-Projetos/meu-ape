@@ -41,7 +41,7 @@ import { ProfileUpdate, profileUpdateSchema } from "@/schemas/profileUpdateSchem
 import { notifyError, notifyInfo, notifyPromise } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { EmailAuthProvider, reauthenticateWithCredential, signOut, updatePassword } from "firebase/auth";
-import { Eye, EyeOff, FileCheck, Loader, UploadCloud } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, FileCheck, FileText, Loader, Trash2, UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import type { Resolver } from "react-hook-form";
@@ -67,8 +67,9 @@ export default function ProfilePage() {
     const [apiError, setApiError] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [uploadedUrls, setUploadedUrls] = useState<Record<string, string[]>>({});
-    const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
+    const [pendingFiles, setPendingFiles] = useState<Record<string, File[]>>({});
     const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | undefined>(undefined);
+    const [userRole, setUserRole] = useState<string | undefined>(undefined);
     const [profilePhotoUploading, setProfilePhotoUploading] = useState(false);
     const [profilePhotoRemoving, setProfilePhotoRemoving] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -140,8 +141,13 @@ export default function ProfilePage() {
                     cpf: user.cpf ? formatCPF(user.cpf as string) : "",
                     phone: user.phone ? formatPhone(user.phone as string) : "",
                 });
-                setUploadedUrls(user.documents || {});
+                const mergedDocs: Record<string, string[]> = {
+                    ...(user.documents || {}),
+                    ...((user.agentProfile?.documents as Record<string, string[]>) || {}),
+                };
+                setUploadedUrls(mergedDocs);
                 setProfilePhotoUrl(user.photoUrl);
+                setUserRole(user.role);
             } catch (err: unknown) {
                 if (err && (err as { name?: string }).name === "AbortError") return;
                 const message = err instanceof Error ? err.message : String(err);
@@ -192,61 +198,94 @@ export default function ProfilePage() {
     };
 
     // Upload de Documento (Função Auxiliar)
-    const uploadDocument = async (file: File | null, documentType: string): Promise<string | null> => {
-        if (!file) return null;
+    const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB
+
+    const uploadDocumentsBatch = async (filesMap: Record<string, File[]>): Promise<Record<string, string[]>> => {
         const formData = new FormData();
-        formData.append(documentType, file, file.name);
+        Object.entries(filesMap).forEach(([docType, files]) => {
+            files.forEach(f => formData.append(docType, f, f.name));
+        });
         const res = await fetch("/api/user/documents/upload", { method: "POST", body: formData });
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-            throw new Error(errorData.error || `Falha ao enviar ${documentType}`);
+            throw new Error(errorData.error || `Falha ao enviar documentos`);
         }
         const data = await res.json();
-        return data.urls?.[documentType]?.[0] || null;
+        return data.urls || {};
     };
 
     // Salvar Documentos
     const handleSaveDocuments = async () => {
-        const filesToUpload = Object.entries(pendingFiles).filter(([, file]) => file !== null);
+        const filesToUpload = Object.entries(pendingFiles).filter(([, files]) => Array.isArray(files) && files.length);
         if (filesToUpload.length === 0) {
             notifyInfo("Nenhum novo documento selecionado para salvar.");
             return;
         }
         setUploading(true);
-        const uploadPromises = filesToUpload.map(([docType, file]) =>
-            uploadDocument(file, docType)
-                .then(url => {
-                    if (url) {
-                        setUploadedUrls(prev => ({ ...prev, [docType]: [...(prev[docType] || []), url] }));
-                        setPendingFiles(prev => ({ ...prev, [docType]: null }));
-                    }
-                    return { docType, success: !!url };
-                })
-                .catch(error => {
-                    console.error(`Erro no upload de ${docType}:`, error);
-                    notifyError(`Erro ao enviar ${docType}: ${error.message}`);
-                    return { docType, success: false };
-                })
-        );
-        notifyPromise(Promise.all(uploadPromises), {
-            loading: `Enviando ${filesToUpload.length} documento(s)...`,
-            success: results => {
-                const successes = results.filter(r => r.success).length;
-                const failures = results.length - successes;
-                setUploading(false);
-                if (failures > 0) return `${successes} enviados. ${failures} falharam.`;
-                return "Documentos enviados com sucesso!";
-            },
-            error: err => {
-                console.error("Erro geral no salvamento:", err);
-                setUploading(false);
-                return "Erro ao salvar documentos.";
-            },
+        const batchMap: Record<string, File[]> = Object.fromEntries(filesToUpload);
+        const promise = uploadDocumentsBatch(batchMap)
+            .then(urlsMap => {
+                // Merge newly uploaded URLs and clear pending for those keys
+                setUploadedUrls(prev => {
+                    const next = { ...prev };
+                    Object.entries(urlsMap).forEach(([k, urls]) => {
+                        next[k] = [...(next[k] || []), ...urls];
+                    });
+                    return next;
+                });
+                setPendingFiles(prev => {
+                    const next = { ...prev };
+                    Object.keys(batchMap).forEach(k => (next[k] = []));
+                    return next;
+                });
+            })
+            .finally(() => setUploading(false));
+
+        notifyPromise(promise, {
+            loading: `Enviando ${filesToUpload.reduce((acc, [, arr]) => acc + arr.length, 0)} arquivo(s)...`,
+            success: "Documentos enviados com sucesso!",
+            error: (err: Error) => err.message || "Erro ao salvar documentos.",
         });
     };
 
-    const setPendingFile = (documentType: string, file: File | null) => {
-        setPendingFiles(p => ({ ...p, [documentType]: file }));
+    const addPendingFiles = (documentType: string, files: File[]) => {
+        setPendingFiles(p => ({ ...p, [documentType]: [...(p[documentType] || []), ...files] }));
+    };
+
+    const removePendingFileAt = (documentType: string, index: number) => {
+        setPendingFiles(p => {
+            const arr = [...(p[documentType] || [])];
+            arr.splice(index, 1);
+            return { ...p, [documentType]: arr };
+        });
+    };
+
+    const handleRemoveExisting = async (documentType: string, url: string) => {
+        const promise = fetch("/api/user/documents/delete", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ field: documentType, url }),
+        })
+            .then(async res => {
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                    throw new Error(errorData.error || "Falha ao remover documento");
+                }
+                setUploadedUrls(prev => {
+                    const list = prev[documentType] || [];
+                    return { ...prev, [documentType]: list.filter(u => u !== url) };
+                });
+            })
+            .catch((error: Error) => {
+                console.error("Erro ao remover documento:", error);
+                throw error;
+            });
+
+        notifyPromise(promise, {
+            loading: "Removendo documento...",
+            success: "Documento removido.",
+            error: (e: Error) => e.message || "Erro ao remover documento.",
+        });
     };
 
     // --- Profile photo upload helpers ---
@@ -350,14 +389,70 @@ export default function ProfilePage() {
         label: string;
         typeKey: string;
         existingUrls: string[];
-        pendingFile: File | null;
-        onFileSelect: (file: File | null) => void;
-    }> = ({ label, typeKey, existingUrls, pendingFile, onFileSelect }) => {
+        pendingFiles: File[];
+        onFilesAdd: (files: File[]) => void;
+        onRemovePendingAt: (index: number) => void;
+        onRemoveExisting: (url: string) => void;
+    }> = ({ label, typeKey, existingUrls, pendingFiles, onFilesAdd, onRemovePendingAt, onRemoveExisting }) => {
         const inputId = `doc-${typeKey}`;
-        const fileName = pendingFile?.name;
         const hasExisting = existingUrls && existingUrls.length > 0;
-        const Icon = pendingFile ? FileCheck : hasExisting ? FileCheck : UploadCloud;
-        const iconColor = pendingFile ? "text-green-600" : hasExisting ? "text-green-600" : "text-muted-foreground";
+        const hasPending = pendingFiles && pendingFiles.length > 0;
+        const Icon = hasPending ? FileCheck : hasExisting ? FileCheck : UploadCloud;
+        const iconColor = hasPending ? "text-green-600" : hasExisting ? "text-green-600" : "text-muted-foreground";
+        const [dragOver, setDragOver] = useState(false);
+        const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+        const [urlToDelete, setUrlToDelete] = useState<string | null>(null);
+
+        const isImageUrl = (url: string) => /\.(png|jpe?g|webp|gif)$/i.test(url.split("?")[0] || "");
+        const cleanUrl = (u: string) => u.split("?")[0].split("#")[0];
+        const baseNameFromUrl = (url: string) => {
+            try {
+                const u = new URL(url);
+                const href = cleanUrl(u.href);
+                // Firebase Storage public URL pattern: /v0/b/<bucket>/o/<encodedPath>
+                const fbMatch = href.match(/\/o\/([^?#]+)/);
+                if (fbMatch && fbMatch[1]) {
+                    const fullPath = decodeURIComponent(fbMatch[1]);
+                    const segs = fullPath.split("/");
+                    return segs[segs.length - 1] || "";
+                }
+                // Google Cloud Storage public URL pattern: /<bucket>/<path>
+                const pathDecoded = decodeURIComponent(cleanUrl(u.pathname));
+                const parts = pathDecoded.split("/");
+                return parts[parts.length - 1] || "";
+            } catch {
+                const path = cleanUrl(url);
+                const parts = decodeURIComponent(path).split("/");
+                const last = parts[parts.length - 1] || "";
+                // If last is an encoded full path (with %2F), decode and take last segment again
+                const maybePath = decodeURIComponent(last);
+                const subparts = maybePath.split("/");
+                return subparts[subparts.length - 1] || last;
+            }
+        };
+        const splitNameExt = (basename: string) => {
+            const lastDot = basename.lastIndexOf(".");
+            if (lastDot === -1) return { nameNoExt: basename, ext: "" };
+            return { nameNoExt: basename.slice(0, lastDot), ext: basename.slice(lastDot + 1) };
+        };
+        const getUrlDisplay = (url: string, index: number) => {
+            const base = baseNameFromUrl(url);
+            const { nameNoExt, ext } = splitNameExt(base);
+            const displayName = nameNoExt || `Documento ${index + 1}`;
+            return { displayName, ext: (ext || "").toUpperCase() };
+        };
+
+        const acceptAndAdd = (files: File[]) => {
+            const accepted: File[] = [];
+            files.forEach(f => {
+                if (f.size > MAX_DOC_BYTES) {
+                    notifyError(`${f.name} excede 5MB e foi ignorado.`);
+                } else {
+                    accepted.push(f);
+                }
+            });
+            if (accepted.length) onFilesAdd(accepted);
+        };
 
         return (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 py-4 border-b last:border-b-0">
@@ -366,54 +461,183 @@ export default function ProfilePage() {
                     {/* Ajustado texto e shrink */}
                     {label}
                 </Label>
-                <div className="grow flex flex-col sm:flex-row items-center gap-4">
-                    <Label
-                        htmlFor={inputId}
+                <div className="grow flex flex-col gap-3">
+                    <div
                         className={cn(
-                            "flex flex-col items-center justify-center space-y-1 border-2 rounded-lg p-3 border-dashed h-[90px] w-[120px] shrink-0",
+                            "flex items-center gap-3 border-2 border-dashed rounded-lg p-3",
                             uploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50",
-                            pendingFile ? "border-green-600" : "border-input",
+                            hasPending ? "border-green-600" : "border-input",
+                            dragOver ? "ring-2 ring-primary/30" : "",
                             "transition-colors"
                         )}
+                        onDragOver={e => {
+                            e.preventDefault();
+                            if (!uploading) setDragOver(true);
+                        }}
+                        onDragLeave={() => setDragOver(false)}
+                        onDrop={e => {
+                            e.preventDefault();
+                            setDragOver(false);
+                            if (uploading) return;
+                            const items = Array.from(e.dataTransfer.files || []);
+                            if (items.length) acceptAndAdd(items);
+                        }}
+                        onClick={() => document.getElementById(inputId)?.click()}
                     >
-                        <Icon className={cn("size-6 mb-1", iconColor)} />
-                        <span
-                            className={cn(
-                                "text-xs font-medium text-center",
-                                pendingFile ? "text-green-700" : "text-muted-foreground"
-                            )}
-                        >
-                            {pendingFile ? "Selecionado" : hasExisting ? "Enviado" : "Selecionar"}
-                        </span>
-                    </Label>
-                    <Input
-                        type="file"
-                        id={inputId}
-                        accept="image/*,.pdf"
-                        className="hidden"
-                        disabled={uploading}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFileSelect(e.target.files?.[0] ?? null)}
-                    />
-                    <div className="text-sm min-w-0">
-                        {" "}
-                        {fileName && <p className="text-foreground truncate font-medium">Novo: {fileName}</p>}
-                        {hasExisting && !pendingFile && (
-                            <div className="flex flex-col gap-1">
-                                {existingUrls.map((url, index) => (
-                                    <a
-                                        key={index}
-                                        href={url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-primary underline hover:text-primary/80 truncate"
-                                    >
-                                        Ver Documento {existingUrls.length > 1 ? index + 1 : ""}
-                                    </a>
-                                ))}
+                        <Icon className={cn("size-6", iconColor)} />
+                        <div className="text-xs">
+                            <div className="font-medium">
+                                {hasPending
+                                    ? "Arquivos selecionados"
+                                    : hasExisting
+                                      ? "Adicionar mais arquivos"
+                                      : "Arraste e solte ou clique para escolher"}
                             </div>
-                        )}
-                        {!fileName && !hasExisting && <p className="text-muted-foreground">Nenhum arquivo.</p>}
+                            <div className="text-muted-foreground">Imagens ou PDF, até 5MB por arquivo.</div>
+                        </div>
+                        <Input
+                            type="file"
+                            id={inputId}
+                            accept="image/*,.pdf"
+                            multiple
+                            className="hidden"
+                            disabled={uploading}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                const list = Array.from(e.target.files ?? []);
+                                if (!list.length) return;
+                                acceptAndAdd(list);
+                                e.currentTarget.value = "";
+                            }}
+                        />
                     </div>
+                    {hasPending && (
+                        <div>
+                            <div className="text-xs font-medium mb-2">Pendentes ({pendingFiles.length})</div>
+                            <div className="flex flex-wrap gap-2">
+                                {pendingFiles.map((f, idx) => {
+                                    const { ext } = splitNameExt(f.name);
+                                    return (
+                                        <div
+                                            key={`${f.name}-${idx}`}
+                                            className="flex items-center gap-2 border rounded-md px-2 py-1"
+                                        >
+                                            {f.type.startsWith("image/") ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={URL.createObjectURL(f)}
+                                                    alt={f.name}
+                                                    className="h-8 w-8 object-cover rounded"
+                                                />
+                                            ) : (
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                            <span className="truncate max-w-[200px] text-sm">{f.name}</span>
+                                            {ext && (
+                                                <span className="text-[10px] uppercase bg-muted text-muted-foreground border rounded px-1.5 py-0.5">
+                                                    {ext.toUpperCase()}
+                                                </span>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                onClick={() => onRemovePendingAt(idx)}
+                                                aria-label={`Remover ${f.name}`}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                    {hasExisting && (
+                        <div>
+                            <div className="text-xs font-medium mb-2">Enviados ({existingUrls.length})</div>
+                            <div className="flex flex-wrap gap-2">
+                                {existingUrls.map((url, index) => {
+                                    const info = getUrlDisplay(url, index);
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex items-center gap-2 border rounded-md px-2 py-1"
+                                        >
+                                            {isImageUrl(url) ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={url}
+                                                    alt={info.displayName}
+                                                    className="h-8 w-8 object-cover rounded"
+                                                />
+                                            ) : (
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                            <span className="truncate max-w-[200px] text-sm">{info.displayName}</span>
+                                            {info.ext && (
+                                                <span className="text-[10px] uppercase bg-muted text-muted-foreground border rounded px-1.5 py-0.5">
+                                                    {info.ext}
+                                                </span>
+                                            )}
+                                            <a
+                                                href={url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:text-primary"
+                                                aria-label="Abrir documento"
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </a>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
+                                                onClick={() => {
+                                                    setUrlToDelete(url);
+                                                    setConfirmDeleteOpen(true);
+                                                }}
+                                                aria-label="Remover documento"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                    {!hasPending && !hasExisting && <p className="text-sm text-muted-foreground">Nenhum arquivo.</p>}
+                    {/* Confirmação para remover documento enviado */}
+                    <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                        <AlertDialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Remover documento?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Esta ação é permanente e apagará o arquivo selecionado. Você poderá enviar outro
+                                    quando quiser.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                                <AlertDialogCancel className="cursor-pointer w-full sm:w-auto">
+                                    Cancelar
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => {
+                                        if (urlToDelete) {
+                                            onRemoveExisting(urlToDelete);
+                                        }
+                                        setConfirmDeleteOpen(false);
+                                        setUrlToDelete(null);
+                                    }}
+                                    className="bg-destructive hover:bg-destructive/90 cursor-pointer w-full sm:w-auto"
+                                >
+                                    Remover
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
         );
@@ -985,35 +1209,71 @@ export default function ProfilePage() {
                                 label="RG ou CIN"
                                 typeKey="identityDoc"
                                 existingUrls={uploadedUrls["identityDoc"] || []}
-                                pendingFile={pendingFiles["identityDoc"] || null}
-                                onFileSelect={f => setPendingFile("identityDoc", f)}
+                                pendingFiles={pendingFiles["identityDoc"] || []}
+                                onFilesAdd={fs => addPendingFiles("identityDoc", fs)}
+                                onRemovePendingAt={i => removePendingFileAt("identityDoc", i)}
+                                onRemoveExisting={url => handleRemoveExisting("identityDoc", url)}
                             />
                             <DocumentRow
                                 label="Comprovante de Endereço"
                                 typeKey="addressProof"
                                 existingUrls={uploadedUrls["addressProof"] || []}
-                                pendingFile={pendingFiles["addressProof"] || null}
-                                onFileSelect={f => setPendingFile("addressProof", f)}
+                                pendingFiles={pendingFiles["addressProof"] || []}
+                                onFilesAdd={fs => addPendingFiles("addressProof", fs)}
+                                onRemovePendingAt={i => removePendingFileAt("addressProof", i)}
+                                onRemoveExisting={url => handleRemoveExisting("addressProof", url)}
                             />
                             <DocumentRow
                                 label="Comprovante de Renda"
                                 typeKey="incomeProof"
                                 existingUrls={uploadedUrls["incomeProof"] || []}
-                                pendingFile={pendingFiles["incomeProof"] || null}
-                                onFileSelect={f => setPendingFile("incomeProof", f)}
+                                pendingFiles={pendingFiles["incomeProof"] || []}
+                                onFilesAdd={fs => addPendingFiles("incomeProof", fs)}
+                                onRemovePendingAt={i => removePendingFileAt("incomeProof", i)}
+                                onRemoveExisting={url => handleRemoveExisting("incomeProof", url)}
                             />
                             <DocumentRow
                                 label="Certidão (Nascimente/Casamento)"
                                 typeKey="bmCert"
                                 existingUrls={uploadedUrls["bmCert"] || []}
-                                pendingFile={pendingFiles["bmCert"] || null}
-                                onFileSelect={f => setPendingFile("bmCert", f)}
+                                pendingFiles={pendingFiles["bmCert"] || []}
+                                onFilesAdd={fs => addPendingFiles("bmCert", fs)}
+                                onRemovePendingAt={i => removePendingFileAt("bmCert", i)}
+                                onRemoveExisting={url => handleRemoveExisting("bmCert", url)}
                             />
+
+                            {userRole === "agent" && (
+                                <>
+                                    <div className="mt-4 mb-2 font-medium text-sm text-muted-foreground">
+                                        Documentos do Corretor
+                                    </div>
+                                    <DocumentRow
+                                        label="Foto da Carteira CRECI"
+                                        typeKey="creciCardPhoto"
+                                        existingUrls={uploadedUrls["creciCardPhoto"] || []}
+                                        pendingFiles={pendingFiles["creciCardPhoto"] || []}
+                                        onFilesAdd={fs => addPendingFiles("creciCardPhoto", fs)}
+                                        onRemovePendingAt={i => removePendingFileAt("creciCardPhoto", i)}
+                                        onRemoveExisting={url => handleRemoveExisting("creciCardPhoto", url)}
+                                    />
+                                    <DocumentRow
+                                        label="Certificado CRECI"
+                                        typeKey="creciCert"
+                                        existingUrls={uploadedUrls["creciCert"] || []}
+                                        pendingFiles={pendingFiles["creciCert"] || []}
+                                        onFilesAdd={fs => addPendingFiles("creciCert", fs)}
+                                        onRemovePendingAt={i => removePendingFileAt("creciCert", i)}
+                                        onRemoveExisting={url => handleRemoveExisting("creciCert", url)}
+                                    />
+                                </>
+                            )}
 
                             <div className="flex justify-end mt-6">
                                 <Button
                                     onClick={handleSaveDocuments}
-                                    disabled={uploading || Object.values(pendingFiles).every(f => f === null)}
+                                    disabled={
+                                        uploading || Object.values(pendingFiles).every(arr => !arr || arr.length === 0)
+                                    }
                                 >
                                     {uploading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                                     {uploading ? "Enviando..." : "Salvar Documentos"}
