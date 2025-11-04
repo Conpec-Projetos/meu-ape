@@ -324,12 +324,14 @@ function UserManagementContent() {
                 }}
             >
                 <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="clients">Clientes ({countsIsLoading ? "..." : userCounts.client})</TabsTrigger>
-                    <TabsTrigger value="agents">
-                        Corretores ({countsIsLoading ? "..." : userCounts.agent + requestsTotal})
+                    <TabsTrigger value="clients" className="cursor-pointer">
+                        Clientes{tab === "clients" ? ` (${countsIsLoading ? "..." : userCounts.client})` : ""}
                     </TabsTrigger>
-                    <TabsTrigger value="admins">
-                        Administradores ({countsIsLoading ? "..." : userCounts.admin})
+                    <TabsTrigger value="agents" className="cursor-pointer">
+                        Corretores
+                    </TabsTrigger>
+                    <TabsTrigger value="admins" className="cursor-pointer">
+                        Administradores{tab === "admins" ? ` (${countsIsLoading ? "..." : userCounts.admin})` : ""}
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="clients">{getTabContent("Todos os Clientes")}</TabsContent>
@@ -345,11 +347,17 @@ function UserManagementContent() {
                         }}
                     >
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="registered-agents">
-                                Corretores Registrados ({countsIsLoading ? "..." : userCounts.agent})
+                            <TabsTrigger value="registered-agents" className="cursor-pointer">
+                                Corretores Registrados
+                                {tab === "agents" && subtab === "registered-agents"
+                                    ? ` (${countsIsLoading ? "..." : userCounts.agent})`
+                                    : ""}
                             </TabsTrigger>
-                            <TabsTrigger value="registration-requests">
-                                Solicitações de Cadastro ({requestsIsLoading ? "..." : requestsTotal})
+                            <TabsTrigger value="registration-requests" className="cursor-pointer">
+                                Solicitações de Cadastro
+                                {tab === "agents" && subtab === "registration-requests"
+                                    ? ` (${requestsIsLoading ? "..." : requestsTotal})`
+                                    : ""}
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="registered-agents">{getTabContent("Corretores Registrados")}</TabsContent>

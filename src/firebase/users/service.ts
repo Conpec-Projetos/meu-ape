@@ -68,18 +68,18 @@ export const listAgentRequests = async (status: string, page: number, limitSize:
 
 export const listAdminEmails = async (): Promise<string[]> => {
     const usersCollection = db.collection("users");
-    const querySnapshot = await usersCollection.where("role", "==", "admin").get()
+    const querySnapshot = await usersCollection.where("role", "==", "admin").get();
     const emails: string[] = [];
 
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach(doc => {
         const data = doc.data();
         if (data.email) {
-        emails.push(data.email);
+            emails.push(data.email);
         }
     });
-    
+
     return emails;
-}
+};
 
 export const createUser = async (userData: Partial<User> & { password?: string }) => {
     const { email, password, ...profileData } = userData;
@@ -128,6 +128,33 @@ export const deleteUser = async (userId: string) => {
             }
         }
     }
+
+    // Remove all Cloud Storage files related to this user
+    try {
+        const bucket = adminStorage.bucket();
+        const prefixes = [`clientFiles/${userId}/`, `agentFiles/${userId}/`];
+
+        // Delete files for each known prefix. If a prefix has no files, deleteFiles resolves without throwing.
+        for (const prefix of prefixes) {
+            try {
+                await bucket.deleteFiles({ prefix });
+                console.log(`Deleted storage files with prefix: ${prefix}`);
+            } catch (err) {
+                // Ignore NotFound or permission issues individually to attempt other prefixes
+                console.warn(`Warning deleting files for prefix ${prefix}:`, err);
+            }
+        }
+    } catch (storageErr) {
+        console.warn("Warning while cleaning up user storage files:", storageErr);
+    }
+
+    // Remove agent registration request document if it exists (doc id equals userId)
+    try {
+        await db.collection("agentRegistrationRequests").doc(userId).delete();
+    } catch (reqErr) {
+        console.warn(`Warning deleting agentRegistrationRequests/${userId}:`, reqErr);
+    }
+
     await userRef.delete();
 };
 
