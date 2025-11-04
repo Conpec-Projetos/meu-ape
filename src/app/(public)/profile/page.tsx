@@ -576,12 +576,12 @@ export default function ProfilePage() {
                         </CardHeader>
                         <CardContent>
                             {/* Profile photo */}
-                            <div className="flex items-center gap-4 mb-6">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
                                 <Avatar className="size-16">
                                     <AvatarImage src={profilePhotoUrl} alt="Foto de perfil" />
                                     <AvatarFallback>PF</AvatarFallback>
                                 </Avatar>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <Label htmlFor={inputProfileId} className="sr-only">
                                         Selecionar foto de perfil
                                     </Label>
@@ -619,7 +619,7 @@ export default function ProfilePage() {
                                                 Remover Foto
                                             </Button>
                                         </AlertDialogTrigger>
-                                        <AlertDialogContent>
+                                        <AlertDialogContent className="w-[95vw] max-w-md p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
                                             <AlertDialogHeader>
                                                 <AlertDialogTitle>Remover foto de perfil?</AlertDialogTitle>
                                                 <AlertDialogDescription>
@@ -627,17 +627,17 @@ export default function ProfilePage() {
                                                     outra foto quando quiser.
                                                 </AlertDialogDescription>
                                             </AlertDialogHeader>
-                                            <AlertDialogFooter>
+                                            <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
                                                 <AlertDialogCancel
                                                     disabled={profilePhotoUploading || profilePhotoRemoving}
-                                                    className="cursor-pointer"
+                                                    className="cursor-pointer w-full sm:w-auto"
                                                 >
                                                     Cancelar
                                                 </AlertDialogCancel>
                                                 <AlertDialogAction
                                                     onClick={handleRemoveProfilePhoto}
                                                     disabled={profilePhotoUploading || profilePhotoRemoving}
-                                                    className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+                                                    className="bg-destructive hover:bg-destructive/90 cursor-pointer w-full sm:w-auto"
                                                 >
                                                     Remover
                                                 </AlertDialogAction>
@@ -728,7 +728,7 @@ export default function ProfilePage() {
                                                     Alterar Senha
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-[425px]">
+                                            <DialogContent className="w-[95vw] sm:max-w-[425px] p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
                                                 <DialogHeader>
                                                     <DialogTitle>Alterar Senha</DialogTitle>
                                                     <DialogDescription>
@@ -855,18 +855,20 @@ export default function ProfilePage() {
                                                                 </FormItem>
                                                             )}
                                                         />
-                                                        <DialogFooter>
+                                                        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
                                                             <Button
                                                                 type="button"
                                                                 variant="outline"
                                                                 onClick={() => setIsPasswordModalOpen(false)}
                                                                 disabled={passwordForm.formState.isSubmitting}
+                                                                className="w-full sm:w-auto cursor-pointer"
                                                             >
                                                                 Cancelar
                                                             </Button>
                                                             <Button
                                                                 type="submit"
                                                                 disabled={passwordForm.formState.isSubmitting}
+                                                                className="w-full sm:w-auto cursor-pointer"
                                                             >
                                                                 {passwordForm.formState.isSubmitting && (
                                                                     <Loader className="mr-2 h-4 w-4 animate-spin" />
@@ -902,7 +904,7 @@ export default function ProfilePage() {
                                                 Excluir conta
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="sm:max-w-[425px]">
+                                        <DialogContent className="w-[95vw] sm:max-w-[425px] p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
                                             <DialogHeader>
                                                 <DialogTitle>Excluir conta</DialogTitle>
                                                 <DialogDescription>
@@ -939,11 +941,11 @@ export default function ProfilePage() {
                                                         <p className="text-sm text-destructive mt-2">{deleteError}</p>
                                                     )}
                                                 </div>
-                                                <DialogFooter>
+                                                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
                                                     <Button
                                                         type="button"
                                                         variant="outline"
-                                                        className="cursor-pointer"
+                                                        className="cursor-pointer w-full sm:w-auto"
                                                         onClick={() => setIsDeleteModalOpen(false)}
                                                         disabled={deletingAccount}
                                                     >
@@ -953,7 +955,7 @@ export default function ProfilePage() {
                                                         type="submit"
                                                         variant="destructive"
                                                         disabled={deletingAccount}
-                                                        className="cursor-pointer"
+                                                        className="cursor-pointer w-full sm:w-auto"
                                                     >
                                                         {deletingAccount && (
                                                             <Loader className="mr-2 h-4 w-4 animate-spin" />
