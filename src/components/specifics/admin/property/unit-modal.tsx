@@ -23,7 +23,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
     const imagesFileInputRef = useRef<HTMLInputElement | null>(null);
     const [floorPlanFiles, setFloorPlanFiles] = useState<File[]>([]);
     const [floorPlanPreviews, setFloorPlanPreviews] = useState<string[]>([]);
-    const [floorPlanUrls, setFloorPlanUrls] = useState<string[]>([]); // existing URLs
+    const [floorPlanUrls, setFloorPlanUrls] = useState<string[]>([]);
     const [floorPlanToRemove, setFloorPlanToRemove] = useState<string[]>([]);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -36,7 +36,6 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
         setFloorPlanUrls(existingFloor);
         const existingImages = (unit?.images as string[] | undefined) || [];
         setImageUrls(existingImages);
-        // reset new files and revoke previous previews safely
         setFloorPlanFiles([]);
         setFloorPlanPreviews(old => {
             old.forEach(url => URL.revokeObjectURL(url));
@@ -109,10 +108,8 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
         // Adicionar validação com Zod aqui se necessário
         onSave({
             ...(formData as Unit),
-            // persist existing urls kept
             floorPlanUrls,
             images: imageUrls,
-            // attach ephemeral props for upload/deletion handling by parent
             floorPlanFiles,
             floorPlanToRemove,
             floorPlanPreviews,

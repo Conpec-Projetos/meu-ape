@@ -68,18 +68,18 @@ export const listAgentRequests = async (status: string, page: number, limitSize:
 
 export const listAdminEmails = async (): Promise<string[]> => {
     const usersCollection = db.collection("users");
-    const querySnapshot = await usersCollection.where("role", "==", "admin").get()
+    const querySnapshot = await usersCollection.where("role", "==", "admin").get();
     const emails: string[] = [];
 
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach(doc => {
         const data = doc.data();
         if (data.email) {
-        emails.push(data.email);
+            emails.push(data.email);
         }
     });
-    
+
     return emails;
-}
+};
 
 export const createUser = async (userData: Partial<User> & { password?: string }) => {
     const { email, password, ...profileData } = userData;
@@ -128,6 +128,33 @@ export const deleteUser = async (userId: string) => {
             }
         }
     }
+
+    // Remove all Cloud Storage files related to this user
+    try {
+        const bucket = adminStorage.bucket();
+        const prefixes = [`clientFiles/${userId}/`, `agentFiles/${userId}/`];
+
+        // Delete files for each known prefix. If a prefix has no files, deleteFiles resolves without throwing.
+        for (const prefix of prefixes) {
+            try {
+                await bucket.deleteFiles({ prefix });
+                console.log(`Deleted storage files with prefix: ${prefix}`);
+            } catch (err) {
+                // Ignore NotFound or permission issues individually to attempt other prefixes
+                console.warn(`Warning deleting files for prefix ${prefix}:`, err);
+            }
+        }
+    } catch (storageErr) {
+        console.warn("Warning while cleaning up user storage files:", storageErr);
+    }
+
+    // Remove agent registration request document if it exists (doc id equals userId)
+    try {
+        await db.collection("agentRegistrationRequests").doc(userId).delete();
+    } catch (reqErr) {
+        console.warn(`Warning deleting agentRegistrationRequests/${userId}:`, reqErr);
+    }
+
     await userRef.delete();
 };
 
@@ -236,6 +263,9 @@ export const updateUserProfileData = async (userId: string, dataToUpdate: Partia
 };
 
 // --- New function to upload documents ---
+// Recognized agent document keys
+const AGENT_DOCUMENT_KEYS = new Set(["creciCardPhoto", "creciCert"]);
+
 export const uploadUserDocuments = async (
     userId: string,
     filesByField: Record<string, File[]>
@@ -248,13 +278,20 @@ export const uploadUserDocuments = async (
     const uploadedUrls: Record<string, string[]> = {};
 
     const uploadPromises = Object.entries(filesByField).map(async ([fieldName, files]) => {
+        const isAgentDoc = AGENT_DOCUMENT_KEYS.has(fieldName);
         const fieldUrls: string[] = [];
         for (const file of files) {
+            // Enforce 5MB max per file server-side as well
+            if (file.size && file.size > 5 * 1024 * 1024) {
+                console.warn(`Skipping file over 5MB for field ${fieldName}: ${file.name}`);
+                continue;
+            }
             // Generate a unique filename
             const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
             const fileExtension = file.name.split(".").pop() || "";
             const uniqueFileName = `${fieldName}-${uniqueSuffix}.${fileExtension}`;
-            const filePath = `clientFiles/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
+            const baseFolder = isAgentDoc ? "agentFiles" : "clientFiles";
+            const filePath = `${baseFolder}/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
             const fileUpload = bucket.file(filePath);
 
             // Convert File to Buffer (required for admin SDK upload)
@@ -276,10 +313,17 @@ export const uploadUserDocuments = async (
 
         // Update Firestore document with the URLs for this specific field
         // Use dot notation for nested fields
-        await userRef.update({
-            [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
-            updatedAt: AdminTimestamp.now(), // Update timestamp
-        });
+        if (isAgentDoc) {
+            await userRef.update({
+                [`agentProfile.documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls),
+                updatedAt: AdminTimestamp.now(),
+            });
+        } else {
+            await userRef.update({
+                [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
+                updatedAt: AdminTimestamp.now(), // Update timestamp
+            });
+        }
 
         uploadedUrls[fieldName] = fieldUrls;
     });
@@ -287,4 +331,142 @@ export const uploadUserDocuments = async (
     await Promise.all(uploadPromises);
     console.log(`User documents updated for userId: ${userId}`);
     return uploadedUrls;
+};
+
+// Delete a single user document file (client or agent) by URL and update Firestore arrays accordingly
+export const deleteUserDocument = async (userId: string, fieldName: string, fileUrl: string): Promise<void> => {
+    if (!userId) throw new Error("User ID is required.");
+    if (!fileUrl) throw new Error("File URL is required.");
+
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    // Try to derive the storage path from the public URL
+    let storagePath: string | null = null;
+    try {
+        const u = new URL(fileUrl);
+        const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+        if (pathParts[0] === bucketName && pathParts.length > 1) {
+            storagePath = pathParts.slice(1).join("/");
+        } else {
+            const ix = fileUrl.indexOf(`${bucketName}/`);
+            if (ix !== -1) {
+                storagePath = decodeURIComponent(fileUrl.slice(ix + bucketName.length + 1));
+            }
+        }
+    } catch {
+        // ignore, we'll try best effort below
+    }
+
+    if (storagePath) {
+        try {
+            await bucket.file(storagePath).delete({ ignoreNotFound: true });
+        } catch {
+            console.warn("Error deleting user document from storage:");
+        }
+    }
+
+    const isAgentDoc = AGENT_DOCUMENT_KEYS.has(fieldName);
+    if (isAgentDoc) {
+        await userRef.update({
+            [`agentProfile.documents.${fieldName}`]: FieldValue.arrayRemove(fileUrl),
+            updatedAt: AdminTimestamp.now(),
+        });
+    } else {
+        await userRef.update({
+            [`documents.${fieldName}`]: FieldValue.arrayRemove(fileUrl),
+            updatedAt: AdminTimestamp.now(),
+        });
+    }
+};
+
+export const uploadUserProfilePhoto = async (userId: string, file: File): Promise<string> => {
+    if (!userId) throw new Error("User ID is required.");
+    if (!file) throw new Error("No file provided.");
+
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    // Remove previous photo if exists
+    try {
+        const existing = await userRef.get();
+        const data = existing.data() as User | undefined;
+        const prevUrl = data?.photoUrl as string | undefined;
+        if (prevUrl) {
+            try {
+                const u = new URL(prevUrl);
+                // Expected pathname: /<bucket>/<path>
+                const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+                if (pathParts[0] === bucketName && pathParts.length > 1) {
+                    const prevPath = pathParts.slice(1).join("/");
+                    await bucket.file(prevPath).delete({ ignoreNotFound: true });
+                } else {
+                    // Fallback: try to find after bucket name in full URL string
+                    const ix = prevUrl.indexOf(`${bucketName}/`);
+                    if (ix !== -1) {
+                        const prevPath = decodeURIComponent(prevUrl.slice(ix + bucketName.length + 1));
+                        await bucket.file(prevPath).delete({ ignoreNotFound: true });
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not delete previous profile photo:", e);
+            }
+        }
+    } catch (e) {
+        console.warn("Failed checking existing user photo:", e);
+    }
+
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const fileExtension = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const safeExt = ["jpg", "jpeg", "png", "webp"].includes(fileExtension) ? fileExtension : "jpg";
+    const uniqueFileName = `profile-${uniqueSuffix}.${safeExt}`;
+    const filePath = `clientFiles/${userId}/profile/${uniqueFileName}`;
+    const dest = bucket.file(filePath);
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await dest.save(buffer, {
+        metadata: { contentType: file.type || `image/${safeExt}` },
+        validation: false,
+    });
+
+    await dest.makePublic();
+    const publicUrl = dest.publicUrl();
+
+    await userRef.update({ photoUrl: publicUrl, updatedAt: AdminTimestamp.now() });
+    return publicUrl;
+};
+
+// --- Delete and clear profile photo ---
+export const deleteUserProfilePhoto = async (userId: string): Promise<void> => {
+    if (!userId) throw new Error("User ID is required.");
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    const snap = await userRef.get();
+    if (!snap.exists) return;
+    const data = snap.data() as User | undefined;
+    const url = data?.photoUrl as string | undefined;
+    if (url) {
+        try {
+            const u = new URL(url);
+            const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+            if (pathParts[0] === bucketName && pathParts.length > 1) {
+                const filePath = pathParts.slice(1).join("/");
+                await bucket.file(filePath).delete({ ignoreNotFound: true });
+            } else {
+                const ix = url.indexOf(`${bucketName}/`);
+                if (ix !== -1) {
+                    const filePath = decodeURIComponent(url.slice(ix + bucketName.length + 1));
+                    await bucket.file(filePath).delete({ ignoreNotFound: true });
+                }
+            }
+        } catch (e) {
+            console.warn("Error deleting profile photo from storage:", e);
+        }
+    }
+
+    await userRef.update({ photoUrl: FieldValue.delete(), updatedAt: AdminTimestamp.now() });
 };

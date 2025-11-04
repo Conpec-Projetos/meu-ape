@@ -211,24 +211,20 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
                                     <div className="text-lg sm:text-xl font-semibold">{property.name}</div>
                                 </div>
                                 <>
-                                {unit.block && (
-                                <div>
-                                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                                        Bloco
-                                    </div>
-                                    <div className="text-lg sm:text-xl font-semibold">
-                                        {unit.block}
-                                    </div>
-                                </div>
-                                )}
+                                    {unit.block && (
+                                        <div>
+                                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                                                Bloco
+                                            </div>
+                                            <div className="text-lg sm:text-xl font-semibold">{unit.block}</div>
+                                        </div>
+                                    )}
                                 </>
                                 <div>
                                     <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
                                         Unidade
                                     </div>
-                                    <div className="text-lg sm:text-xl font-semibold">
-                                        {unit.identifier}
-                                    </div>
+                                    <div className="text-lg sm:text-xl font-semibold">{unit.identifier}</div>
                                 </div>
                                 <div className="flex items-center flex-wrap gap-2">
                                     <div>

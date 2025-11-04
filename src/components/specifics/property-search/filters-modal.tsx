@@ -12,7 +12,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-// --- FORM SCHEMA (Zod) ---
 const filterSchema = z.object({
     priceRange: z.array(z.number()),
     bedrooms: z.array(z.number()),
@@ -96,7 +95,7 @@ export function FiltersModal() {
                             )}
                         />
                         {/* Bedrooms, Bathrooms, Garages */}
-                        {(['bedrooms', 'bathrooms', 'garages'] as const).map(filter => (
+                        {(["bedrooms", "bathrooms", "garages"] as const).map(filter => (
                             <FormField
                                 key={filter}
                                 control={form.control}

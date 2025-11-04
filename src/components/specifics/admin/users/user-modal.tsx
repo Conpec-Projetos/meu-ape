@@ -18,16 +18,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { User } from "@/interfaces/user";
 import { userSchema } from "@/schemas/userSchema";
-import { Eye, EyeOff } from "lucide-react"; // ADDED Eye and EyeOff imports
+import { Download, ExternalLink, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
-// Define a schema for adding a new user with required password fields.
 const addSchema = userSchema
     .extend({
-        password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), // Password is required for ADD
-        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."), // Confirm Password is required for ADD
+        password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), 
+        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."),
         adminMsg: z.string().optional(),
     })
     .refine(data => data.password === data.confirmPassword, {
@@ -35,17 +36,14 @@ const addSchema = userSchema
         path: ["confirmPassword"],
     });
 
-// Define a schema for editing a user, omitting the password fields.
 const editSchema = userSchema.omit({ password: true }).extend({
     adminMsg: z.string().optional(),
 });
 
-// Define a schema for reviewing a user, omitting the password fields.
 const reviewSchema = z.object({
     adminMsg: z.string().min(1, "Motivo da recusa é obrigatório"),
 });
 
-// A base type for form values (use the most inclusive schema type for hooks)
 type FormValues = z.infer<typeof addSchema>;
 
 interface UserModalProps {
@@ -60,12 +58,11 @@ interface UserModalProps {
 }
 
 export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave, onApprove, onDeny }: UserModalProps) {
-    const [passwordVisible, setPasswordVisible] = useState(false); // ADDED state
-    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false); // ADDED state
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const [showDenialReason, setShowDenialReason] = useState(false);
 
-    const currentSchema = mode === "add" ? addSchema : editSchema; // Use dynamic schema
-
+    const currentSchema = mode === "add" ? addSchema : editSchema;
     const form = useForm<FormValues>({
         resolver: zodResolver(currentSchema as unknown as z.ZodTypeAny),
         defaultValues: {
@@ -75,8 +72,8 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             phone: "",
             address: "",
             role: "client",
-            password: "", // ADDED default value
-            confirmPassword: "", // ADDED default value
+            password: "",
+            confirmPassword: "",
             agentProfile: {
                 creci: "",
                 city: "",
@@ -89,8 +86,8 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
         if (isOpen) {
             let defaultValues: Partial<FormValues> = {
                 role: "client",
-                password: "", // Clear password fields
-                confirmPassword: "", // Clear password fields
+                password: "",
+                confirmPassword: "",
             };
             if (mode === "edit" || mode === "view") {
                 defaultValues = userData || {};
@@ -112,6 +109,14 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
     }, [isOpen, mode, userData, requestData, form]);
 
     const role = form.watch("role");
+
+    useEffect(() => {
+        if (role !== "agent") {
+            form.setValue("agentProfile.creci", "");
+            form.setValue("agentProfile.city", "");
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [role]);
 
     const onSubmit = (data: FormValues) => {
         onSave(data);
@@ -207,7 +212,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                     )}
                 />
 
-                {mode === "add" && ( // ADDED: Password fields only for 'add' mode
+                {mode === "add" && (
                     <>
                         <FormField
                             control={form.control}
@@ -295,8 +300,11 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
+            <DialogContent
+                showCloseButton={false}
+                className="w-[95vw] sm:max-w-[95vw] md:max-w-xl lg:max-w-2xl xl:max-w-3xl max-w-[800px] max-h-[90vh] p-0 overflow-y-auto rounded-lg"
+            >
+                <DialogHeader className="sticky top-0 border-b bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 sm:px-6 py-3 sm:py-4">
                     <DialogTitle>
                         {mode === "add" && "Adicionar Novo Usuário"}
                         {mode === "edit" && "Editar Usuário"}
@@ -307,83 +315,253 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                         <DialogDescription>Preencha os campos abaixo.</DialogDescription>
                     )}
                 </DialogHeader>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        {mode !== "review" && (
-                            <FormField
-                                control={form.control}
-                                name="role"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Tipo de Usuário</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                            disabled={mode !== "add"}
-                                        >
+                <div className="p-4 sm:p-6">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            {mode !== "review" && (
+                                <FormField
+                                    control={form.control}
+                                    name="role"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Tipo de Usuário</FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={mode === "view"}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger className="cursor-pointer">
+                                                        <SelectValue placeholder="Selecione o tipo de usuário" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem className="cursor-pointer" value="client">
+                                                        Cliente
+                                                    </SelectItem>
+                                                    <SelectItem className="cursor-pointer" value="agent">
+                                                        Corretor
+                                                    </SelectItem>
+                                                    <SelectItem className="cursor-pointer" value="admin">
+                                                        Administrador
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            {renderFields()}
+                            {/* Documentos enviados - visível em view/edit/review */}
+                            {(mode === "view" || mode === "edit" || mode === "review") &&
+                                (() => {
+                                    // Coleta documentos do usuário
+                                    const userDocs = userData
+                                        ? {
+                                              // Documentos gerais do usuário (clientes/qualquer role)
+                                              identityDoc: userData.documents?.identityDoc || [],
+                                              addressProof: userData.documents?.addressProof || [],
+                                              incomeProof: userData.documents?.incomeProof || [],
+                                              bmCert: userData.documents?.bmCert || [],
+                                              // Documentos específicos de corretor
+                                              creciCardPhoto: userData.agentProfile?.documents?.creciCardPhoto || [],
+                                              creciCert: userData.agentProfile?.documents?.creciCert || [],
+                                          }
+                                        : null;
+
+                                    // Coleta documentos da solicitação (modo review)
+                                    const requestDocs =
+                                        mode === "review" && requestData?.applicantData
+                                            ? {
+                                                  creciCardPhoto: requestData.applicantData.creciCardPhoto || [],
+                                                  creciCert: requestData.applicantData.creciCert || [],
+                                              }
+                                            : null;
+
+                                    const hasAnyDoc =
+                                        (userDocs &&
+                                            Object.values(userDocs).some(arr => (arr as string[]).length > 0)) ||
+                                        (requestDocs &&
+                                            Object.values(requestDocs).some(arr => (arr as string[]).length > 0));
+
+                                    if (!hasAnyDoc) return null;
+
+                                    const DocSection = ({ title, items }: { title: string; items: string[] }) =>
+                                        items.length ? (
+                                            <div className="space-y-2">
+                                                <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {items.map((src, idx) => (
+                                                        <div key={`${title}-${idx}`} className="space-y-1">
+                                                            <div className="group relative overflow-hidden rounded border bg-muted/30 w-full">
+                                                                <div className="relative h-28 sm:h-32 md:h-36 w-full">
+                                                                    <Image
+                                                                        src={src}
+                                                                        alt={`${title} ${idx + 1}`}
+                                                                        fill
+                                                                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                                                        className="object-cover transition-transform duration-200"
+                                                                        unoptimized
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="icon"
+                                                                            className="cursor-pointer"
+                                                                            asChild
+                                                                        >
+                                                                            <a
+                                                                                href={src}
+                                                                                download
+                                                                                onClick={e => e.stopPropagation()}
+                                                                            >
+                                                                                <Download className="h-4 w-4" />
+                                                                            </a>
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Baixar</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="icon"
+                                                                            className="cursor-pointer"
+                                                                            asChild
+                                                                        >
+                                                                            <a
+                                                                                href={src}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                onClick={e => e.stopPropagation()}
+                                                                            >
+                                                                                <ExternalLink className="h-4 w-4" />
+                                                                            </a>
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Abrir em nova aba</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : null;
+
+                                    return (
+                                        <TooltipProvider>
+                                            <div className="space-y-3 pt-2">
+                                                <h3 className="text-base font-semibold">Documentos</h3>
+                                                {/* Documentos vindos de solicitação (review) */}
+                                                {requestDocs && (
+                                                    <div className="space-y-3">
+                                                        <DocSection
+                                                            title="CRECI - Carteirinha"
+                                                            items={requestDocs.creciCardPhoto}
+                                                        />
+                                                        <DocSection
+                                                            title="CRECI - Certificado"
+                                                            items={requestDocs.creciCert}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {/* Documentos do usuário */}
+                                                {userDocs && (
+                                                    <div className="space-y-3">
+                                                        <DocSection
+                                                            title="Documento de Identidade"
+                                                            items={userDocs.identityDoc}
+                                                        />
+                                                        <DocSection
+                                                            title="Comprovante de Endereço"
+                                                            items={userDocs.addressProof}
+                                                        />
+                                                        <DocSection
+                                                            title="Comprovante de Renda"
+                                                            items={userDocs.incomeProof}
+                                                        />
+                                                        <DocSection title="Certidão" items={userDocs.bmCert} />
+                                                        <DocSection
+                                                            title="CRECI - Carteirinha"
+                                                            items={userDocs.creciCardPhoto}
+                                                        />
+                                                        <DocSection
+                                                            title="CRECI - Certificado"
+                                                            items={userDocs.creciCert}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TooltipProvider>
+                                    );
+                                })()}
+                            {showDenialReason && (
+                                <FormField
+                                    control={form.control}
+                                    name="adminMsg"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Motivo da Recusa</FormLabel>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione o tipo de usuário" />
-                                                </SelectTrigger>
+                                                <Textarea
+                                                    placeholder="Explique o motivo da recusa..."
+                                                    {...field}
+                                                    value={field.value || ""}
+                                                />
                                             </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="client">Cliente</SelectItem>
-                                                <SelectItem value="agent">Corretor</SelectItem>
-                                                <SelectItem value="admin">Administrador</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            <DialogFooter>
+                                {mode === "review" && !showDenialReason && (
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={handleDenyClick}
+                                            className="cursor-pointer"
+                                        >
+                                            Recusar
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() => onApprove && requestData && onApprove(requestData)}
+                                            className="cursor-pointer"
+                                        >
+                                            Aprovar
+                                        </Button>
+                                    </>
                                 )}
-                            />
-                        )}
-                        {renderFields()}
-                        {showDenialReason && (
-                            <FormField
-                                control={form.control}
-                                name="adminMsg"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Motivo da Recusa</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder="Explique o motivo da recusa..."
-                                                {...field}
-                                                value={field.value || ""}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        )}
-                        <DialogFooter>
-                            {mode === "review" && !showDenialReason && (
-                                <>
-                                    <Button type="button" variant="destructive" onClick={handleDenyClick}>
-                                        Recusar
-                                    </Button>
+                                {showDenialReason && (
                                     <Button
                                         type="button"
-                                        onClick={() => onApprove && requestData && onApprove(requestData)}
+                                        variant="destructive"
+                                        onClick={handleConfirmDeny}
+                                        className="cursor-pointer"
                                     >
-                                        Aprovar
+                                        Confirmar Recusa
                                     </Button>
-                                </>
-                            )}
-                            {showDenialReason && (
-                                <Button type="button" variant="destructive" onClick={handleConfirmDeny}>
-                                    Confirmar Recusa
-                                </Button>
-                            )}
-                            {(mode === "add" || mode === "edit") && (
-                                <Button type="submit" className="cursor-pointer">
-                                    Salvar
-                                </Button>
-                            )}
-                        </DialogFooter>
-                    </form>
-                </Form>
+                                )}
+                                {(mode === "add" || mode === "edit") && (
+                                    <Button type="submit" className="cursor-pointer">
+                                        Salvar
+                                    </Button>
+                                )}
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </div>
             </DialogContent>
         </Dialog>
     );

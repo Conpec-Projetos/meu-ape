@@ -17,7 +17,7 @@ import { User } from "@/interfaces/user";
 import { notifyPromise } from "@/services/notificationService";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 function UserManagementContent() {
     const router = useRouter();
@@ -26,6 +26,18 @@ function UserManagementContent() {
     const tab = searchParams.get("tab") || "clients";
     const subtab = searchParams.get("subtab") || "registered-agents";
     const page = Number(searchParams.get("page")) || 1;
+    const urlSearchText = searchParams.get("q") || "";
+    const [searchInput, setSearchInput] = useState(urlSearchText);
+
+    useEffect(() => {
+        setSearchInput(urlSearchText);
+    }, [urlSearchText]);
+
+    const [debouncedSearch, setDebouncedSearch] = useState(searchInput);
+    useEffect(() => {
+        const id = setTimeout(() => setDebouncedSearch(searchInput), 500);
+        return () => clearTimeout(id);
+    }, [searchInput]);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDenialModalOpen, setIsDenialModalOpen] = useState(false);
@@ -36,6 +48,11 @@ function UserManagementContent() {
 
     const isAgentRequestsTab = tab === "agents" && subtab === "registration-requests";
 
+    const isSearching = !!debouncedSearch && !isAgentRequestsTab;
+    const basePageSize = 20;
+    const fetchLimit = isSearching ? 200 : basePageSize;
+    const effectivePageForFetch = isSearching ? 1 : page;
+
     const {
         users,
         totalPages: usersTotalPages,
@@ -44,8 +61,8 @@ function UserManagementContent() {
         refresh: refreshUsers,
     } = useUsers(
         tab === "clients" ? "client" : tab === "agents" ? "agent" : "admin",
-        page,
-        20,
+        effectivePageForFetch,
+        fetchLimit,
         tab === "agents" && subtab === "registered-agents" ? "approved" : undefined,
         !isAgentRequestsTab
     );
@@ -59,7 +76,67 @@ function UserManagementContent() {
     } = useAgentRequests("pending", page, 20, isAgentRequestsTab);
     const { counts: userCounts, isLoading: countsIsLoading } = useUserCounts();
 
-    const totalPages = isAgentRequestsTab ? requestsTotalPages : usersTotalPages;
+    const filteredUsers = useMemo(() => {
+        if (!isSearching) return users;
+        const normalize = (s: string) =>
+            s
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/\p{Diacritic}/gu, "");
+
+        const subsequenceScore = (text: string, query: string) => {
+            let ti = 0;
+            let qi = 0;
+            let score = 0;
+            let streak = 0;
+            while (ti < text.length && qi < query.length) {
+                if (text[ti] === query[qi]) {
+                    qi++;
+                    streak++;
+                    score += 1 + Math.min(streak, 3);
+                } else {
+                    streak = 0;
+                }
+                ti++;
+            }
+            return qi === query.length ? score : 0;
+        };
+
+        const scoreValue = (value: string, query: string) => {
+            if (!query) return 1;
+            const t = normalize(value);
+            const q = normalize(query);
+            const idx = t.indexOf(q);
+            if (idx !== -1) {
+                return 100 - idx - Math.max(0, t.length - q.length - idx);
+            }
+            return subsequenceScore(t, q);
+        };
+        const withScores = users
+            .map(u => {
+                const fields = [
+                    u.fullName,
+                    u.email,
+                    u.cpf ?? "",
+                    u.rg ?? "",
+                    u.phone ?? "",
+                    u.agentProfile?.creci ?? "",
+                ];
+                const score = Math.max(...fields.map(v => scoreValue(v, debouncedSearch)));
+                return { u, score };
+            })
+            .filter(x => x.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(x => x.u);
+        return withScores;
+    }, [users, isSearching, debouncedSearch]);
+
+    const effectiveUsers = isSearching ? filteredUsers.slice((page - 1) * basePageSize, page * basePageSize) : users;
+    const totalPages = isAgentRequestsTab
+        ? requestsTotalPages
+        : isSearching
+          ? Math.max(1, Math.ceil(filteredUsers.length / basePageSize))
+          : usersTotalPages;
     const isLoading = isAgentRequestsTab ? requestsIsLoading : usersIsLoading;
     const error = isAgentRequestsTab ? requestsError : usersError;
 
@@ -97,6 +174,16 @@ function UserManagementContent() {
         params.set("page", newPage.toString());
         router.push(`${pathname}?${params.toString()}`);
     };
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (debouncedSearch) params.set("q", debouncedSearch);
+        else params.delete("q");
+        params.set("page", "1");
+        const next = `${pathname}?${params.toString()}`;
+        const current = `${pathname}?${new URLSearchParams(window.location.search).toString()}`;
+        if (next !== current) router.push(next);
+    }, [debouncedSearch, pathname, router]);
 
     const refreshData = () => {
         if (isAgentRequestsTab) {
@@ -169,7 +256,6 @@ function UserManagementContent() {
         const promise = () =>
             new Promise(async (resolve, reject) => {
                 try {
-                    // Uses selectedRequest from state, as it's for the DenialModal flow
                     if (selectedRequest?.id) {
                         await fetch(`/api/admin/agent-requests/${selectedRequest.id}/action`, {
                             method: "POST",
@@ -179,7 +265,7 @@ function UserManagementContent() {
                         refreshData();
                         resolve("Solicitação de agente negada com sucesso");
                     } else {
-                        reject(new Error("Solicitação de agente não selecionada.")); // Added error for robustness
+                        reject(new Error("Solicitação de agente não selecionada."));
                     }
                 } catch (err) {
                     reject(err);
@@ -193,7 +279,6 @@ function UserManagementContent() {
         });
     };
 
-    // New function for the UserModal's internal denial flow.
     const handleUserModalDeny = async (request: AgentRegistrationRequest, reason: string) => {
         const promise = () =>
             new Promise(async (resolve, reject) => {
@@ -203,7 +288,7 @@ function UserManagementContent() {
                             method: "POST",
                             body: JSON.stringify({ action: "deny", adminMsg: reason }),
                         });
-                        setIsModalOpen(false); // Closes the UserModal (review modal)
+                        setIsModalOpen(false);
                         refreshData();
                         resolve("Solicitação de agente negada com sucesso");
                     } else {
@@ -268,7 +353,7 @@ function UserManagementContent() {
 
         return (
             <UserTable
-                users={users}
+                users={effectiveUsers}
                 page={page}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
@@ -290,7 +375,7 @@ function UserManagementContent() {
     );
 
     return (
-        <div className="h-screen container mx-auto py-20">
+        <div className="min-h-screen container mx-auto px-4 py-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
@@ -303,7 +388,15 @@ function UserManagementContent() {
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                 <div className="relative w-full sm:max-w-xs">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Procurar por nome ou email..." className="pl-8 w-full" />
+                    <Input
+                        placeholder="Procurar por nome, email, CPF, RG ou CRECI..."
+                        className="pl-8 w-full"
+                        value={searchInput}
+                        onChange={e => {
+                            setSearchInput(e.target.value);
+                        }}
+                        disabled={isAgentRequestsTab}
+                    />
                 </div>
                 <Button onClick={handleAddUser} className="cursor-pointer w-full sm:w-auto">
                     Adicionar Novo Usuário
@@ -323,13 +416,15 @@ function UserManagementContent() {
                     router.push(`${pathname}?${params.toString()}`);
                 }}
             >
-                <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="clients">Clientes ({countsIsLoading ? "..." : userCounts.client})</TabsTrigger>
-                    <TabsTrigger value="agents">
-                        Corretores ({countsIsLoading ? "..." : userCounts.agent + requestsTotal})
+                <TabsList className="grid w-full grid-cols-3 relative z-10 overflow-x-auto">
+                    <TabsTrigger value="clients" className="cursor-pointer">
+                        Clientes{tab === "clients" ? ` (${countsIsLoading ? "..." : userCounts.client})` : ""}
                     </TabsTrigger>
-                    <TabsTrigger value="admins">
-                        Administradores ({countsIsLoading ? "..." : userCounts.admin})
+                    <TabsTrigger value="agents" className="cursor-pointer">
+                        Corretores
+                    </TabsTrigger>
+                    <TabsTrigger value="admins" className="cursor-pointer">
+                        Administradores{tab === "admins" ? ` (${countsIsLoading ? "..." : userCounts.admin})` : ""}
                     </TabsTrigger>
                 </TabsList>
                 <TabsContent value="clients">{getTabContent("Todos os Clientes")}</TabsContent>
@@ -344,12 +439,18 @@ function UserManagementContent() {
                             router.push(`${pathname}?${params.toString()}`);
                         }}
                     >
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="registered-agents">
-                                Corretores Registrados ({countsIsLoading ? "..." : userCounts.agent})
+                        <TabsList className="grid w-full grid-cols-2 relative z-10 overflow-x-auto">
+                            <TabsTrigger value="registered-agents" className="cursor-pointer">
+                                Corretores Registrados
+                                {tab === "agents" && subtab === "registered-agents"
+                                    ? ` (${countsIsLoading ? "..." : userCounts.agent})`
+                                    : ""}
                             </TabsTrigger>
-                            <TabsTrigger value="registration-requests">
-                                Solicitações de Cadastro ({requestsIsLoading ? "..." : requestsTotal})
+                            <TabsTrigger value="registration-requests" className="cursor-pointer">
+                                Solicitações de Cadastro
+                                {tab === "agents" && subtab === "registration-requests"
+                                    ? ` (${requestsIsLoading ? "..." : requestsTotal})`
+                                    : ""}
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="registered-agents">{getTabContent("Corretores Registrados")}</TabsContent>

@@ -25,7 +25,7 @@ export function DenialModal({ isOpen, onClose, onConfirm }: DenialModalProps) {
 
     return (
         <AlertDialog open={isOpen} onOpenChange={onClose}>
-            <AlertDialogContent>
+            <AlertDialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 rounded-md">
                 <AlertDialogHeader>
                     <AlertDialogTitle>Negar Solicitação</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -39,6 +39,7 @@ export function DenialModal({ isOpen, onClose, onConfirm }: DenialModalProps) {
                         value={reason}
                         onChange={e => setReason(e.target.value)}
                         placeholder="Digite o motivo da negação..."
+                        className="min-h-28"
                     />
                 </div>
                 <AlertDialogFooter>
