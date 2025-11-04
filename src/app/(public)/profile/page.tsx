@@ -14,6 +14,18 @@ import { Input } from "@/components/features/inputs/default-input";
 import { Label } from "@/components/features/labels/default-label";
 import { Skeleton } from "@/components/features/skeletons/default-skeleton";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -54,6 +66,9 @@ export default function ProfilePage() {
     const [uploading, setUploading] = useState(false);
     const [uploadedUrls, setUploadedUrls] = useState<Record<string, string[]>>({});
     const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>({});
+    const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | undefined>(undefined);
+    const [profilePhotoUploading, setProfilePhotoUploading] = useState(false);
+    const [profilePhotoRemoving, setProfilePhotoRemoving] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [newPasswordVisible, setNewPasswordVisible] = useState(false);
@@ -119,6 +134,7 @@ export default function ProfilePage() {
                     phone: user.phone ? formatPhone(user.phone as string) : "",
                 });
                 setUploadedUrls(user.documents || {});
+                setProfilePhotoUrl(user.photoUrl);
             } catch (err: unknown) {
                 if (err && (err as { name?: string }).name === "AbortError") return;
                 const message = err instanceof Error ? err.message : String(err);
@@ -224,6 +240,102 @@ export default function ProfilePage() {
 
     const setPendingFile = (documentType: string, file: File | null) => {
         setPendingFiles(p => ({ ...p, [documentType]: file }));
+    };
+
+    // --- Profile photo upload helpers ---
+    const inputProfileId = "profile-photo-input";
+    const MAX_PHOTO_BYTES = 3 * 1024 * 1024; // 3MB
+
+    const loadImage = (file: File): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
+    };
+
+    const cropToSquare = async (file: File, size = 500, mime = "image/jpeg"): Promise<Blob> => {
+        const img = await loadImage(file);
+        const s = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
+        const sx = Math.max(0, Math.floor(((img.naturalWidth || img.width) - s) / 2));
+        const sy = Math.max(0, Math.floor(((img.naturalHeight || img.height) - s) / 2));
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas not supported");
+        ctx.drawImage(img, sx, sy, s, s, 0, 0, size, size);
+        // Try multiple qualities to stay under 3MB
+        const qualities = [0.92, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6];
+        for (const q of qualities) {
+            const blob = await new Promise<Blob>((resolve, reject) =>
+                canvas.toBlob(b => (b ? resolve(b) : reject(new Error("toBlob failed"))), mime, q)
+            );
+            if (blob.size <= MAX_PHOTO_BYTES) return blob;
+        }
+        // Fallback last attempt
+        const fallback = await new Promise<Blob>((resolve, reject) =>
+            canvas.toBlob(b => (b ? resolve(b) : reject(new Error("toBlob failed"))), mime, 0.55)
+        );
+        return fallback;
+    };
+
+    const handleSelectProfilePhoto = async (file: File | null) => {
+        if (!file) return;
+        try {
+            setProfilePhotoUploading(true);
+            const cropped = await cropToSquare(file, 500, "image/jpeg");
+            if (cropped.size > MAX_PHOTO_BYTES) {
+                notifyError("A foto final excede 3MB mesmo após compactação.");
+                setProfilePhotoUploading(false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("photo", new File([cropped], "profile.jpg", { type: "image/jpeg" }));
+
+            const promise = fetch("/api/user/profile/photo", { method: "POST", body: formData })
+                .then(async res => {
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                        throw new Error(err.error || "Falha ao enviar foto de perfil.");
+                    }
+                    return res.json();
+                })
+                .then(({ url }) => {
+                    setProfilePhotoUrl(url);
+                })
+                .finally(() => setProfilePhotoUploading(false));
+
+            notifyPromise(promise, {
+                loading: "Enviando foto de perfil...",
+                success: "Foto de perfil atualizada!",
+                error: (e: Error) => e.message || "Erro ao enviar foto",
+            });
+        } catch (e) {
+            console.error(e);
+            setProfilePhotoUploading(false);
+            notifyError(e instanceof Error ? e.message : "Erro ao processar a imagem");
+        }
+    };
+
+    const handleRemoveProfilePhoto = () => {
+        setProfilePhotoRemoving(true);
+        const promise = fetch("/api/user/profile/photo", { method: "DELETE" })
+            .then(async res => {
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                    throw new Error(err.error || "Falha ao remover foto de perfil.");
+                }
+                setProfilePhotoUrl(undefined);
+            })
+            .finally(() => setProfilePhotoRemoving(false));
+        notifyPromise(promise, {
+            loading: "Removendo foto de perfil...",
+            success: "Foto de perfil removida.",
+            error: (e: Error) => e.message || "Erro ao remover foto.",
+        });
     };
 
     // Componente para Linha de Documento
@@ -391,8 +503,8 @@ export default function ProfilePage() {
             <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                     {" "}
-                    <TabsTrigger value="conta">Conta</TabsTrigger>
-                    <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                    <TabsTrigger value="conta" className="cursor-pointer">Conta</TabsTrigger>
+                    <TabsTrigger value="documentos" className="cursor-pointer">Documentos</TabsTrigger>
                 </TabsList>
 
                 {/* Aba Conta */}
@@ -403,6 +515,77 @@ export default function ProfilePage() {
                             <CardDescription>Atualize suas informações de perfil.</CardDescription>
                         </CardHeader>
                         <CardContent>
+                            {/* Profile photo */}
+                            <div className="flex items-center gap-4 mb-6">
+                                <Avatar className="size-16">
+                                    <AvatarImage src={profilePhotoUrl} alt="Foto de perfil" />
+                                    <AvatarFallback>PF</AvatarFallback>
+                                </Avatar>
+                                <div className="flex items-center gap-2">
+                                    <Label htmlFor={inputProfileId} className="sr-only">
+                                        Selecionar foto de perfil
+                                    </Label>
+                                    <Input
+                                        id={inputProfileId}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={e => handleSelectProfilePhoto(e.target.files?.[0] ?? null)}
+                                        disabled={profilePhotoUploading || profilePhotoRemoving}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="cursor-pointer"
+                                        onClick={() => document.getElementById(inputProfileId)?.click()}
+                                        disabled={profilePhotoUploading || profilePhotoRemoving}
+                                    >
+                                        {profilePhotoUploading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
+                                        {profilePhotoUploading ? "Enviando..." : "Alterar Foto"}
+                                    </Button>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                className="cursor-pointer"
+                                                disabled={
+                                                    profilePhotoUploading || profilePhotoRemoving || !profilePhotoUrl
+                                                }
+                                            >
+                                                {profilePhotoRemoving && (
+                                                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                                )}
+                                                Remover Foto
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Remover foto de perfil?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Esta ação apagará sua foto atual para sempre. Você pode adicionar
+                                                    outra foto quando quiser.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel
+                                                    disabled={profilePhotoUploading || profilePhotoRemoving}
+                                                    className="cursor-pointer"
+                                                >
+                                                    Cancelar
+                                                </AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={handleRemoveProfilePhoto}
+                                                    disabled={profilePhotoUploading || profilePhotoRemoving}
+                                                    className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+                                                >
+                                                    Remover
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            </div>
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onProfileSubmit)} className="space-y-6">
                                     <FormField

@@ -315,3 +315,93 @@ export const uploadUserDocuments = async (
     console.log(`User documents updated for userId: ${userId}`);
     return uploadedUrls;
 };
+
+export const uploadUserProfilePhoto = async (userId: string, file: File): Promise<string> => {
+    if (!userId) throw new Error("User ID is required.");
+    if (!file) throw new Error("No file provided.");
+
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    // Remove previous photo if exists
+    try {
+        const existing = await userRef.get();
+        const data = existing.data() as User | undefined;
+        const prevUrl = data?.photoUrl as string | undefined;
+        if (prevUrl) {
+            try {
+                const u = new URL(prevUrl);
+                // Expected pathname: /<bucket>/<path>
+                const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+                if (pathParts[0] === bucketName && pathParts.length > 1) {
+                    const prevPath = pathParts.slice(1).join("/");
+                    await bucket.file(prevPath).delete({ ignoreNotFound: true });
+                } else {
+                    // Fallback: try to find after bucket name in full URL string
+                    const ix = prevUrl.indexOf(`${bucketName}/`);
+                    if (ix !== -1) {
+                        const prevPath = decodeURIComponent(prevUrl.slice(ix + bucketName.length + 1));
+                        await bucket.file(prevPath).delete({ ignoreNotFound: true });
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not delete previous profile photo:", e);
+            }
+        }
+    } catch (e) {
+        console.warn("Failed checking existing user photo:", e);
+    }
+
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const fileExtension = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const safeExt = ["jpg", "jpeg", "png", "webp"].includes(fileExtension) ? fileExtension : "jpg";
+    const uniqueFileName = `profile-${uniqueSuffix}.${safeExt}`;
+    const filePath = `clientFiles/${userId}/profile/${uniqueFileName}`;
+    const dest = bucket.file(filePath);
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await dest.save(buffer, {
+        metadata: { contentType: file.type || `image/${safeExt}` },
+        validation: false,
+    });
+
+    await dest.makePublic();
+    const publicUrl = dest.publicUrl();
+
+    await userRef.update({ photoUrl: publicUrl, updatedAt: AdminTimestamp.now() });
+    return publicUrl;
+};
+
+// --- Delete and clear profile photo ---
+export const deleteUserProfilePhoto = async (userId: string): Promise<void> => {
+    if (!userId) throw new Error("User ID is required.");
+    const bucket = adminStorage.bucket();
+    const userRef = db.collection("users").doc(userId);
+    const bucketName = bucket.name;
+
+    const snap = await userRef.get();
+    if (!snap.exists) return;
+    const data = snap.data() as User | undefined;
+    const url = data?.photoUrl as string | undefined;
+    if (url) {
+        try {
+            const u = new URL(url);
+            const pathParts = decodeURIComponent(u.pathname).replace(/^\//, "").split("/");
+            if (pathParts[0] === bucketName && pathParts.length > 1) {
+                const filePath = pathParts.slice(1).join("/");
+                await bucket.file(filePath).delete({ ignoreNotFound: true });
+            } else {
+                const ix = url.indexOf(`${bucketName}/`);
+                if (ix !== -1) {
+                    const filePath = decodeURIComponent(url.slice(ix + bucketName.length + 1));
+                    await bucket.file(filePath).delete({ ignoreNotFound: true });
+                }
+            }
+        } catch (e) {
+            console.warn("Error deleting profile photo from storage:", e);
+        }
+    }
+
+    await userRef.update({ photoUrl: FieldValue.delete(), updatedAt: AdminTimestamp.now() });
+};
