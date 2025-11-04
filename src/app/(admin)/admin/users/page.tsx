@@ -290,7 +290,7 @@ function UserManagementContent() {
     );
 
     return (
-        <div className="h-screen container mx-auto py-20">
+        <div className="min-h-screen container mx-auto px-4 sm:px-6 py-6 sm:py-20">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gerenciamento de Usuários</h1>
@@ -323,7 +323,7 @@ function UserManagementContent() {
                     router.push(`${pathname}?${params.toString()}`);
                 }}
             >
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-3 relative z-10 overflow-x-auto">
                     <TabsTrigger value="clients" className="cursor-pointer">
                         Clientes{tab === "clients" ? ` (${countsIsLoading ? "..." : userCounts.client})` : ""}
                     </TabsTrigger>
@@ -346,7 +346,7 @@ function UserManagementContent() {
                             router.push(`${pathname}?${params.toString()}`);
                         }}
                     >
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-2 relative z-10 overflow-x-auto">
                             <TabsTrigger value="registered-agents" className="cursor-pointer">
                                 Corretores Registrados
                                 {tab === "agents" && subtab === "registered-agents"

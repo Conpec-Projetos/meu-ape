@@ -306,8 +306,11 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-[95vw] md:max-w-xl lg:max-w-2xl xl:max-w-3xl max-w-[800px] max-h-[90vh] p-0 overflow-y-auto rounded-lg">
-                <DialogHeader className="sticky top-0 border-b bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 px-6 py-4">
+            <DialogContent
+                showCloseButton={false}
+                className="w-[95vw] sm:max-w-[95vw] md:max-w-xl lg:max-w-2xl xl:max-w-3xl max-w-[800px] max-h-[90vh] p-0 overflow-y-auto rounded-lg"
+            >
+                <DialogHeader className="sticky top-0 border-b bg-background/80 backdrop-blur supports-backdrop-filter:bg-background/60 px-4 sm:px-6 py-3 sm:py-4">
                     <DialogTitle>
                         {mode === "add" && "Adicionar Novo Usuário"}
                         {mode === "edit" && "Editar Usuário"}
@@ -318,7 +321,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                         <DialogDescription>Preencha os campos abaixo.</DialogDescription>
                     )}
                 </DialogHeader>
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             {mode !== "review" && (

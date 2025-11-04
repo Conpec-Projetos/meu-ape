@@ -21,7 +21,7 @@ interface DeleteConfirmationModalProps {
 export function DeleteConfirmationModal({ isOpen, onClose, onConfirm, userName }: DeleteConfirmationModalProps) {
     return (
         <AlertDialog open={isOpen} onOpenChange={onClose}>
-            <AlertDialogContent>
+            <AlertDialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 rounded-md">
                 <AlertDialogHeader>
                     <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                     <AlertDialogDescription>
