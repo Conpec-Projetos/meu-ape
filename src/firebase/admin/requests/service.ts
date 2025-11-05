@@ -1,4 +1,5 @@
 import { adminDb as db } from "@/firebase/firebase-admin-config";
+import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/adminRequestsResponse";
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { User } from "@/interfaces/user";
 import { VisitRequest } from "@/interfaces/visitRequest";
@@ -29,47 +30,6 @@ export class RequestActionError extends Error {
         this.name = "RequestActionError";
     }
 }
-
-export type VisitRequestResponse = {
-    id: string;
-    status: VisitRequest["status"];
-    client: { ref?: string; fullName: string };
-    property: { id?: string; name?: string };
-    unit: { id?: string; identifier?: string; block?: string };
-    agents?: Array<{ ref?: string; name?: string; email?: string; phone?: string; creci?: string }>;
-    requestedSlots: string[];
-    scheduledSlot?: string | null;
-    agentMsg?: string;
-    clientMsg?: string;
-    createdAt: string;
-    updatedAt?: string;
-};
-
-type ReservationClientResponse = {
-    ref?: string;
-    fullName: string;
-    address?: string;
-    phone?: string;
-    rg?: string;
-    cpf?: string;
-    addressProof: string[];
-    incomeProof: string[];
-    identityDoc: string[];
-    bmCert: string[];
-};
-
-export type ReservationRequestResponse = {
-    id: string;
-    status: ReservationRequest["status"];
-    client: ReservationClientResponse;
-    property: ReservationRequest["property"];
-    unit: ReservationRequest["unit"];
-    agents?: Array<{ ref?: string; name?: string; email?: string; phone?: string; creci?: string }>;
-    agentMsg?: string;
-    clientMsg?: string;
-    createdAt: string;
-    updatedAt?: string;
-};
 
 type ListOptions = {
     status?: string;
@@ -158,7 +118,7 @@ const fetchUserByReference = async (value: unknown): Promise<(User & { id: strin
     return { id: snapshot.id, ...data };
 };
 
-const serializeVisitRequest = (doc: FirebaseFirestore.QueryDocumentSnapshot): VisitRequestResponse => {
+const serializeVisitRequest = (doc: FirebaseFirestore.QueryDocumentSnapshot): VisitRequestListItem => {
     const data = doc.data() as VisitRequest;
     const requestedSlots = Array.isArray(data.requestedSlots)
         ? data.requestedSlots.map(slot => toIsoString(slot)).filter((slot): slot is string => Boolean(slot))
@@ -200,7 +160,7 @@ const serializeVisitRequest = (doc: FirebaseFirestore.QueryDocumentSnapshot): Vi
     };
 };
 
-const serializeReservationRequest = (doc: FirebaseFirestore.QueryDocumentSnapshot): ReservationRequestResponse => {
+const serializeReservationRequest = (doc: FirebaseFirestore.QueryDocumentSnapshot): ReservationRequestListItem => {
     const data = doc.data() as ReservationRequest;
     const agents = Array.isArray(data.agents)
         ? data.agents.map(agent => ({
@@ -257,7 +217,7 @@ export const listVisitRequests = async ({
     q,
     page,
     pageSize,
-}: ListOptions): Promise<ListResult<VisitRequestResponse>> => {
+}: ListOptions): Promise<ListResult<VisitRequestListItem>> => {
     const limit = pageSize ?? PAGE_SIZE_DEFAULT;
     const offset = (page - 1) * limit;
     let query: FirebaseFirestore.Query = db.collection("visitRequests");
@@ -294,7 +254,7 @@ export const listReservationRequests = async ({
     q,
     page,
     pageSize,
-}: ListOptions): Promise<ListResult<ReservationRequestResponse>> => {
+}: ListOptions): Promise<ListResult<ReservationRequestListItem>> => {
     const limit = pageSize ?? PAGE_SIZE_DEFAULT;
     const offset = (page - 1) * limit;
     let query: FirebaseFirestore.Query = db.collection("reservationRequests");
@@ -472,7 +432,6 @@ export const denyVisitRequest = async ({ id, clientMsg, agentMsg }: DenyVisitPar
             <p>Infelizmente sua solicitação de visita ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi negada.</p>
             <p>Motivo informado:</p>
             <p>${formatMultiline(trimmedClientMsg)}</p>
-            <p>Se tiver dúvidas, responda a este e-mail para que possamos ajudar.</p>
         `;
         await sendEmail(clientEmail, "Visita negada", clientHtml);
     }
@@ -601,7 +560,6 @@ export const denyReservationRequest = async ({ id, clientMsg, agentMsg }: DenyRe
             <p>Infelizmente sua solicitação de reserva para o imóvel <strong>${escapeHtml(propertyName)}</strong> não pôde ser aprovada.</p>
             <p>Motivo informado:</p>
             <p>${formatMultiline(trimmedClientMsg)}</p>
-            <p>Se desejar, responda este e-mail para conversarmos sobre alternativas.</p>
         `;
         await sendEmail(clientEmail, "Reserva negada", clientHtml);
     }
