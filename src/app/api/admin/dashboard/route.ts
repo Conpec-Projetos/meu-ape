@@ -5,7 +5,6 @@ export async function GET(request: NextRequest) {
     
     const countVisits = await pendingVisitRequestsCounts();
 
-    return countVisits;
-
+    return;
 
 }
