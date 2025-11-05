@@ -1,5 +1,16 @@
 "use client";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,10 +18,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Building2, Calendar, CheckCircle2, Clock, Inbox, Loader2, User2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -327,27 +338,31 @@ function RequestDetails({ request }: RequestDetailsProps) {
                 )}
 
                 {agent && (
-                    <div className="rounded-lg border p-3">
+                    <div className="rounded-lg border p-3 wrap-break-word">
                         <div className="text-xs text-muted-foreground mb-1 inline-flex items-center gap-2">
                             <User2 className="h-4 w-4" /> Corretor alocado
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
-                            <div>
-                                <span className="text-muted-foreground">Nome:</span> {agent.name}
+                        <div className="grid grid-cols-1 gap-1.5 text-sm min-w-0">
+                            <div className="min-w-0">
+                                <span className="text-muted-foreground">Nome:</span>{" "}
+                                <span className="wrap-break-word">{agent.name}</span>
                             </div>
                             {agent.creci && (
-                                <div>
-                                    <span className="text-muted-foreground">CRECI:</span> {agent.creci}
+                                <div className="min-w-0">
+                                    <span className="text-muted-foreground">CRECI:</span>{" "}
+                                    <span className="wrap-break-word">{agent.creci}</span>
                                 </div>
                             )}
                             {agent.phone && (
-                                <div>
-                                    <span className="text-muted-foreground">Telefone:</span> {agent.phone}
+                                <div className="min-w-0">
+                                    <span className="text-muted-foreground">Telefone:</span>{" "}
+                                    <span className="wrap-break-word">{agent.phone}</span>
                                 </div>
                             )}
                             {agent.email && (
-                                <div>
-                                    <span className="text-muted-foreground">Email:</span> {agent.email}
+                                <div className="min-w-0">
+                                    <span className="text-muted-foreground">Email:</span>{" "}
+                                    <span className="break-all md:wrap-break-word">{agent.email}</span>
                                 </div>
                             )}
                         </div>
@@ -388,6 +403,36 @@ export default function DashboardPage() {
     const [selectedRequest, setSelectedRequest] = useState<VisitRequest | ReservationRequest | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [fetchTrigger, setFetchTrigger] = useState(0);
+    const [cancelLoading, setCancelLoading] = useState(false);
+
+    const cancelSelectedRequest = async () => {
+        if (!selectedRequest?.id) return;
+        if (selectedRequest.status !== "pending") return;
+        try {
+            setCancelLoading(true);
+            const isVisit = "requestedSlots" in selectedRequest;
+            const res = await fetch(
+                `/api/user/requests/${selectedRequest.id}?type=${isVisit ? "visits" : "reservations"}`,
+                {
+                    method: "DELETE",
+                }
+            );
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Falha ao cancelar solicitação");
+            }
+            // Remove from local list and close sheet
+            setRequests(prev => prev.filter(r => r.id !== selectedRequest.id));
+            setSelectedRequest(null);
+            setIsSheetOpen(false);
+            toast.success("Solicitação cancelada com sucesso.");
+        } catch (e) {
+            console.error(e);
+            toast.error(e instanceof Error ? e.message : "Erro ao cancelar solicitação.");
+        } finally {
+            setCancelLoading(false);
+        }
+    };
 
     const fetchData = useCallback(
         async (tab: "visitas" | "reservas", loadMore = false) => {
@@ -557,8 +602,12 @@ export default function DashboardPage() {
                 className="w-full"
             >
                 <TabsList className="mb-4">
-                    <TabsTrigger className="cursor-pointer" value="visitas">Visitas</TabsTrigger>
-                    <TabsTrigger className="cursor-pointer" value="reservas">Reservas</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="visitas">
+                        Visitas
+                    </TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="reservas">
+                        Reservas
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="visitas" forceMount hidden={activeTab !== "visitas"}>
@@ -577,6 +626,40 @@ export default function DashboardPage() {
                     <SheetDescription asChild className="grow overflow-hidden">
                         <RequestDetails request={selectedRequest} />
                     </SheetDescription>
+                    {selectedRequest?.status === "pending" && (
+                        <div className="p-4 border-t flex items-center justify-end gap-3">
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button className="cursor-pointer" variant="destructive" disabled={cancelLoading}>
+                                        {cancelLoading ? (
+                                            <span className="inline-flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" /> Cancelando...
+                                            </span>
+                                        ) : (
+                                            "Cancelar solicitação"
+                                        )}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Cancelar solicitação?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Essa ação não pode ser desfeita. A solicitação será removida.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel className="cursor-pointer">Voltar</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={cancelSelectedRequest}
+                                            className="bg-destructive hover:bg-destructive/90 cursor-pointer"
+                                        >
+                                            Confirmar cancelamento
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    )}
                 </SheetContent>
             </Sheet>
         </div>
