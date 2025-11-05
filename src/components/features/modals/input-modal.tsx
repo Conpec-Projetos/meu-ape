@@ -1,5 +1,6 @@
 "use client";
 
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
 import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";
@@ -46,6 +47,10 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
     showCloseButton?: boolean;
 }) {
+    React.useEffect(() => {
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, []);
     return (
         <DialogPortal data-slot="dialog-portal">
             <DialogOverlay />

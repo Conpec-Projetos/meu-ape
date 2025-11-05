@@ -10,8 +10,6 @@ type SupabaseLocation =
     | null
     | unknown;
 
-// GET /api/properties/[id]
-// Returns: { property, unitNavigation }
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
     const { id } = await context.params;
 

@@ -1,4 +1,4 @@
-import { getUserRequests } from "@/firebase/dashboard/service"; // Importa a função refatorada
+import { getUserRequests } from "@/firebase/dashboard/service";
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { NextResponse, type NextRequest } from "next/server";
 

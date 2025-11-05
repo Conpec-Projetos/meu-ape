@@ -52,7 +52,7 @@ const navConfig: Record<Variant, NavItem[]> = {
         { label: "Minha Agenda", href: "/agent-dashboard", icon: Calendar },
     ],
     admin: [
-        { label: "Dashboard", href: "/beta/dashboard", icon: LayoutDashboard },
+        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { label: "Imóveis", href: "/admin/property", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
         { label: "Requisições", href: "/admin/requests", icon: Book },
@@ -175,7 +175,7 @@ function Header({ variant }: HeaderProps) {
                                         <DropdownMenuSeparator />
                                     </>
                                 )}
-                                <DropdownMenuItem onClick={() => router.push("/profile")}>
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/profile")}>
                                     <Settings className="mr-2 h-4 w-4" />
                                     <span>Configurações</span>
                                 </DropdownMenuItem>
@@ -186,7 +186,7 @@ function Header({ variant }: HeaderProps) {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                                <DropdownMenuItem  onClick={handleLogout} className="text-destructive cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Sair</span>
                                 </DropdownMenuItem>

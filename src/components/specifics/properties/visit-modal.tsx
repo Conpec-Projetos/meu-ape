@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
 import { notifyError } from "@/services/notificationService";
 import { Loader } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -76,13 +77,8 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
 
     useEffect(() => {
         if (isOpen) {
-            const originalStyle = window.getComputedStyle(document.body).overflow;
-
-            document.body.style.overflow = "hidden";
-
-            return () => {
-                document.body.style.overflow = originalStyle;
-            };
+            lockBodyScroll();
+            return () => unlockBodyScroll();
         }
     }, [isOpen]);
 
@@ -346,7 +342,7 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                                                         {key.replace("-", " às ")}
                                                         <button
                                                             type="button"
-                                                            className="ml-1 text-xs text-green-900/70 hover:text-green-900"
+                                                            className="cursor-pointer ml-1 text-xs text-green-900/70 hover:text-green-900"
                                                             onClick={() =>
                                                                 setSelected(prev => ({ ...prev, [key]: false }))
                                                             }
@@ -381,13 +377,19 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                                     )}
                                 </div>
                                 <div className="flex justify-center gap-2">
-                                    <Button onClick={onClose} variant={"outline"} disabled={loading}>
+                                    <Button
+                                        className="cursor-pointer"
+                                        onClick={onClose}
+                                        variant={"outline"}
+                                        disabled={loading}
+                                    >
                                         Cancelar
                                     </Button>
                                     <Button
                                         onClick={handleSave}
                                         variant={"default"}
                                         disabled={loading || Object.values(selected).every(v => !v)}
+                                        className="cursor-pointer"
                                     >
                                         <span className={loading ? "invisible" : "visible"}>Enviar</span>
                                         {loading && (

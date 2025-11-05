@@ -35,8 +35,8 @@ export function PropertyImageGallery({ images, propertyName }: PropertyImageGall
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white hover:bg-black/70 border-none" />
-            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white hover:bg-black/70 border-none" />
+            <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white hover:bg-black/70 border-none cursor-pointer" />
+            <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-black/50 text-white hover:bg-black/70 border-none cursor-pointer" />
         </Carousel>
     );
 }
