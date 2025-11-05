@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,34 +10,47 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
-// Timestamp type not required; dates are coerced from unknown
-import { Inbox, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Building2, Calendar, CheckCircle2, Clock, Inbox, Loader2, User2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-// Componente Reutilizável para Item da Lista
 interface RequestItemProps {
     request: VisitRequest | ReservationRequest;
     onClick: () => void;
 }
 
 function RequestItem({ request, onClick }: RequestItemProps) {
-    const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-        const lowerStatus = status.toLowerCase();
-        switch (lowerStatus) {
-            case "confirmado":
-            case "approved":
-            case "completed":
-                return "default";
-            case "aguardo":
-            case "pending":
-                return "secondary";
-            case "recusado":
-            case "denied":
-                return "destructive";
-            default:
-                return "outline";
+    const getStatusMeta = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === "approved" || s === "completed" || s === "confirmado") {
+            return {
+                Icon: CheckCircle2,
+                classes: "border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40",
+            };
         }
+        if (s === "pending" || s === "aguardo") {
+            return {
+                Icon: Clock,
+                classes: "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/40",
+            };
+        }
+        if (s === "denied" || s === "recusado") {
+            return {
+                Icon: XCircle,
+                classes: "border-rose-300 text-rose-700 bg-rose-50 dark:bg-rose-950/40",
+            };
+        }
+        return { Icon: Clock, classes: "" };
+    };
+
+    const getStatusLabel = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === "pending" || s === "aguardo") return "pendente";
+        if (s === "approved" || s === "confirmado") return "aprovado";
+        if (s === "completed") return "concluída";
+        if (s === "denied" || s === "recusado") return "recusado";
+        return status;
     };
 
     const coerceDate = (val: unknown): Date | undefined => {
@@ -67,28 +80,109 @@ function RequestItem({ request, onClick }: RequestItemProps) {
 
     const propertyName = request.property?.name ?? "Nome indisponível";
     const unitIdentifier = request.unit?.identifier ?? "N/A";
-    const unitBlock = request.unit?.block ? `Bloco ${request.unit.block} ` : "";
+    const unitBlock = request.unit?.block ? `Bloco ${request.unit.block}` : "";
+
+    const isVisit = "requestedSlots" in request;
+
+    const formatDateTime = (date: unknown): string => {
+        const d = coerceDate(date);
+        if (!d) return "N/A";
+        return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+    };
+
+    const requestedSlots = isVisit ? ((request as VisitRequest).requestedSlots ?? []) : [];
+    const scheduledSlot = isVisit ? (request as VisitRequest).scheduledSlot : undefined;
+    const agent =
+        isVisit && (request.status === "approved" || request.status === "completed") && request.agents?.length
+            ? request.agents[0]
+            : null;
 
     return (
-        <Card className="w-full cursor-pointer hover:bg-muted/50 transition-colors" onClick={onClick}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium truncate">{propertyName}</CardTitle>
-                <Badge variant={getStatusVariant(request.status)} className="capitalize">
-                    {request.status}
-                </Badge>
+        <Card
+            className="w-full cursor-pointer transition-colors border bg-card hover:bg-muted/50 rounded-xl shadow-sm"
+            onClick={onClick}
+        >
+            <CardHeader className="flex flex-col gap-1 space-y-0 pb-3">
+                <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="text-base font-semibold truncate">{propertyName}</CardTitle>
+                    {(() => {
+                        const { Icon, classes } = getStatusMeta(request.status);
+                        return (
+                            <Badge
+                                variant="outline"
+                                className={`capitalize inline-flex items-center gap-1.5 ${classes}`}
+                            >
+                                <Icon className="h-3.5 w-3.5" /> {getStatusLabel(request.status)}
+                            </Badge>
+                        );
+                    })()}
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5" />
+                        <span className="truncate">
+                            {unitBlock}
+                            {unitBlock && unitIdentifier ? " • " : ""}
+                            {unitIdentifier}
+                        </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" /> Solicitado em: {formatDate(request.createdAt)}
+                    </span>
+                </div>
             </CardHeader>
-            <CardContent>
-                <div className="text-xs text-muted-foreground">Solicitado em: {formatDate(request.createdAt)}</div>
-                <CardDescription className="text-xs mt-1 truncate">
-                    Unidade: {unitBlock}
-                    {unitIdentifier}
-                </CardDescription>
+            <CardContent className="pt-0">
+                <div className="flex flex-col gap-2 text-sm">
+                    {isVisit && (
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex items-start sm:items-center gap-2">
+                                <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                                <div className="flex flex-wrap gap-1.5">
+                                    {requestedSlots.slice(0, 3).map((slot, idx) => (
+                                        <Tooltip key={idx}>
+                                            <TooltipTrigger asChild>
+                                                <Badge variant="outline" className="font-normal">
+                                                    {formatDateTime(slot)}
+                                                </Badge>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Horário solicitado: {formatDateTime(slot)}</TooltipContent>
+                                        </Tooltip>
+                                    ))}
+                                    {requestedSlots.length > 3 && (
+                                        <Badge variant="secondary">+{requestedSlots.length - 3}</Badge>
+                                    )}
+                                </div>
+                            </div>
+                            {scheduledSlot && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="inline-flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 text-emerald-700 dark:text-emerald-300">
+                                            <Clock className="h-4 w-4" />
+                                            <span className="text-xs sm:text-sm">
+                                                Agendado: {formatDateTime(scheduledSlot)}
+                                            </span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Horário aprovado</TooltipContent>
+                                </Tooltip>
+                            )}
+                        </div>
+                    )}
+                    {agent && (
+                        <div className="mt-1 flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                            <User2 className="h-4 w-4" />
+                            <span className="truncate">
+                                Corretor: <span className="text-foreground font-medium">{agent.name}</span>
+                                {agent.creci ? ` • CRECI ${agent.creci}` : ""}
+                            </span>
+                        </div>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );
 }
 
-// Componente Reutilizável para Detalhes no Sheet
 interface RequestDetailsProps {
     request: VisitRequest | ReservationRequest | null;
 }
@@ -120,114 +214,169 @@ function RequestDetails({ request }: RequestDetailsProps) {
         return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
     };
 
-    const formatSlots = (slots: unknown[] | undefined): string => {
-        if (!slots || slots.length === 0) return "N/A";
-        return slots.map(slot => formatDateTime(slot)).join(" | ");
-    };
-
     const isVisit = "requestedSlots" in request;
 
-    const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-        const lowerStatus = status.toLowerCase();
-        switch (lowerStatus) {
-            case "confirmado":
-            case "approved":
-            case "completed":
-                return "default";
-            case "aguardo":
-            case "pending":
-                return "secondary";
-            case "recusado":
-            case "denied":
-                return "destructive";
-            default:
-                return "outline";
+    const getStatusMeta = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === "approved" || s === "completed" || s === "confirmado") {
+            return {
+                Icon: CheckCircle2,
+                classes: "border-emerald-300 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40",
+            };
         }
+        if (s === "pending" || s === "aguardo") {
+            return {
+                Icon: Clock,
+                classes: "border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-950/40",
+            };
+        }
+        if (s === "denied" || s === "recusado") {
+            return {
+                Icon: XCircle,
+                classes: "border-rose-300 text-rose-700 bg-rose-50 dark:bg-rose-950/40",
+            };
+        }
+        return { Icon: Clock, classes: "" };
+    };
+
+    const getStatusLabel = (status: string) => {
+        const s = status.toLowerCase();
+        if (s === "pending" || s === "aguardo") return "pendente";
+        if (s === "approved" || s === "confirmado") return "aprovado";
+        if (s === "completed") return "concluída";
+        if (s === "denied" || s === "recusado") return "recusado";
+        return status;
     };
 
     const agent =
-        isVisit &&
-        (request.status === "approved" || request.status === "completed") &&
-        request.agents &&
-        request.agents.length > 0
+        (request.status === "approved" || request.status === "completed") && request.agents?.length
             ? request.agents[0]
             : null;
 
     return (
         <ScrollArea className="h-[calc(100vh-150px)] w-full rounded-md p-1">
-            <div className="space-y-3 text-sm px-3">
-                <p>
-                    <strong>Status:</strong>{" "}
-                    <Badge variant={getStatusVariant(request.status)} className="capitalize">
-                        {request.status}
-                    </Badge>
-                </p>
-                <p>
-                    <strong>Imóvel:</strong> {request.property.name}
-                </p>
-                <p>
-                    <strong>Unidade:</strong> {request.unit.block ? `Bloco ${request.unit.block} ` : ""}
-                    {request.unit.identifier}
-                </p>
+            <div className="space-y-4 text-sm px-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground">Imóvel</div>
+                        <div className="text-base font-semibold truncate">{request.property.name}</div>
+                        <div className="mt-1 text-xs text-muted-foreground inline-flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5" />
+                            <span>
+                                {request.unit.block ? `Bloco ${request.unit.block}` : ""}
+                                {request.unit.block ? " • " : ""}
+                                {request.unit.identifier}
+                            </span>
+                        </div>
+                    </div>
+                    {(() => {
+                        const { Icon, classes } = getStatusMeta(request.status);
+                        return (
+                            <Badge
+                                variant="outline"
+                                className={`capitalize inline-flex items-center gap-1.5 shrink-0 ${classes}`}
+                            >
+                                <Icon className="h-3.5 w-3.5" /> {getStatusLabel(request.status)}
+                            </Badge>
+                        );
+                    })()}
+                </div>
 
-                {agent && (
-                    <div className="mt-3 pt-3 border-t">
-                        <p className="font-semibold mb-1">Corretor:</p>
-                        <p>
-                            <strong>Nome:</strong> {agent.name}
-                        </p>
-                        <p>
-                            <strong>CRECI:</strong> {agent.creci}
-                        </p>
-                        <p>
-                            <strong>Telefone:</strong> {agent.phone}
-                        </p>
-                        <p>
-                            <strong>Email:</strong> {agent.email}
-                        </p>
+                {isVisit && (
+                    <div className="space-y-3">
+                        <div>
+                            <div className="text-xs text-muted-foreground mb-1 inline-flex items-center gap-2">
+                                <Calendar className="h-4 w-4" /> Horários solicitados
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {(request as VisitRequest).requestedSlots?.map((slot, i) => (
+                                    <Tooltip key={i}>
+                                        <TooltipTrigger asChild>
+                                            <Badge variant="outline" className="font-normal">
+                                                {formatDateTime(slot)}
+                                            </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Horário solicitado: {formatDateTime(slot)}</TooltipContent>
+                                    </Tooltip>
+                                ))}
+                                {!(request as VisitRequest).requestedSlots?.length && <span>N/A</span>}
+                            </div>
+                        </div>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="rounded-lg border bg-muted/40 p-3">
+                                    <div className="text-xs text-muted-foreground mb-1 inline-flex items-center gap-2">
+                                        <Clock className="h-4 w-4" /> Horário aprovado
+                                    </div>
+                                    <div className="text-sm font-medium">
+                                        {formatDateTime((request as VisitRequest).scheduledSlot)}
+                                    </div>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Horário aprovado</TooltipContent>
+                        </Tooltip>
+
+                        {(request as VisitRequest).agentMsg && (
+                            <div className="rounded-lg border p-3">
+                                <div className="text-xs text-muted-foreground mb-1">Mensagem para o corretor</div>
+                                <div className="text-sm">{(request as VisitRequest).agentMsg}</div>
+                            </div>
+                        )}
                     </div>
                 )}
 
-                {isVisit && (
-                    <>
-                        <p>
-                            <strong>Horários Solicitados:</strong>{" "}
-                            {formatSlots((request as VisitRequest).requestedSlots)}
-                        </p>
-                        <p>
-                            <strong>Horário Agendado:</strong> {formatDateTime((request as VisitRequest).scheduledSlot)}
-                        </p>
-                        {(request as VisitRequest).agentMsg && (
-                            <p className="mt-2 pt-2 border-t">
-                                <strong>Mensagem para o corretor:</strong> {(request as VisitRequest).agentMsg}
-                            </p>
-                        )}
-                    </>
+                {agent && (
+                    <div className="rounded-lg border p-3">
+                        <div className="text-xs text-muted-foreground mb-1 inline-flex items-center gap-2">
+                            <User2 className="h-4 w-4" /> Corretor alocado
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-sm">
+                            <div>
+                                <span className="text-muted-foreground">Nome:</span> {agent.name}
+                            </div>
+                            {agent.creci && (
+                                <div>
+                                    <span className="text-muted-foreground">CRECI:</span> {agent.creci}
+                                </div>
+                            )}
+                            {agent.phone && (
+                                <div>
+                                    <span className="text-muted-foreground">Telefone:</span> {agent.phone}
+                                </div>
+                            )}
+                            {agent.email && (
+                                <div>
+                                    <span className="text-muted-foreground">Email:</span> {agent.email}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
 
                 {request.clientMsg && (
-                    <p className={`mt-2 pt-2 border-t ${request.status === "denied" ? "text-destructive" : ""}`}>
-                        <strong>
-                            {request.status === "denied" ? "Motivo (Recusa/Cancelamento):" : "Mensagem para você:"}
-                        </strong>{" "}
-                        {request.clientMsg}
-                    </p>
+                    <div className={`rounded-lg border p-3 ${request.status === "denied" ? "border-destructive" : ""}`}>
+                        <div className="text-xs text-muted-foreground mb-1">
+                            {request.status === "denied" ? "Motivo (Recusa/Cancelamento)" : "Mensagem para você"}
+                        </div>
+                        <div className="text-sm">{request.clientMsg}</div>
+                    </div>
                 )}
 
-                <div className="pt-3 border-t text-xs text-muted-foreground space-y-1">
-                    <p>
-                        <strong>Criado em:</strong> {formatDateTime(request.createdAt)}
-                    </p>
-                    <p>
-                        <strong>Última Atualização:</strong> {formatDateTime(request.updatedAt)}
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    <div>
+                        <span className="text-muted-foreground">Criado em:</span> {formatDateTime(request.createdAt)}
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground">Última atualização:</span>{" "}
+                        {formatDateTime(request.updatedAt)}
+                    </div>
                 </div>
             </div>
         </ScrollArea>
     );
 }
 
-// Componente Principal da Página
 export default function DashboardPage() {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState<"visitas" | "reservas">("visitas");
@@ -242,19 +391,18 @@ export default function DashboardPage() {
 
     const fetchData = useCallback(
         async (tab: "visitas" | "reservas", loadMore = false) => {
-            // Only fetch if user ID is available
             if (!user?.id) {
-                setIsLoading(false); // Stop loading if no user
-                setRequests([]); // Clear requests
+                setIsLoading(false);
+                setRequests([]);
                 return;
             }
 
-            const currentCursor = loadMore ? cursor : null; // Use cursor only when loading more
+            const currentCursor = loadMore ? cursor : null;
 
             if (!loadMore) {
                 setIsLoading(true);
-                setRequests([]); // Clear on initial load/tab switch
-                setHasNextPage(true); // Assume there might be pages
+                setRequests([]);
+                setHasNextPage(true);
             } else {
                 setLoadingMore(true);
             }
@@ -291,46 +439,44 @@ export default function DashboardPage() {
                 const processedRequests = (newRequests as Array<Record<string, unknown>>).map(req => {
                     const createdAt = toDate(req["createdAt"]);
                     const updatedAt = toDate(req["updatedAt"]);
-                    const requestedSlots = Array.isArray(req["requestedSlots"])
-                        ? ((req["requestedSlots"] as unknown[]).map(s => toDate(s)).filter(Boolean) as Date[])
-                        : [];
-                    const scheduledSlot = toDate(req["scheduledSlot"]);
-
-                    return {
+                    const base: Record<string, unknown> = {
                         ...(req as Record<string, unknown>),
                         createdAt,
                         updatedAt,
-                        requestedSlots,
-                        scheduledSlot,
-                    } as VisitRequest | ReservationRequest;
+                    };
+                    if (tab === "visitas") {
+                        base.requestedSlots = Array.isArray(req["requestedSlots"])
+                            ? ((req["requestedSlots"] as unknown[]).map(s => toDate(s)).filter(Boolean) as Date[])
+                            : [];
+                        base.scheduledSlot = toDate(req["scheduledSlot"]);
+                    }
+                    return base as unknown as VisitRequest | ReservationRequest;
                 });
 
                 setRequests(prev => (loadMore ? [...prev, ...processedRequests] : processedRequests));
-                setCursor(nextPageCursor); // Update cursor for the *next* potential fetch
-                setHasNextPage(newHasNextPage); // Update hasNextPage based on API response
+                setCursor(nextPageCursor);
+                setHasNextPage(newHasNextPage);
             } catch (error) {
                 console.error("Erro ao buscar solicitações:", error);
                 toast.error(error instanceof Error ? error.message : "Erro desconhecido ao buscar dados.");
-                setHasNextPage(false); // Stop trying to load more on error
+                setHasNextPage(false);
             } finally {
                 setIsLoading(false);
                 setLoadingMore(false);
             }
         },
         [user?.id, cursor]
-    ); // cursor dependency is needed for loadMore logic
+    );
 
-    // Effect to trigger fetch on tab change or user change
     useEffect(() => {
-        setCursor(null); // Reset cursor when tab changes
-        setFetchTrigger(prev => prev + 1); // Trigger fetch
+        setCursor(null);
+        setFetchTrigger(prev => prev + 1);
     }, [activeTab, user?.id]);
 
-    // Effect that actually calls fetch based on trigger
     useEffect(() => {
-        fetchData(activeTab, false); // false = initial load for the tab
+        fetchData(activeTab, false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fetchTrigger, fetchData]); // Depend on fetchTrigger and the fetchData callback itself
+    }, [fetchTrigger, fetchData]);
 
     const handleRequestClick = (request: VisitRequest | ReservationRequest) => {
         setSelectedRequest(request);
@@ -338,7 +484,6 @@ export default function DashboardPage() {
     };
 
     const renderList = (currentRequests: (VisitRequest | ReservationRequest)[], type: "visit" | "reservation") => {
-        // **Show loading skeleton ONLY on initial load**
         if (isLoading && !loadingMore) {
             return (
                 <div className="space-y-4">
@@ -358,7 +503,6 @@ export default function DashboardPage() {
             );
         }
 
-        // **Show "No requests" message AFTER loading is complete and requests array is empty**
         if (!isLoading && currentRequests.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center text-center py-16 text-muted-foreground">
@@ -371,7 +515,6 @@ export default function DashboardPage() {
             );
         }
 
-        // Render the list items
         return (
             <div className="space-y-4">
                 {currentRequests.map(req => (
@@ -381,7 +524,6 @@ export default function DashboardPage() {
                         onClick={() => handleRequestClick(req)}
                     />
                 ))}
-                {/* "Load More" button and indicator */}
                 {hasNextPage && (
                     <div className="text-center mt-6">
                         <Button onClick={() => fetchData(activeTab, true)} disabled={loadingMore} variant="outline">
@@ -396,7 +538,6 @@ export default function DashboardPage() {
                         </Button>
                     </div>
                 )}
-                {/* Optional: Message when all items are loaded */}
                 {!isLoading && !hasNextPage && currentRequests.length > 0 && (
                     <p className="text-center text-sm text-muted-foreground mt-6">
                         Todas as solicitações foram carregadas.
@@ -409,7 +550,6 @@ export default function DashboardPage() {
     return (
         <div className="container mx-auto px-4 py-8 pt-20">
             {" "}
-            {/* Adjusted padding-top */}
             <h1 className="text-2xl font-bold mb-6">Minhas Solicitações</h1>
             <Tabs
                 value={activeTab}
@@ -417,11 +557,10 @@ export default function DashboardPage() {
                 className="w-full"
             >
                 <TabsList className="mb-4">
-                    <TabsTrigger value="visitas">Visitas</TabsTrigger>
-                    <TabsTrigger value="reservas">Reservas</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="visitas">Visitas</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="reservas">Reservas</TabsTrigger>
                 </TabsList>
 
-                {/* Render content based on active tab */}
                 <TabsContent value="visitas" forceMount hidden={activeTab !== "visitas"}>
                     {renderList(requests, "visit")}
                 </TabsContent>
@@ -429,22 +568,15 @@ export default function DashboardPage() {
                     {renderList(requests, "reservation")}
                 </TabsContent>
             </Tabs>
-            {/* Sheet for Details */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
                     {" "}
-                    {/* Use flex-col for Sheet layout */}
                     <SheetHeader className="p-4 border-b">
                         <SheetTitle>Detalhes da Solicitação</SheetTitle>
                     </SheetHeader>
-                    {/* RequestDetails now handles its own scrolling */}
                     <SheetDescription asChild className="grow overflow-hidden">
                         <RequestDetails request={selectedRequest} />
                     </SheetDescription>
-                    {/* Optional Footer */}
-                    {/* <SheetFooter className="p-4 border-t">
-                        <Button variant="outline" onClick={() => setIsSheetOpen(false)}>Fechar</Button>
-                    </SheetFooter> */}
                 </SheetContent>
             </Sheet>
         </div>
