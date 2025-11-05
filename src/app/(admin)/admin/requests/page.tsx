@@ -377,7 +377,7 @@ function AdminRequestsContent() {
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold">Gerenciamento de Visitas e Reservas</h1>
                 <p className="text-muted-foreground">
-                    Controle e processe solicitações de visita e reserva diretamente pelo painel administrativo.
+                    Controle e processe solicitações de visita e reserva.
                 </p>
             </div>
 

@@ -3,6 +3,7 @@ import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/a
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { User } from "@/interfaces/user";
 import { VisitRequest } from "@/interfaces/visitRequest";
+import { buildEmailLayout } from "@/lib/sendEmailAdmin";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -367,30 +368,38 @@ export const approveVisitRequest = async ({ id, scheduledSlot, agentId, agentMsg
     const formattedSlot = formatDateTime(scheduledDate);
 
     if (clientEmail) {
-        const clientHtml = `
-            <p>Olá ${escapeHtml(clientName)},</p>
-            <p>Boa notícia! Sua solicitação de visita ao imóvel <strong>${escapeHtml(propertyName)}${escapeHtml(
-                unitIdentifier
-            )}</strong> foi aprovada.</p>
-            <p>Horário agendado: <strong>${escapeHtml(formattedSlot)}</strong>.</p>
-            <p>Corretor responsável: <strong>${escapeHtml(agentData.fullName ?? "")}</strong>.</p>
-            <p>Em breve o corretor entrará em contato para confirmar os detalhes.</p>
-            <p>Equipe Meu Apê</p>
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Boa notícia! Sua solicitação de visita ao imóvel <strong>${escapeHtml(
+                propertyName
+            )}${escapeHtml(unitIdentifier)}</strong> foi aprovada.</p>
+            <p style="margin:0 0 4px">Horário agendado: <strong>${escapeHtml(formattedSlot)}</strong>.</p>
+            <p style="margin:0 0 16px">Corretor responsável: <strong>${escapeHtml(
+                agentData.fullName ?? ""
+            )}</strong>.</p>
+            <p style="margin:0">Em breve o corretor entrará em contato para confirmar os detalhes.</p>
         `;
-        await sendEmail(clientEmail, "Visita aprovada", clientHtml);
+        const html = buildEmailLayout("Visita aprovada", inner);
+        await sendEmail(clientEmail, "Visita aprovada", html);
     }
 
     if (agentData.email) {
-        const agentHtml = `
-            <p>Olá ${escapeHtml(agentData.fullName ?? "")},</p>
-            <p>Você foi designado para acompanhar a visita do cliente <strong>${escapeHtml(
+        const adminMsgBlock = trimmedAgentMsg
+            ? `<div style=\"margin:12px 0\"><p style=\"margin:0 0 6px\">Mensagem da administração:</p><p style=\"margin:0\">${formatMultiline(
+                  trimmedAgentMsg
+              )}</p></div>`
+            : "";
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(agentData.fullName ?? "")},</p>
+            <p style="margin:0 0 8px">Você foi designado para acompanhar a visita do cliente <strong>${escapeHtml(
                 clientName
             )}</strong> ao imóvel <strong>${escapeHtml(propertyName)}${escapeHtml(unitIdentifier)}</strong>.</p>
-            <p>Horário agendado: <strong>${escapeHtml(formattedSlot)}</strong>.</p>
-            ${trimmedAgentMsg ? `<p>Mensagem da administração:</p><p>${formatMultiline(trimmedAgentMsg)}</p>` : ""}
-            <p>Por favor, entre em contato com o cliente para alinhar os próximos passos.</p>
+            <p style="margin:0 0 16px">Horário agendado: <strong>${escapeHtml(formattedSlot)}</strong>.</p>
+            ${adminMsgBlock}
+            <p style="margin:0">Por favor, entre em contato com o cliente para alinhar os próximos passos.</p>
         `;
-        await sendEmail(agentData.email, "Nova visita agendada", agentHtml);
+        const html = buildEmailLayout("Nova visita agendada", inner);
+        await sendEmail(agentData.email, "Nova visita agendada", html);
     }
 };
 
@@ -427,13 +436,16 @@ export const denyVisitRequest = async ({ id, clientMsg, agentMsg }: DenyVisitPar
     const propertyName = requestData.property?.name ?? "imóvel";
 
     if (clientEmail) {
-        const clientHtml = `
-            <p>Olá ${escapeHtml(clientName)},</p>
-            <p>Infelizmente sua solicitação de visita ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi negada.</p>
-            <p>Motivo informado:</p>
-            <p>${formatMultiline(trimmedClientMsg)}</p>
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Infelizmente sua solicitação de visita ao imóvel <strong>${escapeHtml(
+                propertyName
+            )}</strong> foi negada.</p>
+            <p style="margin:0 0 6px">Motivo informado:</p>
+            <p style="margin:0">${formatMultiline(trimmedClientMsg)}</p>
         `;
-        await sendEmail(clientEmail, "Visita negada", clientHtml);
+        const html = buildEmailLayout("Visita negada", inner);
+        await sendEmail(clientEmail, "Visita negada", html);
     }
 
     if (trimmedAgentMsg && Array.isArray(requestData.agents)) {
@@ -441,13 +453,16 @@ export const denyVisitRequest = async ({ id, clientMsg, agentMsg }: DenyVisitPar
             .map(agent => agent.email)
             .filter((email): email is string => Boolean(email));
         if (agentEmails.length > 0) {
-            const agentHtml = `
-                <p>Olá,</p>
-                <p>A solicitação de visita para o cliente <strong>${escapeHtml(clientName)}</strong> foi negada.</p>
-                <p>Mensagem da administração:</p>
-                <p>${formatMultiline(trimmedAgentMsg)}</p>
+            const inner = `
+                <p style="margin:0 0 8px">Olá,</p>
+                <p style="margin:0 0 8px">A solicitação de visita para o cliente <strong>${escapeHtml(
+                    clientName
+                )}</strong> foi negada.</p>
+                <p style="margin:0 0 6px">Mensagem da administração:</p>
+                <p style="margin:0">${formatMultiline(trimmedAgentMsg)}</p>
             `;
-            await sendEmail(agentEmails, "Visita negada", agentHtml);
+            const html = buildEmailLayout("Visita negada", inner);
+            await sendEmail(agentEmails, "Visita negada", html);
         }
     }
 };
@@ -512,15 +527,15 @@ export const approveReservationRequest = async (id: string) => {
     const unitInfo = `${requestData.unit?.identifier ?? ""}${requestData.unit?.block ? ` - Bloco ${requestData.unit.block}` : ""}`;
 
     if (clientEmail) {
-        const clientHtml = `
-            <p>Olá ${escapeHtml(clientName)},</p>
-            <p>Sua solicitação de reserva para o imóvel <strong>${escapeHtml(propertyName)}</strong> ${escapeHtml(
-                unitInfo
-            )} foi aprovada.</p>
-            <p>Em breve entraremos em contato para orientar os próximos passos.</p>
-            <p>Equipe Meu Apê</p>
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Sua solicitação de reserva para o imóvel <strong>${escapeHtml(
+                propertyName
+            )}</strong> ${escapeHtml(unitInfo)} foi aprovada.</p>
+            <p style="margin:0">Em breve entraremos em contato para orientar os próximos passos.</p>
         `;
-        await sendEmail(clientEmail, "Reserva aprovada", clientHtml);
+        const html = buildEmailLayout("Reserva aprovada", inner);
+        await sendEmail(clientEmail, "Reserva aprovada", html);
     }
 };
 
@@ -569,13 +584,16 @@ export const denyReservationRequest = async ({ id, clientMsg, agentMsg }: DenyRe
             .map(agent => agent.email)
             .filter((email): email is string => Boolean(email));
         if (agentEmails.length > 0) {
-            const agentHtml = `
-                <p>Olá,</p>
-                <p>A solicitação de reserva associada ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi negada.</p>
-                <p>Mensagem da administração:</p>
-                <p>${formatMultiline(trimmedAgentMsg)}</p>
+            const inner = `
+                <p style="margin:0 0 8px">Olá,</p>
+                <p style="margin:0 0 8px">A solicitação de reserva associada ao imóvel <strong>${escapeHtml(
+                    propertyName
+                )}</strong> foi negada.</p>
+                <p style="margin:0 0 6px">Mensagem da administração:</p>
+                <p style="margin:0">${formatMultiline(trimmedAgentMsg)}</p>
             `;
-            await sendEmail(agentEmails, "Reserva negada", agentHtml);
+            const html = buildEmailLayout("Reserva negada", inner);
+            await sendEmail(agentEmails, "Reserva negada", html);
         }
     }
 };
