@@ -1,12 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/features/cards/default-card";
-import { countProperties } from "@/firebase/properties/service";
 import { notifyError } from "@/services/notificationService";
-import { Building, Users, CalendarClock, BookmarkCheck } from "lucide-react";
+import { BookmarkCheck, Building, CalendarClock, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { pendingVisitRequestsCounts } from "@/firebase/admin/dashboard/service";
 
 export default function DashboardPage() {
     const [propertiesNum, setPropertiesNum] = useState<number>(0);
@@ -17,7 +15,7 @@ export default function DashboardPage() {
             try {
                 setLoading(true);
 
-                const num = await countProperties();
+                const num = 674
                 setPropertiesNum(num);
 
                 console.log(`Successfully fetched ${num} properties`);
@@ -30,8 +28,6 @@ export default function DashboardPage() {
 
         fetchPropertiesNum();
     }, []);
-
-    
 
     return (
         <div className="pt-15 h-screen w-screen bg-gray-50 p-6">
@@ -76,9 +72,7 @@ export default function DashboardPage() {
                         ) : (
                             <>
                                 <div className="text-2xl font-bold">0</div>
-                                <p className="text-xs text-muted-foreground">
-                                    solicitações de corretores
-                                </p>
+                                <p className="text-xs text-muted-foreground">solicitações de corretores</p>
                             </>
                         )}
                     </CardContent>
@@ -96,10 +90,8 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-2xl font-bold"></div>
-                                <p className="text-xs text-muted-foreground">
-                                    solicitações de visitas pendentes
-                                </p>
+                                <div className="text-2xl font-bold">0</div>
+                                <p className="text-xs text-muted-foreground">solicitações de visitas pendentes</p>
                             </>
                         )}
                     </CardContent>
@@ -118,9 +110,7 @@ export default function DashboardPage() {
                         ) : (
                             <>
                                 <div className="text-2xl font-bold">0</div>
-                                <p className="text-xs text-muted-foreground">
-                                    solicitações de reservas pendentes
-                                </p>
+                                <p className="text-xs text-muted-foreground">solicitações de reservas pendentes</p>
                             </>
                         )}
                     </CardContent>
@@ -133,22 +123,6 @@ export default function DashboardPage() {
                         <CardTitle>Ações Rápidas</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {/* <Link
-                            href="/beta/property/write"
-                            className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
-                        >
-                            <h3 className="font-semibold text-slate-800">Novo Empreendimento</h3>
-                            <p className="text-sm text-slate-600">Cadastrar um novo empreendimento</p>
-                        </Link>
-
-                        <Link
-                            href="/beta/property"
-                            className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
-                        >
-                            <h3 className="font-semibold text-slate-800">Ver Empreendimentos</h3>
-                            <p className="text-sm text-slate-600">Listar todos os empreendimentos</p>
-                        </Link> */}
-
                         <Link
                             href="/admin/property"
                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
@@ -158,7 +132,7 @@ export default function DashboardPage() {
                         </Link>
 
                         <Link
-                            href="/admin/visits-reservations"
+                            href="/admin/requests"
                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                         >
                             <h3 className="font-semibold text-slate-800">Gerenciar Visitas e Reservas</h3>

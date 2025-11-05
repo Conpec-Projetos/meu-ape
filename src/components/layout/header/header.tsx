@@ -44,18 +44,18 @@ const navConfig: Record<Variant, NavItem[]> = {
     guest: [{ label: "Buscar Imóveis", href: "/property-search", icon: Search }],
     client: [
         { label: "Buscar Imóveis", href: "/property-search", icon: Search },
-        { label: "Meus Favoritos", href: "/my-favorites", icon: Heart },
+        { label: "Meus Favoritos", href: "/favorites", icon: Heart },
         { label: "Minhas Visitas", href: "/dashboard", icon: Calendar },
     ],
     agent: [
-        { label: "Imóveis", href: "/property-search", icon: Building },
-        { label: "Minha Agenda", href: "/agent-dashboard", icon: Calendar },
+        { label: "Imóveis", href: "/agent/property-search", icon: Building },
+        { label: "Minha Agenda", href: "/agent/dashboard", icon: Calendar },
     ],
     admin: [
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { label: "Imóveis", href: "/admin/property", icon: Home },
         { label: "Usuários", href: "/admin/users", icon: Users },
-        { label: "Requisições", href: "/admin/requests", icon: Book },
+        { label: "Solicitações", href: "/admin/requests", icon: Book },
     ],
 };
 
@@ -180,7 +180,7 @@ function Header({ variant }: HeaderProps) {
                                     <span>Configurações</span>
                                 </DropdownMenuItem>
                                 {variant === "client" && (
-                                    <DropdownMenuItem onClick={() => router.push("/my-favorites")}>
+                                    <DropdownMenuItem onClick={() => router.push("/favorites")}>
                                         <Heart className="mr-2 h-4 w-4" />
                                         <span>Favoritos</span>
                                     </DropdownMenuItem>
