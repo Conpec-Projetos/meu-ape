@@ -328,7 +328,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             property_images: Array.isArray(form.propertyImages) ? form.propertyImages : [],
             areas_images: Array.isArray(form.areasImages) ? form.areasImages : [],
             matterport_urls: Array.isArray(form.matterportUrls) ? form.matterportUrls : [],
-            groups: Array.isArray(form.groups) ? (form.groups as string[]).join(",") : undefined,
+            groups: Array.isArray(form.groups) ? form.groups : [],
         };
     }
 
@@ -400,8 +400,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     if (createdId) {
                         try {
                             await fetch(`/api/admin/properties/${createdId}`, { method: "DELETE" });
-                        } catch {
-                        }
+                        } catch {}
                     }
                     setIsSubmitting(false);
                     return;

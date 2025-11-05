@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
