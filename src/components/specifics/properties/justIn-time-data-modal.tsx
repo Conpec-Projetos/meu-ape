@@ -10,7 +10,7 @@ import {
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
 import { Label } from "@/components/features/labels/default-label";
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { cn } from "@/lib/utils";
 import { userDataSchema } from "@/schemas/jitModalSchema";
 import { notifyError, notifyPromise } from "@/services/notificationService";

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { notifyError } from "@/services/notificationService";
 import { Loader } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";

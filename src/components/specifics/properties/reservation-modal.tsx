@@ -7,7 +7,7 @@ import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-ti
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader, SquareCheck, SquareX } from "lucide-react";

@@ -1,6 +1,6 @@
 "use client";
 
-import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import * as React from "react";

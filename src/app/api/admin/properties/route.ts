@@ -1,6 +1,7 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import type { Property } from "@/interfaces/property"; // Make sure Property interface path is correct
 import { geocodeAddressSmart } from "@/lib/geocoding";
+import { normalizePropertyArrays } from "@/lib/normalizePropertyArrays";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
@@ -83,61 +84,57 @@ export async function GET(request: NextRequest) {
 
                     // Map rows to Property[]
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const formattedProperties: Property[] = (rows || []).map((p: any) => ({
-                        id: p.id,
-                        developerId: p.developer_id,
-                        name: p.name,
-                        address: p.address ?? "",
-                        description: p.description ?? "",
-                        propertyImages: p.property_images ?? undefined,
-                        areasImages: p.areas_images ?? undefined,
-                        matterportUrls: p.matterport_urls ?? undefined,
-                        location: (() => {
-                            let lat = 0,
-                                lng = 0;
-                            const loc = p.location as SupabaseLocation;
-                            if (
-                                loc &&
-                                typeof loc === "object" &&
-                                "coordinates" in loc &&
-                                Array.isArray(loc.coordinates) &&
-                                loc.coordinates.length === 2
-                            ) {
-                                lng = typeof loc.coordinates[0] === "number" ? loc.coordinates[0] : 0;
-                                lat = typeof loc.coordinates[1] === "number" ? loc.coordinates[1] : 0;
-                            } else if (typeof loc === "string") {
-                                const match = loc.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
-                                if (match) {
-                                    lng = parseFloat(match[1]);
-                                    lat = parseFloat(match[2]);
+                    const formattedProperties: Property[] = (rows || []).map((p: any) => {
+                        const n = normalizePropertyArrays(p);
+                        return {
+                            id: p.id,
+                            developerId: p.developer_id,
+                            name: p.name,
+                            address: p.address ?? "",
+                            description: p.description ?? "",
+                            propertyImages: n.property_images,
+                            areasImages: n.areas_images,
+                            matterportUrls: n.matterport_urls,
+                            location: (() => {
+                                let lat = 0,
+                                    lng = 0;
+                                const loc = p.location as SupabaseLocation;
+                                if (
+                                    loc &&
+                                    typeof loc === "object" &&
+                                    "coordinates" in loc &&
+                                    Array.isArray(loc.coordinates) &&
+                                    loc.coordinates.length === 2
+                                ) {
+                                    lng = typeof loc.coordinates[0] === "number" ? loc.coordinates[0] : 0;
+                                    lat = typeof loc.coordinates[1] === "number" ? loc.coordinates[1] : 0;
+                                } else if (typeof loc === "string") {
+                                    const match = loc.match(/POINT\(([-\d.]+) ([-\d.]+)\)/);
+                                    if (match) {
+                                        lng = parseFloat(match[1]);
+                                        lat = parseFloat(match[2]);
+                                    }
                                 }
-                            }
-                            return { lat, lng };
-                        })(),
-                        deliveryDate: p.delivery_date ? new Date(p.delivery_date) : new Date(0),
-                        launchDate: p.launch_date ? new Date(p.launch_date) : new Date(0),
-                        features: p.features || [],
-                        floors: p.floors ?? 0,
-                        unitsPerFloor: p.units_per_floor ?? 0,
-                        groups: Array.isArray(p.groups)
-                            ? (p.groups as string[])
-                            : typeof p.groups === "string"
-                              ? (p.groups as string)
-                                    .split(",")
-                                    .map(s => s.trim())
-                                    .filter(Boolean)
-                              : [],
-                        searchableUnitFeats: {
-                            minPrice: 0,
-                            maxPrice: 0,
-                            bedrooms: [],
-                            baths: [],
-                            garages: [],
-                            minSize: 0,
-                            maxSize: 0,
-                            sizes: [],
-                        },
-                    }));
+                                return { lat, lng };
+                            })(),
+                            deliveryDate: p.delivery_date ? new Date(p.delivery_date) : new Date(0),
+                            launchDate: p.launch_date ? new Date(p.launch_date) : new Date(0),
+                            features: n.features,
+                            floors: p.floors ?? 0,
+                            unitsPerFloor: p.units_per_floor ?? 0,
+                            groups: n.groups,
+                            searchableUnitFeats: {
+                                minPrice: 0,
+                                maxPrice: 0,
+                                bedrooms: [],
+                                baths: [],
+                                garages: [],
+                                minSize: 0,
+                                maxSize: 0,
+                                sizes: [],
+                            },
+                        };
+                    });
 
                     const totalPages = Math.max(1, Math.ceil((totalProperties || 0) / limitSize));
 
@@ -182,6 +179,7 @@ export async function GET(request: NextRequest) {
 
         // Mapeamento para camelCase and Property interface
         const formattedProperties: Property[] = (supabaseData || []).map(p => {
+            const n = normalizePropertyArrays(p as unknown as Record<string, unknown>);
             // Extract lat/lng safely
             let lat = 0,
                 lng = 0;
@@ -215,24 +213,16 @@ export async function GET(request: NextRequest) {
                 name: p.name,
                 address: p.address ?? "", // Default null address to empty string
                 description: p.description ?? "", // Default null description to empty string
-                // Default null image arrays to undefined (or empty array [] if preferred)
-                propertyImages: p.property_images ?? undefined,
-                areasImages: p.areas_images ?? undefined,
-                matterportUrls: p.matterport_urls ?? undefined,
+                propertyImages: n.property_images,
+                areasImages: n.areas_images,
+                matterportUrls: n.matterport_urls,
                 location: { lat, lng }, // Use safely extracted lat/lng
                 deliveryDate: p.delivery_date ? new Date(p.delivery_date) : new Date(0), // Default date
                 launchDate: p.launch_date ? new Date(p.launch_date) : new Date(0), // Default date
-                features: p.features || [],
+                features: n.features,
                 floors: p.floors ?? 0, // Default null to 0
                 unitsPerFloor: p.units_per_floor ?? 0, // Default null to 0
-                groups: Array.isArray(p.groups)
-                    ? (p.groups as string[])
-                    : typeof p.groups === "string"
-                      ? (p.groups as string)
-                            .split(",")
-                            .map(s => s.trim())
-                            .filter(Boolean)
-                      : [],
+                groups: n.groups,
                 // Default structure for searchableUnitFeats
                 searchableUnitFeats: {
                     minPrice: 0,

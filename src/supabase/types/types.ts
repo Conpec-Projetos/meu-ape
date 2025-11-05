@@ -82,7 +82,7 @@ export type Database = {
           developer_id: string
           features: string[] | null
           floors: number | null
-          groups: string | null
+          groups: string[] | null
           id: string
           launch_date: string | null
           location: unknown
@@ -104,7 +104,7 @@ export type Database = {
           developer_id: string
           features?: string[] | null
           floors?: number | null
-          groups?: string | null
+          groups?: string[] | null
           id?: string
           launch_date?: string | null
           location?: unknown
@@ -126,7 +126,7 @@ export type Database = {
           developer_id?: string
           features?: string[] | null
           floors?: number | null
-          groups?: string | null
+          groups?: string[] | null
           id?: string
           launch_date?: string | null
           location?: unknown
@@ -558,7 +558,7 @@ export type Database = {
           developer_id: string
           features: string[]
           floors: number
-          groups: string
+          groups: string[]
           id: string
           lat: number
           launch_date: string
@@ -636,7 +636,7 @@ export type Database = {
           description: string
           features: string[]
           floors: number
-          groups: string
+          groups: string[]
           id: string
           lat: number
           launch_date: string
