@@ -19,14 +19,10 @@ export interface ReservationRequest {
     status: "pending" | "approved" | "denied";
     client: Client; // referência e cópia dos dados e documentos do cliente no momento da solicitação
     property: {
-        // ref removida do fluxo principal; manter opcional apenas por compatibilidade
-        ref?: DocumentReference; // referência ao imóvel na coleção properties (se ainda existir no Firebase)
         id: string; // id do imóvel no Supabase
         name: string; // nome do imóvel/empreendimento
     };
     unit: {
-        // ref removida do fluxo principal; manter opcional apenas por compatibilidade
-        ref?: DocumentReference; // referência à unidade no Firebase (se existir)
         id: string; // id da unidade no Supabase
         identifier: string; // identificador da unidade
         block: string;

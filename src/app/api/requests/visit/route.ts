@@ -16,7 +16,6 @@ interface RequestData {
 
 export async function POST(req: NextRequest) {
     try {
-        // Verify user session
         const sessionCookie = req.cookies.get("session")?.value;
         if (!sessionCookie) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -122,7 +121,14 @@ export async function POST(req: NextRequest) {
 
         // Send emails to admins
         try {
-            await sendEmailAdmin({ type: "visitRequest", clientName: userName, propertyName: property.name });
+            await sendEmailAdmin({
+                type: "visitRequest",
+                clientName: userName,
+                propertyName: property.name,
+                unitIdentifier: unit.identifier,
+                unitBlock: unit.block,
+                requestedSlots,
+            });
         } catch (error) {
             console.error(error);
         }
