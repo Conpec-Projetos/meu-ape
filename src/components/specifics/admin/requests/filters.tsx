@@ -45,6 +45,7 @@ export function RequestFilters({
                             variant={isActive ? "default" : "outline"}
                             size="sm"
                             onClick={() => onStatusChange(option.urlValue)}
+                            className="cursor-pointer"
                         >
                             {option.label}
                         </Button>

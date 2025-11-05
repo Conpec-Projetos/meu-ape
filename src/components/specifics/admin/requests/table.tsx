@@ -1,6 +1,6 @@
 "use client";
 
-import { RequestTab, STATUS_BADGE_MAP, formatDateTime } from "@/components/specifics/admin/requests/constants";
+import { RequestTab, STATUS_META, formatDateTime } from "@/components/specifics/admin/requests/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,7 +62,6 @@ export function RequestsTable({ type, requests, isLoading, error, onAnalyze }: R
                 </TableHeader>
                 <TableBody>
                     {visitRequests.map(request => {
-                        const statusInfo = STATUS_BADGE_MAP[request.status] ?? STATUS_BADGE_MAP.pending;
                         return (
                             <TableRow key={request.id}>
                                 <TableCell>{request.client.fullName}</TableCell>
@@ -71,10 +70,21 @@ export function RequestsTable({ type, requests, isLoading, error, onAnalyze }: R
                                     {formatDateTime(request.createdAt)}
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                                    {(() => {
+                                        const meta = STATUS_META[request.status] || STATUS_META.pending;
+                                        const { Icon, classes, label } = meta;
+                                        return (
+                                            <Badge
+                                                variant="outline"
+                                                className={`inline-flex items-center gap-1.5 capitalize ${classes}`}
+                                            >
+                                                <Icon className="h-3.5 w-3.5" /> {label}
+                                            </Badge>
+                                        );
+                                    })()}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="outline" size="sm" onClick={() => onAnalyze(request)}>
+                                    <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => onAnalyze(request)}>
                                         Analisar
                                     </Button>
                                 </TableCell>
@@ -101,7 +111,6 @@ export function RequestsTable({ type, requests, isLoading, error, onAnalyze }: R
             </TableHeader>
             <TableBody>
                 {reservationRequests.map(request => {
-                    const statusInfo = STATUS_BADGE_MAP[request.status] ?? STATUS_BADGE_MAP.pending;
                     return (
                         <TableRow key={request.id}>
                             <TableCell>{request.client.fullName}</TableCell>
@@ -111,7 +120,18 @@ export function RequestsTable({ type, requests, isLoading, error, onAnalyze }: R
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{formatDateTime(request.createdAt)}</TableCell>
                             <TableCell>
-                                <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+                                {(() => {
+                                    const meta = STATUS_META[request.status] || STATUS_META.pending;
+                                    const { Icon, classes, label } = meta;
+                                    return (
+                                        <Badge
+                                            variant="outline"
+                                            className={`inline-flex items-center gap-1.5 capitalize ${classes}`}
+                                        >
+                                            <Icon className="h-3.5 w-3.5" /> {label}
+                                        </Badge>
+                                    );
+                                })()}
                             </TableCell>
                             <TableCell className="text-right">
                                 <Button variant="outline" size="sm" onClick={() => onAnalyze(request)}>
