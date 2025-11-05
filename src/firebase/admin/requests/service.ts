@@ -312,6 +312,12 @@ const ensurePendingStatus = (status: string | undefined) => {
     }
 };
 
+const ensureApprovedStatus = (status: string | undefined) => {
+    if (status !== "approved") {
+        throw new RequestActionError("INVALID_STATUS", "A solicitação não está aprovada.");
+    }
+};
+
 export const approveVisitRequest = async ({ id, scheduledSlot, agentId, agentMsg }: ApproveVisitParams) => {
     const scheduledDate = new Date(scheduledSlot);
     if (Number.isNaN(scheduledDate.getTime())) {
@@ -595,5 +601,164 @@ export const denyReservationRequest = async ({ id, clientMsg, agentMsg }: DenyRe
             const html = buildEmailLayout("Reserva negada", inner);
             await sendEmail(agentEmails, "Reserva negada", html);
         }
+    }
+};
+
+// After approval: complete or cancel (visits)
+export const completeVisitRequest = async (id: string) => {
+    const requestRef = db.collection("visitRequests").doc(id);
+    const snapshot = await requestRef.get();
+    if (!snapshot.exists) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de visita não encontrada.");
+    }
+    const data = snapshot.data() as VisitRequest;
+    ensureApprovedStatus(data.status);
+
+    await requestRef.update({
+        status: "completed",
+        updatedAt: Timestamp.now(),
+    });
+
+    const clientUser = await fetchUserByReference(data.client?.ref);
+    const clientEmail = clientUser?.email;
+    const clientName = data.client?.fullName ?? clientUser?.fullName ?? "cliente";
+    const propertyName = data.property?.name ?? "imóvel";
+    if (clientEmail) {
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Sua visita ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi marcada como concluída.</p>
+            <p style="margin:0">Obrigado pelo interesse! Se precisar de algo mais, estamos à disposição.</p>
+        `;
+        const html = buildEmailLayout("Visita concluída", inner);
+        await sendEmail(clientEmail, "Visita concluída", html);
+    }
+};
+
+export const cancelVisitRequest = async ({
+    id,
+    clientMsg,
+    agentMsg,
+}: {
+    id: string;
+    clientMsg?: string;
+    agentMsg?: string;
+}) => {
+    const requestRef = db.collection("visitRequests").doc(id);
+    const snapshot = await requestRef.get();
+    if (!snapshot.exists) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de visita não encontrada.");
+    }
+    const data = snapshot.data() as VisitRequest;
+    ensureApprovedStatus(data.status);
+
+    const trimmedClientMsg = clientMsg?.trim();
+    const trimmedAgentMsg = agentMsg?.trim();
+
+    await requestRef.update({
+        status: "denied",
+        clientMsg: trimmedClientMsg ? trimmedClientMsg : FieldValue.delete(),
+        agentMsg: trimmedAgentMsg ? trimmedAgentMsg : FieldValue.delete(),
+        scheduledSlot: FieldValue.delete(),
+        agents: FieldValue.delete(),
+        updatedAt: Timestamp.now(),
+    });
+
+    const clientUser = await fetchUserByReference(data.client?.ref);
+    const clientEmail = clientUser?.email;
+    const clientName = data.client?.fullName ?? clientUser?.fullName ?? "cliente";
+    const propertyName = data.property?.name ?? "imóvel";
+    if (clientEmail) {
+        const messageBlock = trimmedClientMsg
+            ? `<p style="margin:0 0 6px">Mensagem:</p><p style="margin:0">${formatMultiline(trimmedClientMsg)}</p>`
+            : "";
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Sua visita ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi cancelada.</p>
+            ${messageBlock}
+        `;
+        const html = buildEmailLayout("Visita cancelada", inner);
+        await sendEmail(clientEmail, "Visita cancelada", html);
+    }
+};
+
+// After approval: complete or cancel (reservations)
+export const completeReservationRequest = async (id: string) => {
+    const requestRef = db.collection("reservationRequests").doc(id);
+    const snapshot = await requestRef.get();
+    if (!snapshot.exists) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de reserva não encontrada.");
+    }
+    const data = snapshot.data() as ReservationRequest;
+    ensureApprovedStatus(data.status);
+
+    await requestRef.update({ status: "completed", updatedAt: Timestamp.now() });
+
+    const clientUser = await fetchUserByReference(data.client?.ref);
+    const clientEmail = clientUser?.email;
+    const clientName = data.client?.fullName ?? clientUser?.fullName ?? "cliente";
+    const propertyName = data.property?.name ?? "imóvel";
+    if (clientEmail) {
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Sua solicitação de reserva do imóvel <strong>${escapeHtml(
+                propertyName
+            )}</strong> foi marcada como concluída.</p>
+            <p style="margin:0">Obrigado por escolher o Meu Apê.</p>
+        `;
+        const html = buildEmailLayout("Reserva concluída", inner);
+        await sendEmail(clientEmail, "Reserva concluída", html);
+    }
+};
+
+export const cancelReservationRequest = async ({
+    id,
+    clientMsg,
+    agentMsg,
+}: {
+    id: string;
+    clientMsg?: string;
+    agentMsg?: string;
+}) => {
+    const requestRef = db.collection("reservationRequests").doc(id);
+    const snapshot = await requestRef.get();
+    if (!snapshot.exists) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de reserva não encontrada.");
+    }
+    const data = snapshot.data() as ReservationRequest;
+    ensureApprovedStatus(data.status);
+
+    // Revert unit availability if present
+    const unitId = data.unit?.id;
+    if (unitId) {
+        await supabaseAdmin.from("units").update({ is_available: true }).eq("id", unitId);
+    }
+
+    const trimmedClientMsg = clientMsg?.trim();
+    const trimmedAgentMsg = agentMsg?.trim();
+
+    await requestRef.update({
+        status: "denied",
+        clientMsg: trimmedClientMsg ? trimmedClientMsg : FieldValue.delete(),
+        agentMsg: trimmedAgentMsg ? trimmedAgentMsg : FieldValue.delete(),
+        updatedAt: Timestamp.now(),
+    });
+
+    const clientUser = await fetchUserByReference(data.client?.ref);
+    const clientEmail = clientUser?.email;
+    const clientName = data.client?.fullName ?? clientUser?.fullName ?? "cliente";
+    const propertyName = data.property?.name ?? "imóvel";
+    if (clientEmail) {
+        const messageBlock = trimmedClientMsg
+            ? `<p style="margin:0 0 6px">Mensagem:</p><p style="margin:0">${formatMultiline(trimmedClientMsg)}</p>`
+            : "";
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
+            <p style="margin:0 0 8px">Sua solicitação de reserva do imóvel <strong>${escapeHtml(
+                propertyName
+            )}</strong> foi cancelada.</p>
+            ${messageBlock}
+        `;
+        const html = buildEmailLayout("Reserva cancelada", inner);
+        await sendEmail(clientEmail, "Reserva cancelada", html);
     }
 };

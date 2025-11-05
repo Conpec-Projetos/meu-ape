@@ -1,5 +1,7 @@
 import {
     approveReservationRequest,
+    cancelReservationRequest,
+    completeReservationRequest,
     denyReservationRequest,
     RequestActionError,
 } from "@/firebase/admin/requests/service";
@@ -14,7 +16,9 @@ type ActionRequestBody =
           action: "deny";
           clientMsg: string;
           agentMsg?: string;
-      };
+      }
+    | { action: "complete" }
+    | { action: "cancel"; clientMsg?: string; agentMsg?: string };
 
 async function isAdmin(request: NextRequest): Promise<boolean> {
     const sessionCookie = request.cookies.get("session")?.value;
@@ -62,6 +66,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
             }
             await denyReservationRequest({ id, clientMsg, agentMsg });
             return NextResponse.json({ message: "Reserva negada com sucesso" });
+        }
+
+        if (body.action === "complete") {
+            await completeReservationRequest(id);
+            return NextResponse.json({ message: "Reserva marcada como concluída" });
+        }
+
+        if (body.action === "cancel") {
+            const { clientMsg, agentMsg } = body;
+            await cancelReservationRequest({ id, clientMsg, agentMsg });
+            return NextResponse.json({ message: "Reserva cancelada com sucesso" });
         }
 
         return NextResponse.json({ error: "Ação inválida" }, { status: 400 });

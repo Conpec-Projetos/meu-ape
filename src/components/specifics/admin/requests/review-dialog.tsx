@@ -3,7 +3,7 @@
 import {
     DOCUMENT_GROUPS,
     RequestTab,
-    STATUS_BADGE_MAP,
+    STATUS_META,
     formatDateTime,
 } from "@/components/specifics/admin/requests/constants";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,10 @@ interface RequestReviewDialogProps {
     onApproveVisit: () => void;
     onDenyReservation: () => void;
     onApproveReservation: () => void;
+    onCompleteVisit: () => void;
+    onCancelVisit: () => void;
+    onCompleteReservation: () => void;
+    onCancelReservation: () => void;
     disableDenyAction: boolean;
 }
 
@@ -88,13 +92,20 @@ export function RequestReviewDialog({
     onApproveVisit,
     onDenyReservation,
     onApproveReservation,
+    onCompleteVisit,
+    onCancelVisit,
+    onCompleteReservation,
+    onCancelReservation,
     disableDenyAction,
 }: RequestReviewDialogProps) {
     if (!request) {
         return null;
     }
 
-    const statusInfo = STATUS_BADGE_MAP[request.data.status] ?? STATUS_BADGE_MAP.pending;
+    // keep label mapping for potential external consumers via constants, but not used directly here
+    const statusMeta = STATUS_META[request.data.status] || STATUS_META.pending;
+    const isApproved = request.data.status === "approved";
+    const isReadOnly = request.data.status !== "pending"; // approved, denied, completed => somente leitura nos campos
     const isVisitRequest = request.type === "visits";
 
     return (
@@ -117,7 +128,17 @@ export function RequestReviewDialog({
                             label="Unidade"
                             value={`${request.data.unit.identifier} · Bloco ${request.data.unit.block}`}
                         />
-                        <InfoField label="Status atual" value={statusInfo.label} />
+                        <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                Status atual
+                            </p>
+                            <Badge
+                                variant="outline"
+                                className={`inline-flex items-center gap-1.5 capitalize ${statusMeta.classes}`}
+                            >
+                                <statusMeta.Icon className="h-3.5 w-3.5" /> {statusMeta.label}
+                            </Badge>
+                        </div>
                     </div>
 
                     {isVisitRequest ? (
@@ -130,9 +151,10 @@ export function RequestReviewDialog({
                             agents={agents}
                             isAgentsLoading={isAgentsLoading}
                             isActionLoading={isActionLoading}
+                            readOnly={isReadOnly}
                         />
                     ) : (
-                        <ReservationRequestDetails request={request.data} />
+                        <ReservationRequestDetails request={request.data} readOnly={isReadOnly} />
                     )}
 
                     {showDenialFields && (
@@ -163,59 +185,110 @@ export function RequestReviewDialog({
                     )}
                 </div>
 
-                <DialogFooter className="sm:justify-between">
-                    <DialogClose asChild>
-                        <Button variant="outline" disabled={isActionLoading}>
-                            Cancelar
-                        </Button>
-                    </DialogClose>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                        {isVisitRequest ? (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    className="border-destructive text-destructive hover:bg-destructive hover:text-white"
-                                    onClick={onDenyVisit}
-                                    disabled={isActionLoading || disableDenyAction}
-                                >
-                                    {isActionLoading && showDenialFields ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    Negar visita
-                                </Button>
-                                <Button
-                                    onClick={onApproveVisit}
-                                    disabled={isActionLoading || !selectedSlot || !selectedAgentId || isAgentsLoading}
-                                >
-                                    {isActionLoading && !showDenialFields ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    Aprovar visita
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    className="border-destructive text-destructive hover:bg-destructive hover:text-white"
-                                    onClick={onDenyReservation}
-                                    disabled={isActionLoading || disableDenyAction}
-                                >
-                                    {isActionLoading && showDenialFields ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    Negar reserva
-                                </Button>
-                                <Button onClick={onApproveReservation} disabled={isActionLoading}>
-                                    {isActionLoading && !showDenialFields ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    Aprovar reserva
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </DialogFooter>
+                {(request.data.status === "pending" || isApproved) && (
+                    <DialogFooter className="sm:justify-between">
+                        <DialogClose asChild>
+                            <Button className="cursor-pointer" variant="outline" disabled={isActionLoading}>
+                                Fechar
+                            </Button>
+                        </DialogClose>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                            {request.data.status === "pending" ? (
+                                isVisitRequest ? (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                            onClick={onDenyVisit}
+                                            disabled={isActionLoading || disableDenyAction}
+                                        >
+                                            {isActionLoading && showDenialFields ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : null}
+                                            Negar visita
+                                        </Button>
+                                        <Button
+                                            className="cursor-pointer"
+                                            onClick={onApproveVisit}
+                                            disabled={
+                                                isActionLoading || !selectedSlot || !selectedAgentId || isAgentsLoading
+                                            }
+                                        >
+                                            {isActionLoading && !showDenialFields ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : null}
+                                            Aprovar visita
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                            onClick={onDenyReservation}
+                                            disabled={isActionLoading || disableDenyAction}
+                                        >
+                                            {isActionLoading && showDenialFields ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : null}
+                                            Negar reserva
+                                        </Button>
+                                        <Button className="cursor-pointer" onClick={onApproveReservation} disabled={isActionLoading}>
+                                            {isActionLoading && !showDenialFields ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : null}
+                                            Aprovar reserva
+                                        </Button>
+                                    </>
+                                )
+                            ) : isVisitRequest ? (
+                                // Approved visit actions
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                        onClick={onCancelVisit}
+                                        disabled={isActionLoading}
+                                    >
+                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Cancelar solicitação
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"
+                                        onClick={onCompleteVisit}
+                                        disabled={isActionLoading}
+                                    >
+                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Marcar como concluída
+                                    </Button>
+                                </>
+                            ) : (
+                                // Approved reservation actions
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                        onClick={onCancelReservation}
+                                        disabled={isActionLoading}
+                                    >
+                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Cancelar solicitação
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"
+                                        onClick={onCompleteReservation}
+                                        disabled={isActionLoading}
+                                    >
+                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                        Marcar como concluída
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    </DialogFooter>
+                )}
             </DialogContent>
         </Dialog>
     );
@@ -230,6 +303,7 @@ function VisitRequestDetails({
     agents,
     isAgentsLoading,
     isActionLoading,
+    readOnly,
 }: {
     request: VisitRequestListItem;
     selectedSlot: string;
@@ -239,6 +313,7 @@ function VisitRequestDetails({
     agents: User[];
     isAgentsLoading: boolean;
     isActionLoading: boolean;
+    readOnly: boolean;
 }) {
     return (
         <div className="space-y-4">
@@ -264,61 +339,78 @@ function VisitRequestDetails({
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Horário final da visita
                     </p>
-                    <Select
-                        value={selectedSlot}
-                        onValueChange={onSlotChange}
-                        disabled={isActionLoading || request.requestedSlots.length === 0}
-                    >
-                        <SelectTrigger className="w-full justify-between">
-                            <SelectValue placeholder="Selecione o horário" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {request.requestedSlots.map(slot => (
-                                <SelectItem key={slot} value={slot}>
-                                    {formatDateTime(slot)}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {readOnly ? (
+                        <p className="text-sm font-medium text-foreground">
+                            {request.scheduledSlot ? formatDateTime(request.scheduledSlot) : "—"}
+                        </p>
+                    ) : (
+                        <Select
+                            value={selectedSlot}
+                            onValueChange={onSlotChange}
+                            disabled={
+                                isActionLoading ||
+                                request.requestedSlots.length === 0 ||
+                                readOnly ||
+                                !!request.scheduledSlot
+                            }
+                        >
+                            <SelectTrigger className="w-full justify-between">
+                                <SelectValue placeholder="Selecione o horário" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {request.requestedSlots.map(slot => (
+                                    <SelectItem key={slot} value={slot}>
+                                        {formatDateTime(slot)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
 
                 <div className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Atribuir corretor
                     </p>
-                    <Select
-                        value={selectedAgentId}
-                        onValueChange={onAgentChange}
-                        disabled={isActionLoading || isAgentsLoading || agents.length === 0}
-                    >
-                        <SelectTrigger className="w-full justify-between">
-                            <SelectValue
-                                placeholder={
-                                    isAgentsLoading
-                                        ? "Carregando corretores..."
-                                        : agents.length > 0
-                                          ? "Selecione o corretor"
-                                          : "Nenhum corretor disponível"
-                                }
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {agents
-                                .filter(agent => agent.id)
-                                .map(agent => (
-                                    <SelectItem key={agent.id} value={agent.id as string}>
-                                        {agent.fullName}
-                                    </SelectItem>
-                                ))}
-                        </SelectContent>
-                    </Select>
+                    {readOnly ? (
+                        <p className="text-sm font-medium text-foreground">
+                            {request.agents?.length ? request.agents[0]?.name : "—"}
+                        </p>
+                    ) : (
+                        <Select
+                            value={selectedAgentId}
+                            onValueChange={onAgentChange}
+                            disabled={isActionLoading || isAgentsLoading || agents.length === 0 || readOnly}
+                        >
+                            <SelectTrigger className="w-full justify-between cursor-pointer">
+                                <SelectValue
+                                    placeholder={
+                                        isAgentsLoading
+                                            ? "Carregando corretores..."
+                                            : agents.length > 0
+                                              ? "Selecione o corretor"
+                                              : "Nenhum corretor disponível"
+                                    }
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {agents
+                                    .filter(agent => agent.id)
+                                    .map(agent => (
+                                        <SelectItem key={agent.id} value={agent.id as string}>
+                                            {agent.fullName}
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
 
-function ReservationRequestDetails({ request }: { request: ReservationRequestListItem }) {
+function ReservationRequestDetails({ request }: { request: ReservationRequestListItem; readOnly: boolean }) {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">

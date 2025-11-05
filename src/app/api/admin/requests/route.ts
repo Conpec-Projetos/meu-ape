@@ -10,7 +10,8 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
 }
 
 const VISIT_STATUSES = new Set(["pending", "approved", "denied", "completed"]);
-const RESERVATION_STATUSES = new Set(["pending", "approved", "denied"]);
+// Allow completed for reservations as well (after approval lifecycle)
+const RESERVATION_STATUSES = new Set(["pending", "approved", "denied", "completed"]);
 const DEFAULT_PAGE_SIZE = 15;
 
 export async function GET(request: NextRequest) {

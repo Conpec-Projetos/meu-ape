@@ -232,6 +232,7 @@ function AdminRequestsContent() {
     // Actions: visits
     const handleApproveVisit = async () => {
         if (!selectedRequest || selectedRequest.type !== "visits") return;
+        if (selectedRequest.data.status !== "pending") return; // read-only guard
         if (!selectedSlot || !selectedAgentId) return;
         setIsActionLoading(true);
         const promise = new Promise<string>(async (resolve, reject) => {
@@ -268,6 +269,7 @@ function AdminRequestsContent() {
 
     const handleDenyVisit = async () => {
         if (!selectedRequest || selectedRequest.type !== "visits") return;
+        if (selectedRequest.data.status !== "pending") return; // read-only guard
         if (!showDenialFields) {
             setShowDenialFields(true);
             return;
@@ -304,6 +306,7 @@ function AdminRequestsContent() {
     // Actions: reservations
     const handleApproveReservation = async () => {
         if (!selectedRequest || selectedRequest.type !== "reservations") return;
+        if (selectedRequest.data.status !== "pending") return; // read-only guard
         setIsActionLoading(true);
         const promise = new Promise<string>(async (resolve, reject) => {
             try {
@@ -334,6 +337,7 @@ function AdminRequestsContent() {
 
     const handleDenyReservation = async () => {
         if (!selectedRequest || selectedRequest.type !== "reservations") return;
+        if (selectedRequest.data.status !== "pending") return; // read-only guard
         if (!showDenialFields) {
             setShowDenialFields(true);
             return;
@@ -367,6 +371,132 @@ function AdminRequestsContent() {
         });
     };
 
+    // Post-approval actions: visits
+    const handleCompleteVisit = async () => {
+        if (!selectedRequest || selectedRequest.type !== "visits") return;
+        if (selectedRequest.data.status !== "approved") return;
+        setIsActionLoading(true);
+        const promise = new Promise<string>(async (resolve, reject) => {
+            try {
+                const response = await fetch(`/api/admin/requests/visits/${selectedRequest.data.id}/action`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "complete" }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || "Erro ao concluir a visita.");
+                }
+                await fetchRequests();
+                closeModal();
+                resolve("Visita marcada como concluída.");
+            } catch (err) {
+                reject(err);
+            } finally {
+                setIsActionLoading(false);
+            }
+        });
+        notifyPromise(promise, {
+            loading: "Marcando como concluída...",
+            success: m => String(m),
+            error: e => (e instanceof Error ? e.message : "Erro ao concluir visita."),
+        });
+    };
+
+    const handleCancelVisit = async () => {
+        if (!selectedRequest || selectedRequest.type !== "visits") return;
+        if (selectedRequest.data.status !== "approved") return;
+        setIsActionLoading(true);
+        const promise = new Promise<string>(async (resolve, reject) => {
+            try {
+                const response = await fetch(`/api/admin/requests/visits/${selectedRequest.data.id}/action`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "cancel", clientMsg, agentMsg }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || "Erro ao cancelar a visita.");
+                }
+                await fetchRequests();
+                closeModal();
+                resolve("Visita cancelada com sucesso.");
+            } catch (err) {
+                reject(err);
+            } finally {
+                setIsActionLoading(false);
+            }
+        });
+        notifyPromise(promise, {
+            loading: "Cancelando visita...",
+            success: m => String(m),
+            error: e => (e instanceof Error ? e.message : "Erro ao cancelar visita."),
+        });
+    };
+
+    // Post-approval actions: reservations
+    const handleCompleteReservation = async () => {
+        if (!selectedRequest || selectedRequest.type !== "reservations") return;
+        if (selectedRequest.data.status !== "approved") return;
+        setIsActionLoading(true);
+        const promise = new Promise<string>(async (resolve, reject) => {
+            try {
+                const response = await fetch(`/api/admin/requests/reservations/${selectedRequest.data.id}/action`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "complete" }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || "Erro ao concluir a reserva.");
+                }
+                await fetchRequests();
+                closeModal();
+                resolve("Reserva marcada como concluída.");
+            } catch (err) {
+                reject(err);
+            } finally {
+                setIsActionLoading(false);
+            }
+        });
+        notifyPromise(promise, {
+            loading: "Marcando como concluída...",
+            success: m => String(m),
+            error: e => (e instanceof Error ? e.message : "Erro ao concluir reserva."),
+        });
+    };
+
+    const handleCancelReservation = async () => {
+        if (!selectedRequest || selectedRequest.type !== "reservations") return;
+        if (selectedRequest.data.status !== "approved") return;
+        setIsActionLoading(true);
+        const promise = new Promise<string>(async (resolve, reject) => {
+            try {
+                const response = await fetch(`/api/admin/requests/reservations/${selectedRequest.data.id}/action`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "cancel", clientMsg, agentMsg }),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || "Erro ao cancelar a reserva.");
+                }
+                await fetchRequests();
+                closeModal();
+                resolve("Reserva cancelada com sucesso.");
+            } catch (err) {
+                reject(err);
+            } finally {
+                setIsActionLoading(false);
+            }
+        });
+        notifyPromise(promise, {
+            loading: "Cancelando reserva...",
+            success: m => String(m),
+            error: e => (e instanceof Error ? e.message : "Erro ao cancelar reserva."),
+        });
+    };
+
     const typedRequests = useMemo(
         () => (tab === "visits" ? (requests as VisitRequestListItem[]) : (requests as ReservationRequestListItem[])),
         [requests, tab]
@@ -376,15 +506,13 @@ function AdminRequestsContent() {
         <div className="min-h-screen container mx-auto px-4 py-20 space-y-6">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold">Gerenciamento de Visitas e Reservas</h1>
-                <p className="text-muted-foreground">
-                    Controle e processe solicitações de visita e reserva.
-                </p>
+                <p className="text-muted-foreground">Controle e processe solicitações de visita e reserva.</p>
             </div>
 
             <Tabs value={TAB_INTERNAL_TO_URL[tab]} onValueChange={handleTabChange}>
                 <TabsList>
-                    <TabsTrigger value="visitas">Solicitações de Visita</TabsTrigger>
-                    <TabsTrigger value="reservas">Solicitações de Reserva</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="visitas">Solicitações de Visita</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="reservas">Solicitações de Reserva</TabsTrigger>
                 </TabsList>
             </Tabs>
 
@@ -476,6 +604,10 @@ function AdminRequestsContent() {
                 onApproveVisit={handleApproveVisit}
                 onDenyReservation={handleDenyReservation}
                 onApproveReservation={handleApproveReservation}
+                onCompleteVisit={handleCompleteVisit}
+                onCancelVisit={handleCancelVisit}
+                onCompleteReservation={handleCompleteReservation}
+                onCancelReservation={handleCancelReservation}
                 disableDenyAction={showDenialFields && !clientMsg.trim()}
             />
         </div>

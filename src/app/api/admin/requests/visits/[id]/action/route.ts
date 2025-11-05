@@ -1,4 +1,10 @@
-import { approveVisitRequest, denyVisitRequest, RequestActionError } from "@/firebase/admin/requests/service";
+import {
+    approveVisitRequest,
+    cancelVisitRequest,
+    completeVisitRequest,
+    denyVisitRequest,
+    RequestActionError,
+} from "@/firebase/admin/requests/service";
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,7 +19,9 @@ type ActionRequestBody =
           action: "deny";
           clientMsg: string;
           agentMsg?: string;
-      };
+      }
+    | { action: "complete" }
+    | { action: "cancel"; clientMsg?: string; agentMsg?: string };
 
 async function isAdmin(request: NextRequest): Promise<boolean> {
     const sessionCookie = request.cookies.get("session")?.value;
@@ -66,6 +74,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
             }
             await denyVisitRequest({ id, clientMsg, agentMsg });
             return NextResponse.json({ message: "Visita negada com sucesso" });
+        }
+
+        if (body.action === "complete") {
+            await completeVisitRequest(id);
+            return NextResponse.json({ message: "Visita marcada como concluída" });
+        }
+
+        if (body.action === "cancel") {
+            const { clientMsg, agentMsg } = body;
+            await cancelVisitRequest({ id, clientMsg, agentMsg });
+            return NextResponse.json({ message: "Visita cancelada com sucesso" });
         }
 
         return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
