@@ -1,27 +1,53 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./use-auth";
-import { arrayRemove, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebase-config";
 
 export function useFavorites() {
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [localFavorites, setLocalFavorites] = useState<string[]>(
-        user?.favorited
-            ? Array.isArray(user.favorited)
-                ? user.favorited.map(ref => typeof ref === "string" ? ref : ref.id)
-                : []
-            : []
-    );
+    const [favorites, setFavorites] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!user?.id) {
+            setFavorites([]);
+            return;
+        }
+
+        const userRef = doc(db, "users", user.id);
+        const unsubscribe = onSnapshot(userRef,
+            (doc) => {
+                if (doc.exists()) {
+                    const favorites = doc.data().favorited || [];
+                    const favoritesArray = Array.isArray(favorites)
+                        ? favorites.map(ref => typeof ref === "string" ? ref : ref.id)
+                        : [];
+                    setFavorites(favoritesArray);
+                } else {
+                    setFavorites([]);
+                }
+            },
+            (error) => {
+                console.error("Error listening to favorites:", error);
+            }
+        );
+        return () => unsubscribe();
+    }, [user?.id]);
 
     const isFavorited = useCallback((propertyId: string) => {
-        return localFavorites.includes(propertyId);
-    }, [localFavorites]);
+        if (!propertyId) return false;
+        return favorites.includes(propertyId);
+    }, [favorites]);
 
     const toggleFavorite = useCallback(async (propertyId: string) => {
         if (!user?.id) {
             console.error("User not authenticated");
+            return;
+        }
+
+        if (!propertyId) {
+            console.error("Invalid property ID");
             return;
         }
 
@@ -32,21 +58,10 @@ export function useFavorites() {
             const userRef = doc(db, "users", user.id);
             const addToFavorites = !isFavorited(propertyId);           
 
-            setLocalFavorites(prevFavorites =>
-                addToFavorites 
-                    ? [...prevFavorites, propertyId] 
-                    : prevFavorites.filter(id => id !== propertyId)
-            );
-
             await updateDoc(userRef, {
                 favorited: addToFavorites ? arrayUnion(propertyId) : arrayRemove(propertyId)
             });
         } catch (error) {
-            setLocalFavorites(prevFavorites => 
-            isFavorited(propertyId)
-                ? prevFavorites.filter(id => id !== propertyId)
-                : [...prevFavorites, propertyId]
-            );
             const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro ao atualizar os favoritos";
             setError(errorMessage);
             console.error(errorMessage);
@@ -56,7 +71,7 @@ export function useFavorites() {
     }, [user?.id, isFavorited]);
 
     return {
-        favorites: localFavorites,
+        favorites: favorites,
         isFavorited,
         toggleFavorite,
         isLoading,
