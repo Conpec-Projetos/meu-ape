@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scroll-lock";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function EditImagesModal({
     onClose,
@@ -31,6 +32,11 @@ export default function EditImagesModal({
         onClose();
     }
 
+    useEffect(() => {
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, []);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
             <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
@@ -39,7 +45,13 @@ export default function EditImagesModal({
                     <div className="flex flex-wrap gap-2 mb-2">
                         {imgs.map((img, idx) => (
                             <div key={idx} className="flex items-center gap-1">
-                                <Image src={img} alt="img" width={100} height={100} className="w-16 h-16 object-cover rounded" />
+                                <Image
+                                    src={img}
+                                    alt="img"
+                                    width={100}
+                                    height={100}
+                                    className="w-16 h-16 object-cover rounded"
+                                />
                                 <Button type="button" size="icon" variant="outline" onClick={() => handleRemove(idx)}>
                                     x
                                 </Button>

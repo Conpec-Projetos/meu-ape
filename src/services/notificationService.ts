@@ -1,34 +1,17 @@
 import { toast } from 'sonner';
 
-/**
- * Exibe uma notificação de sucesso.
- * @param message A mensagem a ser exibida.
- */
 export const notifySuccess = (message: string) => {
   toast.success(message);
 };
 
-/**
- * Exibe uma notificação de erro.
- * @param message A mensagem a ser exibida.
- */
 export const notifyError = (message: string) => {
   toast.error(message);
 };
 
-/**
- * Exibe uma notificação de informação.
- * @param message A mensagem a ser exibida.
- */
 export const notifyInfo = (message: string) => {
   toast.info(message);
 };
 
-/**
- * Exibe uma notificação que acompanha o estado de uma Promise (carregando, sucesso, erro).
- * @param promise A ação assíncrona (ex: chamada de API) a ser acompanhada.
- * @param messages Objeto com as mensagens para cada estado da Promise.
- */
 export const notifyPromise = <T,>(
   promise: Promise<T>,
   messages: {
@@ -45,12 +28,6 @@ export const notifyPromise = <T,>(
   });
 };
 
-/**
- * Exibe uma notificação de confirmação com uma ação.
- * @param message A mensagem a ser exibida.
- * @param onConfirm A função a ser executada ao confirmar.
- * @param confirmLabel O texto do botão de confirmação.
- */
 export const notifyConfirmation = (
   message: string,
   onConfirm: () => void,
