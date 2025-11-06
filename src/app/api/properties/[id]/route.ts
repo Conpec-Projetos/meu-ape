@@ -10,8 +10,6 @@ type SupabaseLocation =
     | null
     | unknown;
 
-// GET /api/properties/[id]
-// Returns: { property, unitNavigation }
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }): Promise<NextResponse> {
     const { id } = await context.params;
 
@@ -47,16 +45,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                 name: String(p.name ?? ""),
                 address: String(p.address ?? ""),
                 description: String(p.description ?? ""),
-                propertyImages: (p.property_images as string[] | null) ?? undefined,
-                areasImages: (p.areas_images as string[] | null) ?? undefined,
-                matterportUrls: (p.matterport_urls as string[] | null) ?? undefined,
+                propertyImages: (p.property_images as string[] | null) ?? [],
+                areasImages: (p.areas_images as string[] | null) ?? [],
+                matterportUrls: (p.matterport_urls as string[] | null) ?? [],
                 location: !Number.isNaN(lat) && !Number.isNaN(lng) ? { lat, lng } : { lat: -22.90556, lng: -47.06083 },
                 deliveryDate: p.delivery_date ? new Date(String(p.delivery_date)) : new Date(0),
                 launchDate: p.launch_date ? new Date(String(p.launch_date)) : new Date(0),
                 features: (p.features as string[] | null) ?? [],
                 floors: (p.floors as number | null) ?? 0,
                 unitsPerFloor: (p.units_per_floor as number | null) ?? 0,
-                groups: typeof p.groups === "string" ? (p.groups as string).split(",") : [],
+                groups: (p.groups as string[] | null) ?? [],
             };
         } else {
             // Fallback: Fetch property by id and parse location locally
@@ -121,16 +119,16 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                 name: prop.name as string,
                 address: (prop.address as string) ?? "",
                 description: (prop.description as string) ?? "",
-                propertyImages: (prop.property_images as string[] | null) ?? undefined,
-                areasImages: (prop.areas_images as string[] | null) ?? undefined,
-                matterportUrls: (prop.matterport_urls as string[] | null) ?? undefined,
+                propertyImages: (prop.property_images as string[] | null) ?? [],
+                areasImages: (prop.areas_images as string[] | null) ?? [],
+                matterportUrls: (prop.matterport_urls as string[] | null) ?? [],
                 location: lat !== undefined && lng !== undefined ? { lat, lng } : { lat: -22.90556, lng: -47.06083 },
                 deliveryDate: prop.delivery_date ? new Date(prop.delivery_date as string) : new Date(0),
                 launchDate: prop.launch_date ? new Date(prop.launch_date as string) : new Date(0),
                 features: (prop.features as string[] | null) ?? [],
                 floors: (prop.floors as number | null) ?? 0,
                 unitsPerFloor: (prop.units_per_floor as number | null) ?? 0,
-                groups: (prop.groups as string | null)?.split(",") ?? [],
+                groups: (prop.groups as string[] | null) ?? [],
             };
         }
 

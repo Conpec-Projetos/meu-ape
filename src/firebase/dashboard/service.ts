@@ -5,6 +5,7 @@ import { VisitRequest } from "@/interfaces/visitRequest";
 import {
     collection,
     doc,
+    DocumentReference,
     getDoc,
     getDocs,
     limit,
@@ -69,34 +70,33 @@ export async function getUserRequests(
         const docSnap = docs[i];
         const data = docSnap.data() as Omit<VisitRequest | ReservationRequest, "id">;
 
-        // Hidratação de dados do corretor para visitas aprovadas (RF021)
+        // Hidratação de dados do corretor para solicitações aprovadas (visitas e reservas)
+        type AgentInfo = NonNullable<VisitRequest["agents"]>[number];
         let hydratedAgents: VisitRequest["agents"] = [];
-        if (
-            type === "visits" &&
-            data.status === "approved" &&
-            (data as VisitRequest).agents &&
-            (data as VisitRequest).agents!.length > 0
-        ) {
-            const agentFetchPromises = (data as VisitRequest).agents!.map(async agentRefObj => {
-                if (agentRefObj && agentRefObj.ref) {
-                    const agentDoc = await getDoc(agentRefObj.ref);
+        const status = (data as { status: string }).status;
+        const agentsField = (data as { agents?: VisitRequest["agents"] }).agents;
+        if ((status === "approved" || status === "completed") && agentsField?.length) {
+            const agentFetchPromises = agentsField.map(async agentRefObj => {
+                const ref = (agentRefObj as { ref?: DocumentReference }).ref;
+                if (ref) {
+                    const agentDoc = await getDoc(ref);
                     if (agentDoc.exists()) {
                         const agentData = agentDoc.data() as User;
                         // Retorna o objeto no formato esperado pela interface
                         return {
-                            ref: agentRefObj.ref, // Mantém a referência original
+                            ref,
                             name: agentData.fullName || "Nome não encontrado",
                             creci: agentData.agentProfile?.creci || "N/A",
                             phone: agentData.phone || "N/A",
                             email: agentData.email || "N/A",
-                        };
+                        } as AgentInfo;
                     }
                 }
                 return null; // Retorna null se a referência não existir ou o doc não for encontrado
             });
             // Espera todas as buscas e filtra os resultados nulos
             hydratedAgents = (await Promise.all(agentFetchPromises)).filter(
-                agent => agent !== null
+                (agent): agent is AgentInfo => agent !== null
             ) as VisitRequest["agents"];
         }
 

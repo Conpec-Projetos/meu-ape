@@ -7,6 +7,7 @@ import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-ti
 import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { doc, getDoc } from "firebase/firestore";
 import { Loader, SquareCheck, SquareX } from "lucide-react";
@@ -40,13 +41,10 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
     const [jitFields, setJitFields] = useState<string[]>([]);
 
     useEffect(() => {
-        const originalStyle = window.getComputedStyle(document.body).overflow;
         if (isOpen) {
-            document.body.style.overflow = "hidden";
+            lockBodyScroll();
+            return () => unlockBodyScroll();
         }
-        return () => {
-            document.body.style.overflow = originalStyle;
-        };
     }, [isOpen]);
 
     useEffect(() => {

@@ -10,8 +10,10 @@ import {
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
 import { Label } from "@/components/features/labels/default-label";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
+import { cn } from "@/lib/utils";
 import { userDataSchema } from "@/schemas/jitModalSchema";
-import { notifyPromise } from "@/services/notificationService";
+import { notifyError, notifyPromise } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileCheck, FileText, FileWarning, Loader } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
@@ -41,8 +43,11 @@ const fieldConfig: Record<
 
 export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }: JustInTimeDataModalProps) {
     const [isUploading, setIsUploading] = useState(false);
-    const [selectedFiles, setSelectedFiles] = useState<Record<string, boolean>>({});
+    // Force reset of file inputs when removing all files of a field
     const [fileInputKeys, setFileInputKeys] = useState<Record<string, number>>({});
+    const MAX_DOC_BYTES = 5 * 1024 * 1024; // 5MB (mesmo limite da página de perfil)
+    const [pendingFiles, setPendingFiles] = useState<Record<string, File[]>>({});
+    const [dragOver, setDragOver] = useState<Record<string, boolean>>({});
 
     const activeSchema = useMemo(() => {
         type SchemaKeys = keyof typeof userDataSchema.shape;
@@ -67,7 +72,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         register,
         handleSubmit,
         setValue,
-        watch,
         reset,
         formState: { errors },
     } = form;
@@ -75,17 +79,24 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
     useEffect(() => {
         if (isOpen) {
             reset();
-            setSelectedFiles({});
+            setPendingFiles({});
         }
     }, [isOpen, reset]);
 
+    // Sincroniza o RHF com os arquivos pendentes após render para evitar setState durante render do Controller
+    useEffect(() => {
+        missingFields.forEach(field => {
+            if (fieldConfig[field]?.type === "file") {
+                const files = pendingFiles[field] || [];
+                setValue(field as keyof UserDataForm, files as unknown as File[], { shouldValidate: true });
+            }
+        });
+    }, [pendingFiles, missingFields, setValue]);
+
     useEffect(() => {
         if (isOpen) {
-            const originalStyle = window.getComputedStyle(document.body).overflow;
-            document.body.style.overflow = "hidden";
-            return () => {
-                document.body.style.overflow = originalStyle;
-            };
+            lockBodyScroll();
+            return () => unlockBodyScroll();
         }
     }, [isOpen]);
 
@@ -94,12 +105,9 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
 
         console.log(data);
         const dataFields: Record<string, string> = {};
-        const fileFields: Record<string, FileList> = {};
 
         Object.entries(data).forEach(([key, value]) => {
-            if (value instanceof FileList && value.length > 0) {
-                fileFields[key] = value;
-            } else if (typeof value === "string" && value.trim() !== "") {
+            if (typeof value === "string" && value.trim() !== "") {
                 dataFields[key] = value;
             }
         });
@@ -116,10 +124,10 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
             );
         }
 
-        if (Object.keys(fileFields).length > 0) {
+        if (Object.values(pendingFiles).some(arr => arr && arr.length)) {
             const formData = new FormData();
-            Object.entries(fileFields).forEach(([fieldName, fileList]) => {
-                Array.from(fileList).forEach(file => {
+            Object.entries(pendingFiles).forEach(([fieldName, files]) => {
+                (files || []).forEach(file => {
                     formData.append(fieldName, file, file.name);
                 });
             });
@@ -141,6 +149,7 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
             success: responses => {
                 const allOk = responses.every(res => res.ok);
                 if (allOk) {
+                    setPendingFiles({});
                     onSubmit();
                     return "Informações salvas com sucesso!";
                 } else {
@@ -161,11 +170,31 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         if (!config) return null;
 
         const fieldError = errors[field as keyof UserDataForm];
-        const isSelected = selectedFiles[field];
 
         if (config.type === "file") {
-            const fileList = watch(field as keyof UserDataForm) as FileList | undefined;
-            const fileName = fileList?.[0]?.name;
+            const files: File[] = pendingFiles[field] || [];
+            const hasFiles = files.length > 0;
+
+            const isImage = (f: File) => (f?.type || "").startsWith("image/");
+
+            const acceptAndAdd = (incoming: File[]) => {
+                if (!incoming.length) return;
+                setPendingFiles(prev => {
+                    const current = prev[field] || [];
+                    const next: File[] = [...current];
+                    incoming.forEach(f => {
+                        if (f.size > MAX_DOC_BYTES) {
+                            notifyError(`${f.name} excede 5MB e foi ignorado.`);
+                            return;
+                        }
+                        const exists = next.some(
+                            x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified
+                        );
+                        if (!exists) next.push(f);
+                    });
+                    return { ...prev, [field]: next };
+                });
+            };
 
             return (
                 <FormField
@@ -177,11 +206,33 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                             <FormControl>
                                 <Label
                                     htmlFor={field}
-                                    className={`relative group flex flex-col items-center justify-center space-y-2 border-2 rounded-lg p-4 border-dashed min-h-[120px] w-full ${isUploading ? "cursor-not-allowed bg-muted/50" : "cursor-pointer hover:border-primary/50"}
-                                   ${isSelected ? "border-green-600" : fieldError ? "border-destructive" : "border-input"} transition-colors`}
+                                    className={cn(
+                                        "relative group flex flex-col items-center justify-center space-y-2 border-2 rounded-lg p-4 border-dashed min-h-[140px] w-full transition-colors",
+                                        isUploading
+                                            ? "cursor-not-allowed bg-muted/50"
+                                            : "cursor-pointer hover:border-primary/50",
+                                        hasFiles
+                                            ? "border-green-600"
+                                            : fieldError
+                                              ? "border-destructive"
+                                              : "border-input",
+                                        dragOver[field] ? "ring-2 ring-primary/30" : ""
+                                    )}
+                                    onDragOver={e => {
+                                        e.preventDefault();
+                                        if (!isUploading) setDragOver(prev => ({ ...prev, [field]: true }));
+                                    }}
+                                    onDragLeave={() => setDragOver(prev => ({ ...prev, [field]: false }))}
+                                    onDrop={e => {
+                                        e.preventDefault();
+                                        setDragOver(prev => ({ ...prev, [field]: false }));
+                                        if (isUploading) return;
+                                        const items = Array.from(e.dataTransfer.files || []);
+                                        acceptAndAdd(items);
+                                    }}
                                 >
                                     <div className="flex flex-col items-center space-y-2 text-center">
-                                        {isSelected ? (
+                                        {hasFiles ? (
                                             <FileCheck className="text-green-600 size-8" />
                                         ) : fieldError ? (
                                             <FileWarning className="text-destructive size-8" />
@@ -189,27 +240,28 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                                             <FileText className="text-muted-foreground size-8" />
                                         )}
                                         <span
-                                            className={`text-sm font-medium ${fieldError ? "text-destructive" : isSelected ? "text-green-700" : "text-muted-foreground"}`}
+                                            className={`text-sm font-medium ${fieldError ? "text-destructive" : hasFiles ? "text-green-700" : "text-muted-foreground"}`}
                                         >
                                             {config.label}
                                         </span>
-                                        {fileName && (
-                                            <span className="text-xs text-foreground truncate max-w-[200px]">
-                                                {fileName}
+                                        <span className="text-xs text-muted-foreground">
+                                            Arraste e solte ou clique para escolher. Imagens ou PDF, até 5MB por
+                                            arquivo.
+                                        </span>
+                                        {hasFiles && (
+                                            <span className="text-xs text-foreground">
+                                                {files.length} arquivo(s) selecionado(s)
                                             </span>
                                         )}
                                     </div>
-                                    {isSelected && (
+                                    {hasFiles && (
                                         <button
                                             type="button"
                                             className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
                                             onClick={e => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setSelectedFiles(prev => ({ ...prev, [field]: false }));
-                                                setValue(field as keyof UserDataForm, null as unknown as FileList, {
-                                                    shouldValidate: true,
-                                                });
+                                                setPendingFiles(prev => ({ ...prev, [field]: [] }));
                                                 setFileInputKeys(prev => ({
                                                     ...prev,
                                                     [field]: (prev[field] || 0) + 1,
@@ -226,18 +278,65 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                                 type="file"
                                 id={field}
                                 accept={config.accept}
+                                multiple
                                 className="hidden"
                                 disabled={isUploading}
                                 {...register(field as keyof UserDataForm, {
                                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                                        const file = e.target.files?.[0];
-                                        setSelectedFiles(prev => ({ ...prev, [field]: !!file }));
-                                        setValue(field as keyof UserDataForm, e.target.files as FileList | null, {
-                                            shouldValidate: true,
-                                        });
+                                        const incoming = e.target.files ? Array.from(e.target.files) : [];
+                                        acceptAndAdd(incoming);
+                                        // Reset input so selecting the same file again retriggers onChange in some browsers
+                                        e.currentTarget.value = "";
                                     },
                                 })}
                             />
+                            {/* Lista de arquivos selecionados com opção de remover individualmente */}
+                            {hasFiles && (
+                                <div className="mt-3 grid gap-2 text-left grid-cols-1">
+                                    {files.map((f, idx) => (
+                                        <div
+                                            key={`${f.name}-${idx}`}
+                                            className="flex items-center gap-3 rounded-md border p-2 text-sm"
+                                        >
+                                            {isImage(f) ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                    src={URL.createObjectURL(f)}
+                                                    alt={f.name}
+                                                    className="h-10 w-10 object-cover rounded"
+                                                />
+                                            ) : (
+                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="truncate">{f.name}</div>
+                                                <div className="text-[10px] uppercase text-muted-foreground">
+                                                    {(f.name.split(".").pop() || "").toUpperCase()}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="text-xs text-destructive hover:underline cursor-pointer"
+                                                onClick={() => {
+                                                    setPendingFiles(prev => {
+                                                        const current = (prev[field] || []).slice();
+                                                        current.splice(idx, 1);
+                                                        if (current.length === 0) {
+                                                            setFileInputKeys(prev2 => ({
+                                                                ...prev2,
+                                                                [field]: (prev2[field] || 0) + 1,
+                                                            }));
+                                                        }
+                                                        return { ...prev, [field]: current };
+                                                    });
+                                                }}
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                             <FormMessage className="text-center" />
                         </FormItem>
                     )}
@@ -298,7 +397,7 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 overflow-auto p-4">
             <div className="relative max-w-full max-h-full w-full sm:w-[90%] lg:w-[650px]">
-                <Card className="p-6 overflow-auto max-h-[90vh] max-w-full">
+                <Card className="p-4 overflow-auto max-h-[90vh] max-w-full">
                     <CardHeader>
                         <h2 className="text-center text-xl font-semibold">Complete suas informações</h2>
                         <p className="text-center text-muted-foreground">

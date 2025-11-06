@@ -541,7 +541,7 @@ export default function ProfilePage() {
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                                className="h-7 w-7 text-muted-foreground hover:text-destructive cursor-pointer"
                                                 onClick={() => onRemovePendingAt(idx)}
                                                 aria-label={`Remover ${f.name}`}
                                             >

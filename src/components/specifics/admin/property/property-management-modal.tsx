@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteImages, subirImagensEmLotes } from "@/firebase/properties/service";
+import { deleteImages, uploadImagesInBatch } from "@/firebase/properties/service";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
@@ -328,7 +328,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             property_images: Array.isArray(form.propertyImages) ? form.propertyImages : [],
             areas_images: Array.isArray(form.areasImages) ? form.areasImages : [],
             matterport_urls: Array.isArray(form.matterportUrls) ? form.matterportUrls : [],
-            groups: Array.isArray(form.groups) ? (form.groups as string[]).join(",") : undefined,
+            groups: Array.isArray(form.groups) ? form.groups : [],
         };
     }
 
@@ -400,8 +400,7 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                     if (createdId) {
                         try {
                             await fetch(`/api/admin/properties/${createdId}`, { method: "DELETE" });
-                        } catch {
-                        }
+                        } catch {}
                     }
                     setIsSubmitting(false);
                     return;
@@ -423,19 +422,19 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
             }
 
             const uploadedPropertyUrls = newPropertyImages.length
-                ? await subirImagensEmLotes(newPropertyImages, propertyId)
+                ? await uploadImagesInBatch(newPropertyImages, propertyId)
                 : [];
-            const uploadedAreaUrls = newAreaImages.length ? await subirImagensEmLotes(newAreaImages, propertyId) : [];
+            const uploadedAreaUrls = newAreaImages.length ? await uploadImagesInBatch(newAreaImages, propertyId) : [];
 
             const unitsWithMedia = await Promise.all(
                 units.map(async u => {
                     const fpFiles = u.floorPlanFiles || [];
-                    const fpUploaded = fpFiles.length ? await subirImagensEmLotes(fpFiles, propertyId!) : [];
+                    const fpUploaded = fpFiles.length ? await uploadImagesInBatch(fpFiles, propertyId!) : [];
                     const fpKept = u.floorPlanUrls || [];
                     const finalFloorPlans = [...fpKept, ...fpUploaded];
 
                     const imgFiles = u.imageFiles || [];
-                    const imgUploaded = imgFiles.length ? await subirImagensEmLotes(imgFiles, propertyId!) : [];
+                    const imgUploaded = imgFiles.length ? await uploadImagesInBatch(imgFiles, propertyId!) : [];
                     const keptImages = (u.images || []).filter(url => !(u.imagesToRemove || []).includes(url));
                     const finalImages = [...keptImages, ...imgUploaded];
 

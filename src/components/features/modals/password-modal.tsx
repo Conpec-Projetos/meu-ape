@@ -2,13 +2,22 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import * as Dialog from "@radix-ui/react-dialog";
+import { useEffect } from "react";
 
 export function PasswordModal() {
+    const ScrollLock = () => {
+        useEffect(() => {
+            lockBodyScroll();
+            return () => unlockBodyScroll();
+        }, []);
+        return null;
+    };
     return (
         <Dialog.Root>
             <Dialog.Trigger asChild>
-                <Button className="w-[112px] h-[33px] cursor-pointer">Editar Senha</Button>
+                <Button className="w-28 h-[33px] cursor-pointer">Editar Senha</Button>
             </Dialog.Trigger>
 
             <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" />
@@ -17,6 +26,7 @@ export function PasswordModal() {
                 className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-9/12 rounded-xl bg-[#B0B0B0] p-6 shadow-[0px_5px_2px_rgba(0,0,0,0.45)]"
                 onPointerDownOutside={event => event.preventDefault()}
             >
+                <ScrollLock />
                 <Dialog.Title className="flex items-center justify-center text-lg font-medium text-slate-900">
                     Alterar Senha
                 </Dialog.Title>

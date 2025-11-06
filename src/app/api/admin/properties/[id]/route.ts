@@ -1,8 +1,10 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { geocodeAddressSmart } from "@/lib/geocoding";
+import { normalizePropertyArrays } from "@/lib/normalizePropertyArrays";
 import { propertySchema } from "@/schemas/propertySchema";
 import { unitSchema } from "@/schemas/unitSchema";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
+import { Tables, TablesInsert, TablesUpdate } from "@/supabase/types/types";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -44,7 +46,9 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             return NextResponse.json({ error: "Erro ao buscar unidades da propriedade" }, { status: 500 });
         }
 
-        return NextResponse.json({ ...property, units: units || [] });
+        // Normalize array fields to always be arrays
+        const normalizedProperty = normalizePropertyArrays(property as Tables<"properties">);
+        return NextResponse.json({ ...normalizedProperty, units: units || [] });
     } catch (error) {
         console.error("API GET [id] Error:", error);
         const message = error instanceof Error ? error.message : "Erro interno do servidor";
@@ -69,7 +73,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         // Separate units from property data, default units to an empty array if not present
         const { units = [], ...propertyData } = body;
 
-        // Validate property data (allow partial updates)
+        // Validate property data (allow partial updates), now as arrays
         const validatedPropertyData = propertySchema.partial().parse(propertyData);
         // Prefer client-provided coordinates when available and valid
         const clientLat = typeof body?.lat === "number" ? body.lat : Number(body?.lat);
@@ -87,13 +91,42 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             .parse(units); // Use the separated units array
 
         // Update Property
-        const { error: propertyUpdateError } = await supabase
-            .from("properties")
-            .update({
-                ...validatedPropertyData,
-                updated_at: new Date().toISOString(), // Ensure updated_at is set
-            })
-            .eq("id", id);
+        type PropertyUpdate = TablesUpdate<"properties">;
+        const allowedKeys: (keyof PropertyUpdate)[] = [
+            "address",
+            "areas_images",
+            "delivery_date",
+            "description",
+            "developer_id",
+            "features",
+            "floors",
+            "groups",
+            "launch_date",
+            "location",
+            "matterport_urls",
+            "name",
+            "original_firestore_id",
+            "property_images",
+            "search_tsv",
+            "search_vector",
+            "units_per_floor",
+            "updated_at",
+        ];
+
+        const updatePayload: PropertyUpdate = { updated_at: new Date().toISOString() };
+        for (const key of allowedKeys) {
+            if (key in validatedPropertyData && key !== "groups" && key !== "updated_at") {
+                const value = (validatedPropertyData as Record<string, unknown>)[key];
+                (updatePayload as Record<string, unknown>)[key] = value as unknown;
+            }
+        }
+        if (Object.prototype.hasOwnProperty.call(validatedPropertyData, "groups")) {
+            const g = (validatedPropertyData as { groups?: unknown }).groups;
+            const arr = Array.isArray(g) ? (g as string[]) : typeof g === "string" ? (g as string).split(",") : [];
+            updatePayload.groups = (arr.length ? arr : null) as string[] | null;
+        }
+
+        const { error: propertyUpdateError } = await supabase.from("properties").update(updatePayload).eq("id", id);
         // If client supplied coords, trust them; otherwise, try geocoding when address provided
         let geocodingFailed = false;
         if (hasValidClientCoords) {
@@ -145,16 +178,15 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
         // Insert new units
         if (unitsToInsert.length > 0) {
-            const insertPayload = unitsToInsert.map(u => {
+            const insertPayload: TablesInsert<"units">[] = unitsToInsert.map(u => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const unitData: any = { ...u };
                 delete unitData.status;
                 delete unitData.id;
-                return {
+                const payload: TablesInsert<"units"> = {
                     ...unitData,
                     property_id: id,
-                    identifier: unitData.identifier || "", // Provide default if needed
-                    // Ensure category is an array of strings or null
+                    identifier: unitData.identifier || "",
                     category:
                         typeof unitData.category === "string"
                             ? [unitData.category]
@@ -162,6 +194,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
                               ? unitData.category
                               : (unitData.category ?? null),
                 };
+                return payload;
             });
             const { error: insertError } = await supabase.from("units").insert(insertPayload);
             if (insertError) {
@@ -178,10 +211,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             delete temp.id;
             delete temp.status;
             if (unitId) {
-                const updatePayload = {
+                const unitUpdatePayload: TablesUpdate<"units"> = {
                     ...temp,
                     updated_at: new Date().toISOString(),
-                    // Ensure category is an array of strings or null
                     category:
                         typeof temp.category === "string"
                             ? [temp.category]
@@ -189,7 +221,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
                               ? temp.category
                               : (temp.category ?? null),
                 };
-                const { error: updateError } = await supabase.from("units").update(updatePayload).eq("id", unitId);
+                const { error: updateError } = await supabase.from("units").update(unitUpdatePayload).eq("id", unitId);
                 if (updateError) {
                     console.error(`Supabase Update Unit Error (ID: ${unitId}):`, updateError);
                     // Decide how to handle partial failures - maybe collect errors and report?

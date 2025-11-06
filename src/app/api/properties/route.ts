@@ -1,3 +1,4 @@
+import { normalizePropertyArrays } from "@/lib/normalizePropertyArrays";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -59,26 +60,29 @@ export async function GET(request: NextRequest) {
     const hasNextPage = page_offset + (data?.length ?? 0) < totalProperties;
 
     const formattedProperties =
-        data?.map(p => ({
-            id: p.id,
-            name: p.name,
-            address: p.address,
-            propertyImages: p.property_images,
-            location: { lat: p.lat, lng: p.lng },
-            deliveryDate: p.delivery_date,
-            launchDate: p.launch_date,
-            features: p.features,
-            searchableUnitFeats: {
-                minPrice: p.min_unit_price,
-                maxPrice: p.max_unit_price,
-                bedrooms: p.available_bedrooms || [],
-                baths: p.available_bathrooms || [],
-                garages: p.available_garages || [],
-                minSize: p.min_unit_size,
-                maxSize: p.max_unit_size,
-                sizes: [],
-            },
-        })) ?? [];
+        data?.map(p => {
+            const n = normalizePropertyArrays(p as unknown as Record<string, unknown>);
+            return {
+                id: p.id,
+                name: p.name,
+                address: p.address,
+                propertyImages: n.property_images,
+                location: { lat: p.lat, lng: p.lng },
+                deliveryDate: p.delivery_date,
+                launchDate: p.launch_date,
+                features: n.features,
+                searchableUnitFeats: {
+                    minPrice: p.min_unit_price,
+                    maxPrice: p.max_unit_price,
+                    bedrooms: p.available_bedrooms || [],
+                    baths: p.available_bathrooms || [],
+                    garages: p.available_garages || [],
+                    minSize: p.min_unit_size,
+                    maxSize: p.max_unit_size,
+                    sizes: [],
+                },
+            };
+        }) ?? [];
 
     return NextResponse.json({
         properties: formattedProperties,

@@ -1,6 +1,16 @@
 "use client";
 
 import DeveloperModal from "@/components/specifics/admin/developer/developer-modal";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +34,9 @@ function AdminDevelopersPageContent() {
     const [developers, setDevelopers] = useState<Developer[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editing, setEditing] = useState<Developer | null>(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [toDelete, setToDelete] = useState<Developer | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchDevelopers = async () => {
         try {
@@ -59,7 +72,6 @@ function AdminDevelopersPageContent() {
     };
 
     const handleDelete = async (dev: Developer) => {
-        if (!confirm(`Deseja realmente excluir a construtora "${dev.name}"?`)) return;
         try {
             const res = await fetch(`/api/admin/developers/${dev.id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Falha ao deletar");
@@ -71,19 +83,109 @@ function AdminDevelopersPageContent() {
         }
     };
 
+    const confirmDelete = async () => {
+        if (!toDelete) return;
+        try {
+            setDeleting(true);
+            await handleDelete(toDelete);
+            setConfirmOpen(false);
+            setToDelete(null);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     return (
-        <div className="container mx-auto py-20">
-            <div className="flex items-center justify-between mb-6">
+        <div className="container mx-auto px-4 py-20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gerenciamento de Construtoras</h1>
                     <p className="text-muted-foreground">Adicione, edite e remova construtoras parceiras.</p>
                 </div>
-                <Button className="cursor-pointer" onClick={handleAdd}>
+                <Button className="cursor-pointer w-full sm:w-auto" onClick={handleAdd}>
                     Adicionar Nova Construtora
                 </Button>
             </div>
 
-            <Card>
+            {/* Mobile list (cards) */}
+            <Card className="md:hidden">
+                <CardHeader>
+                    <CardTitle>Construtoras</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-3">
+                        {developers.length === 0 && (
+                            <p className="text-sm text-muted-foreground">Nenhuma construtora cadastrada.</p>
+                        )}
+                        {developers.map(dev => (
+                            <div key={dev.id} className="rounded-lg border p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <Avatar>
+                                            {dev.logo_url ? (
+                                                <div className="relative h-10 w-10">
+                                                    <Image
+                                                        src={dev.logo_url}
+                                                        alt={dev.name}
+                                                        fill
+                                                        sizes="40px"
+                                                        className="rounded-full object-contain"
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <AvatarFallback>{getInitials(dev.name)}</AvatarFallback>
+                                            )}
+                                        </Avatar>
+                                        <div className="truncate">
+                                            <div className="font-medium truncate">{dev.name}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Editar construtora"
+                                            className="cursor-pointer"
+                                            onClick={() => handleEdit(dev)}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label="Excluir construtora"
+                                            className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                                            onClick={() => {
+                                                setToDelete(dev);
+                                                setConfirmOpen(true);
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-1 gap-1 text-sm">
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-muted-foreground">Website:</span>
+                                        <span className="break-all">{dev.website || "—"}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-muted-foreground">E-mail:</span>
+                                        <span className="break-all">{dev.email || "—"}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-muted-foreground">Telefone:</span>
+                                        <span className="break-all">{dev.phone || "—"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Desktop table */}
+            <Card className="hidden md:block">
                 <CardHeader>
                     <CardTitle>Construtoras</CardTitle>
                 </CardHeader>
@@ -148,7 +250,10 @@ function AdminDevelopersPageContent() {
                                                             variant="outline"
                                                             size="icon"
                                                             className="cursor-pointer border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                                                            onClick={() => handleDelete(dev)}
+                                                            onClick={() => {
+                                                                setToDelete(dev);
+                                                                setConfirmOpen(true);
+                                                            }}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
@@ -166,6 +271,41 @@ function AdminDevelopersPageContent() {
                     </TooltipProvider>
                 </CardContent>
             </Card>
+
+            {/* Delete confirmation dialog */}
+            <AlertDialog
+                open={confirmOpen}
+                onOpenChange={open => {
+                    setConfirmOpen(open);
+                    if (!open) {
+                        setToDelete(null);
+                        setDeleting(false);
+                    }
+                }}
+            >
+                <AlertDialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir construtora?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {toDelete
+                                ? `Esta ação é permanente e removerá a construtora "${toDelete.name}" e todos os empreendimentos associados a ela!`
+                                : "Esta ação é permanente e removerá a construtorae todos os empreendimentos associados a ela!"}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                        <AlertDialogCancel disabled={deleting} className="cursor-pointer w-full sm:w-auto">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                            className="bg-destructive hover:bg-destructive/90 cursor-pointer w-full sm:w-auto"
+                        >
+                            {deleting ? "Removendo..." : "Remover"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {isModalOpen && (
                 <DeveloperModal

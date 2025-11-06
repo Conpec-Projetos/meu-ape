@@ -15,13 +15,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
             if (firebaseUser) {
                 const userDocRef = doc(db, "users", firebaseUser.uid);
                 const userDoc = await getDoc(userDocRef);
                 if (userDoc.exists()) {
                     const userData = userDoc.data() as User;
-                    setUser(userData);
+                    // Ensure the context user carries its Firebase UID as `id`
+                    // so consumers relying on `user.id` (e.g., /dashboard) work correctly
+                    setUser({ ...userData, id: firebaseUser.uid });
                     setRole(userData.role);
                 } else {
                     setUser(null);
@@ -48,9 +50,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    return (
-        <AuthContext.Provider value={{ user, role, loading, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={{ user, role, loading, logout }}>{children}</AuthContext.Provider>;
 }

@@ -37,11 +37,12 @@ export default function RootLayout({
                     closeButton
                     toastOptions={{
                         classNames: {
-                            toast: "bg-background border-border shadow-lg rounded-lg text-foreground font-sans",
+                            toast: "bg-background border-border shadow-lg rounded-lg text-foreground font-sans group",
                             title: "text-sm font-medium",
                             description: "text-xs",
                             actionButton: "bg-primary text-primary-foreground",
                             cancelButton: "bg-secondary text-secondary-foreground",
+                            closeButton: "opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity",
                             success: "text-green-800 dark:text-green-200",
                             error: "text-red-800 dark:text-red-200",
                             info: "text-blue-800 dark:text-blue-200",

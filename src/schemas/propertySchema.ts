@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Allow groups to be either a comma-separated string or an array of strings; normalize later.
 export const propertySchema = z.object({
     developer_id: z.string().uuid(),
     name: z.string().min(3),
@@ -13,7 +14,7 @@ export const propertySchema = z.object({
     property_images: z.array(z.string()).optional(),
     areas_images: z.array(z.string()).optional(),
     matterport_urls: z.array(z.string()).optional(),
-    groups: z.string().optional(),
+    groups: z.array(z.string()).optional(),
     min_price: z.number().optional(),
     max_price: z.number().optional(),
     min_bedrooms: z.number().int().optional(),

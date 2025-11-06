@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
+import { useEffect, useState } from "react";
 
 export default function AddUnitModal({
     onClose,
@@ -41,6 +42,11 @@ export default function AddUnitModal({
         });
         onClose();
     }
+
+    useEffect(() => {
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, []);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">

@@ -8,8 +8,6 @@ export interface VisitRequest {
         fullName: string; // nome do cliente que fez a solicitação
     };
     property: {
-        // ref removida do fluxo principal; manter opcional por compatibilidade
-        ref?: DocumentReference; // referência ao imóvel no Firebase (se existir)
         id: string; // id do imóvel no Supabase
         name: string; // nome do imóvel/empreendimento
     };
