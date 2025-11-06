@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/features/buttons/default-button";
 import { PropertyLocationMap } from "@/components/features/maps/property-location-map";
 import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
@@ -250,6 +251,14 @@ function PropertyPageContent() {
                                     selectedCategory={selectedCategory}
                                 />
                             )}
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-semibold text-primary mb-4">Área Comum</h3>
+                            <div className="my-8 px-0">
+                                <div className="shadow-lg rounded-xl overflow-hidden">
+                                    <PropertyImageGallery images={property.areasImages || []} propertyName={property.name} />
+                                </div>
+                            </div>                            
                         </div>
                         {matterportUrls.length > 0 && (
                             <div>
