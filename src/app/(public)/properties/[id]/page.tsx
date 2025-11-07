@@ -217,7 +217,7 @@ function PropertyPageContent() {
     return (
         <div className="py-15 bg-background text-foreground pt-20">
             <div className="container mx-auto px-4 py-8">
-                <PropertyHeader name={property.name} address={property.address} />
+                <PropertyHeader id={property.id || ""} name={property.name} address={property.address} />
                 <div className="my-8 px-0 md:px-8 lg:px-16">
                     <div className="shadow-lg rounded-xl overflow-hidden">
                         <PropertyImageGallery images={property.propertyImages || []} propertyName={property.name} />
