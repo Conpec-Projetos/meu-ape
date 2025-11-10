@@ -2,7 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useFavorites } from "@/hooks/use-favorites";
 import { Property } from "@/interfaces/property";
+import { cn } from "@/lib/utils";
 import { Bath, BedDouble, Car, Heart, Square } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,6 +19,8 @@ const mockData = {
 };
 
 export function PropertyCard({ property }: { property: Property }) {
+    const { toggleFavorite, isFavorited, isLoading } = useFavorites();
+
     return (
         <Link href={`/properties/${property.id}`} className="block">
             <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer">
@@ -34,11 +38,14 @@ export function PropertyCard({ property }: { property: Property }) {
                         onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
-                            // TODO: implement wishlist/favorite behavior here
+                            toggleFavorite(property.id || "");
                         }}
-                        aria-label="Favoritar"
+                        disabled={isLoading}
+                        aria-label={isFavorited(property.id || "") ? "Remover dos favoritos" : "Adicionar aos favoritos"}
                     >
-                        <Heart className="h-5 w-5 text-primary" />
+                        <Heart className={cn(
+                            isFavorited(property.id || "") ? "fill-primary" : ""
+                        )}/>
                     </Button>
                 </div>
                 <CardContent className="p-4">
