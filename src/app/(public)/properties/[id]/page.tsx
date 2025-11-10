@@ -36,6 +36,7 @@ function PropertyPageContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
     const [currentUser, setCurrentUser] = useState<DocumentData>();
+    const [floorPlanUrls, setFloorPlanUrls] = useState<string[]>([]);
 
     const refetchUserData = async () => {
         const user = auth.currentUser;
@@ -121,6 +122,20 @@ function PropertyPageContent() {
             }
         };
         if (id) fetchPropertyData();
+    }, [id]);
+
+    useEffect(() => {
+        const fetchFloorPlans = async () => {
+            try {
+                const res = await fetch(`/api/properties/${id}/units/floorPlan`);
+                if (!res.ok) throw new Error("Falha ao carregar plantas baixas");
+                const data: { floorPlanUrls: string[] } = await res.json();
+                setFloorPlanUrls(data.floorPlanUrls);
+            } catch (error) {
+                console.error(error);
+            }
+        };
+        fetchFloorPlans();
     }, [id]);
 
     useEffect(() => {
@@ -270,6 +285,15 @@ function PropertyPageContent() {
                                 )}
                             </div>
                         )}
+                        <div>
+                            <h3 className="text-xl font-semibold text-primary mb-4">Plantas Baixas</h3>
+                            <div className="my-8 px-0">
+                                <div className="shadow-lg rounded-xl overflow-hidden">
+                                    <PropertyImageGallery images={floorPlanUrls} propertyName={property.name} />
+                                </div>
+                            </div>                            
+                        </div>
+
                         <div>
                             <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
                             <div className="h-[800px] w-full rounded-lg overflow-hidden">
