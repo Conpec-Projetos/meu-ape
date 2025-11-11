@@ -5,20 +5,29 @@ import { notifyError } from "@/services/notificationService";
 import { BookmarkCheck, Building, CalendarClock, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { GET } from "@/app/api/admin/dashboard/route";
 
 export default function DashboardPage() {
     const [propertiesNum, setPropertiesNum] = useState<number>(0);
+    const [pendingVisitNum, setPendingVisitNum] = useState<number>(0);
+    const [pendingReservationNum, setPendingReservationNum] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const fetchPropertiesNum = async () => {
+        const fetchPendingVisitsNum = async () => {
             try {
                 setLoading(true);
 
-                const num = 674
-                setPropertiesNum(num);
+                const response = await fetch('/api/admin/dashboard', {
+                    method: "GET",
+                });
+                const { countVisits, countReservations} = await response.json();
 
-                console.log(`Successfully fetched ${num} properties`);
+                setPendingVisitNum(countVisits.pendingVisitRequest);
+                setPendingReservationNum(countReservations.pendingReservationRequest);
+
+                console.log(`Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`);
+                console.log(`Successfully fetched ${countVisits.pendingVisitRequest} pending visits request`);
             } catch {
                 notifyError("Erro ao carregar dados do dashboard");
             } finally {
@@ -26,7 +35,7 @@ export default function DashboardPage() {
             }
         };
 
-        fetchPropertiesNum();
+        fetchPendingVisitsNum();
     }, []);
 
     return (
@@ -90,8 +99,10 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-2xl font-bold">0</div>
-                                <p className="text-xs text-muted-foreground">solicitações de visitas pendentes</p>
+                                <div className="text-2xl font-bold">{pendingVisitNum}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {pendingVisitNum == 1 ? "solicitação de visita pendente" : "solicitações de visitas pendentes"}
+                                </p>
                             </>
                         )}
                     </CardContent>
@@ -109,8 +120,10 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-2xl font-bold">0</div>
-                                <p className="text-xs text-muted-foreground">solicitações de reservas pendentes</p>
+                                <div className="text-2xl font-bold">{pendingReservationNum}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {pendingReservationNum == 1 ? "solicitação de reserva pendente" : "solicitações de reservas pendentes"}
+                                </p>
                             </>
                         )}
                     </CardContent>
@@ -136,12 +149,11 @@ export default function DashboardPage() {
                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                         >
                             <h3 className="font-semibold text-slate-800">Gerenciar Visitas e Reservas</h3>
-                            <p className="text-sm text-slate-600">Aprovar ou rejeitar solicitações</p>
-                        </Link>
+                            <p className="text-sm text-slate-600">Aprovar ou rejeitar solicitações</p>                        </Link>
 
                         <Link
                             href="/admin/users"
-                            className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                         >
                             <h3 className="font-semibold text-slate-800">Gerenciar Usuários</h3>
                             <p className="text-sm text-slate-600">Visualizar e gerenciar usuários da plataforma</p>

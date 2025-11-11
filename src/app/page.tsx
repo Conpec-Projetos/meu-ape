@@ -31,7 +31,7 @@ export default function Home() {
                 <Button
                     variant={"success"}
                     className="cursor-pointer text-sm sm:text-base"
-                    onClick={() => router.push("/beta/dashboard")}
+                    onClick={() => router.push("/admin/dashboard")} 
                     size={"fit"}
                 >
                     Ver Dashboard

@@ -1,23 +1,24 @@
 import { adminDb as db } from "@/firebase/firebase-admin-config";
-import {
-    collection,
-    getCountFromServer,
-    query,
-    where,
-    getDocs,
-
-} from "firebase/firestore";
-
 
 export const pendingVisitRequestsCounts = async () => {
-    const usersCollection = db.collection("visitRequest");
-    const pendingVisitRequestCountsntPromise = usersCollection.where("status", "==", "pending").count().get();
+    const usersCollection = db.collection("visitRequests");
+    const countQuery = usersCollection.where("status", "==", "pending").count();
 
-    const [clientSnapshot] = await Promise.all([
-        pendingVisitRequestCountsntPromise
-    ]);
+    const snapshot = await countQuery.get();
 
     return {
-        pendingVisitRequest: clientSnapshot.data().count,
+        pendingVisitRequest: snapshot.data().count,
     };
 };
+
+export const pendingReservationRequestCounts = async () => {
+    const usersCollection = db.collection("reservationRequests");
+    const countQuery = usersCollection.where("status", "==", "pending").count();
+
+    const snapshot = await countQuery.get();
+
+    return {
+        pendingReservationRequest: snapshot.data().count,
+    };
+};
+
