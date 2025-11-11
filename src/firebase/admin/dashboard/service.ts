@@ -22,3 +22,13 @@ export const pendingReservationRequestCounts = async () => {
     };
 };
 
+export const pendingAgentRegistrationRequestCounts = async () => {
+    const usersCollection = db.collection("agentRegistrationRequests");
+    const countQuery = usersCollection.where("status", "==", "pending").count();
+
+    const snapshot = await countQuery.get();
+
+    return {
+        pendingAgentRegistrationRequest: snapshot.data().count,
+    };
+};

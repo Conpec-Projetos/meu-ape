@@ -11,23 +11,26 @@ export default function DashboardPage() {
     const [propertiesNum, setPropertiesNum] = useState<number>(0);
     const [pendingVisitNum, setPendingVisitNum] = useState<number>(0);
     const [pendingReservationNum, setPendingReservationNum] = useState<number>(0);
+    const [pendingRegistrationNum, setPendingRegistrationNum] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
-
+    
     useEffect(() => {
-        const fetchPendingVisitsNum = async () => {
+        const fetchPendingNum = async () => {
             try {
                 setLoading(true);
 
                 const response = await fetch('/api/admin/dashboard', {
                     method: "GET",
                 });
-                const { countVisits, countReservations} = await response.json();
+                const { countVisits, countReservations, countRegistrations} = await response.json();
 
                 setPendingVisitNum(countVisits.pendingVisitRequest);
                 setPendingReservationNum(countReservations.pendingReservationRequest);
+                setPendingRegistrationNum(countRegistrations.pendingAgentRegistrationRequest);
 
-                console.log(`Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`);
                 console.log(`Successfully fetched ${countVisits.pendingVisitRequest} pending visits request`);
+                console.log(`Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`);
+                console.log(`Successfully fetched ${countRegistrations.pendingAgentRegistrationRequest} pending registrations requests`);
             } catch {
                 notifyError("Erro ao carregar dados do dashboard");
             } finally {
@@ -35,7 +38,7 @@ export default function DashboardPage() {
             }
         };
 
-        fetchPendingVisitsNum();
+        fetchPendingNum();
     }, []);
 
     return (
@@ -80,8 +83,10 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <>
-                                <div className="text-2xl font-bold">0</div>
-                                <p className="text-xs text-muted-foreground">solicitações de corretores</p>
+                                <div className="text-2xl font-bold">{pendingRegistrationNum}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {pendingRegistrationNum == 1 ? "solicitação de corretor" : "solicitações de corretores"}
+                                </p>
                             </>
                         )}
                     </CardContent>
