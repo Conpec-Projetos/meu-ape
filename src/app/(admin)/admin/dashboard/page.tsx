@@ -22,15 +22,17 @@ export default function DashboardPage() {
                 const response = await fetch('/api/admin/dashboard', {
                     method: "GET",
                 });
-                const { countVisits, countReservations, countRegistrations} = await response.json();
+                const { countVisits, countReservations, countRegistrations, countProperties} = await response.json();
 
                 setPendingVisitNum(countVisits.pendingVisitRequest);
                 setPendingReservationNum(countReservations.pendingReservationRequest);
                 setPendingRegistrationNum(countRegistrations.pendingAgentRegistrationRequest);
+                setPropertiesNum(countProperties);
 
                 console.log(`Successfully fetched ${countVisits.pendingVisitRequest} pending visits request`);
                 console.log(`Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`);
                 console.log(`Successfully fetched ${countRegistrations.pendingAgentRegistrationRequest} pending registrations requests`);
+                console.log(`Successfully fetched ${countProperties} properties`);
             } catch {
                 notifyError("Erro ao carregar dados do dashboard");
             } finally {
