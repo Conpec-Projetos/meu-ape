@@ -4,6 +4,8 @@ import { User } from "@/interfaces/user";
 import { Timestamp as AdminTimestamp, CollectionReference, DocumentData, FieldValue } from "firebase-admin/firestore";
 import { DocumentReference as ClientDocumentReference, Timestamp as ClientTimestamp } from "firebase/firestore";
 
+type StorageBucket = ReturnType<typeof adminStorage.bucket>;
+
 const listPaginated = async (
     col: CollectionReference<DocumentData>,
     page: number,
@@ -266,6 +268,46 @@ export const updateUserProfileData = async (userId: string, dataToUpdate: Partia
 // Recognized agent document keys
 const AGENT_DOCUMENT_KEYS = new Set(["creciCardPhoto", "creciCert"]);
 
+const sanitizeFileName = (fileName: string) => {
+    if (!fileName) return "document";
+    const noSlashes = fileName.replace(/[\\/]+/g, "_");
+    const normalizedWhitespace = noSlashes.replace(/\s+/g, " ").trim();
+    return normalizedWhitespace || "document";
+};
+
+const splitBaseAndExtension = (fileName: string) => {
+    const lastDot = fileName.lastIndexOf(".");
+    if (lastDot <= 0 || lastDot === fileName.length - 1) {
+        return { base: fileName, ext: "" };
+    }
+    return { base: fileName.slice(0, lastDot), ext: fileName.slice(lastDot) };
+};
+
+const ensureUniqueFileName = async (
+    bucket: StorageBucket,
+    folderPath: string,
+    requestedName: string,
+    usedNames: Set<string>
+): Promise<string> => {
+    const sanitized = sanitizeFileName(requestedName);
+    const { base, ext } = splitBaseAndExtension(sanitized);
+
+    let copyIndex = 0;
+    while (true) {
+        const candidate = copyIndex === 0 ? sanitized : `${base} (${copyIndex})${ext}`;
+        if (usedNames.has(candidate)) {
+            copyIndex += 1;
+            continue;
+        }
+        const [exists] = await bucket.file(`${folderPath}${candidate}`).exists();
+        if (!exists) {
+            usedNames.add(candidate);
+            return candidate;
+        }
+        copyIndex += 1;
+    }
+};
+
 export const uploadUserDocuments = async (
     userId: string,
     filesByField: Record<string, File[]>
@@ -276,22 +318,22 @@ export const uploadUserDocuments = async (
     const userRef = db.collection("users").doc(userId);
     const bucket = adminStorage.bucket(); // Get default bucket
     const uploadedUrls: Record<string, string[]> = {};
+    const usedNamesPerField: Record<string, Set<string>> = {};
 
     const uploadPromises = Object.entries(filesByField).map(async ([fieldName, files]) => {
         const isAgentDoc = AGENT_DOCUMENT_KEYS.has(fieldName);
         const fieldUrls: string[] = [];
+        const baseFolder = isAgentDoc ? "agentFiles" : "clientFiles";
+        const folderPath = `${baseFolder}/${userId}/${fieldName}/`;
+        const usedNames = (usedNamesPerField[fieldName] = usedNamesPerField[fieldName] || new Set<string>());
         for (const file of files) {
             // Enforce 5MB max per file server-side as well
             if (file.size && file.size > 5 * 1024 * 1024) {
                 console.warn(`Skipping file over 5MB for field ${fieldName}: ${file.name}`);
                 continue;
             }
-            // Generate a unique filename
-            const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-            const fileExtension = file.name.split(".").pop() || "";
-            const uniqueFileName = `${fieldName}-${uniqueSuffix}.${fileExtension}`;
-            const baseFolder = isAgentDoc ? "agentFiles" : "clientFiles";
-            const filePath = `${baseFolder}/${userId}/${fieldName}/${uniqueFileName}`; // Structured path
+            const uniqueFileName = await ensureUniqueFileName(bucket, folderPath, file.name || "document", usedNames);
+            const filePath = `${folderPath}${uniqueFileName}`; // Structured path
             const fileUpload = bucket.file(filePath);
 
             // Convert File to Buffer (required for admin SDK upload)
@@ -311,18 +353,20 @@ export const uploadUserDocuments = async (
             console.log(`Uploaded ${file.name} to ${publicUrl}`);
         }
 
-        // Update Firestore document with the URLs for this specific field
-        // Use dot notation for nested fields
-        if (isAgentDoc) {
-            await userRef.update({
-                [`agentProfile.documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls),
-                updatedAt: AdminTimestamp.now(),
-            });
-        } else {
-            await userRef.update({
-                [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
-                updatedAt: AdminTimestamp.now(), // Update timestamp
-            });
+        if (fieldUrls.length) {
+            // Update Firestore document with the URLs for this specific field
+            // Use dot notation for nested fields
+            if (isAgentDoc) {
+                await userRef.update({
+                    [`agentProfile.documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls),
+                    updatedAt: AdminTimestamp.now(),
+                });
+            } else {
+                await userRef.update({
+                    [`documents.${fieldName}`]: FieldValue.arrayUnion(...fieldUrls), // Append URLs
+                    updatedAt: AdminTimestamp.now(), // Update timestamp
+                });
+            }
         }
 
         uploadedUrls[fieldName] = fieldUrls;

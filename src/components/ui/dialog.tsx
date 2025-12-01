@@ -7,6 +7,14 @@ import * as React from "react";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { cn } from "@/lib/utils";
 
+const BodyScrollLockEffect = () => {
+    React.useEffect(() => {
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, []);
+    return null;
+};
+
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
     return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
@@ -44,10 +52,6 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
     showCloseButton?: boolean;
 }) {
-    React.useEffect(() => {
-        lockBodyScroll();
-        return () => unlockBodyScroll();
-    }, []);
     return (
         <DialogPortal data-slot="dialog-portal">
             <DialogOverlay />
@@ -59,6 +63,7 @@ function DialogContent({
                 )}
                 {...props}
             >
+                <BodyScrollLockEffect />
                 {children}
                 {showCloseButton && (
                     <DialogPrimitive.Close

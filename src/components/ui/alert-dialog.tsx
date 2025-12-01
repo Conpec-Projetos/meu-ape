@@ -7,6 +7,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { cn } from "@/lib/utils";
 
+const BodyScrollLockEffect = () => {
+    React.useEffect(() => {
+        lockBodyScroll();
+        return () => unlockBodyScroll();
+    }, []);
+    return null;
+};
+
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
     return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
@@ -32,11 +40,11 @@ function AlertDialogOverlay({ className, ...props }: React.ComponentProps<typeof
     );
 }
 
-function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
-    React.useEffect(() => {
-        lockBodyScroll();
-        return () => unlockBodyScroll();
-    }, []);
+function AlertDialogContent({
+    className,
+    children,
+    ...props
+}: React.ComponentProps<typeof AlertDialogPrimitive.Content>) {
     return (
         <AlertDialogPortal>
             <AlertDialogOverlay />
@@ -47,7 +55,10 @@ function AlertDialogContent({ className, ...props }: React.ComponentProps<typeof
                     className
                 )}
                 {...props}
-            />
+            >
+                <BodyScrollLockEffect />
+                {children}
+            </AlertDialogPrimitive.Content>
         </AlertDialogPortal>
     );
 }
