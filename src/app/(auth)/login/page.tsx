@@ -132,7 +132,7 @@ export default function LoginPage() {
                                 </div>
                                 <Button
                                     type="submit"
-                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? "Carregando..." : "Entrar"}
@@ -144,6 +144,12 @@ export default function LoginPage() {
                             <Link href="/signup" className="underline text-primary">
                                 Cadastre-se
                             </Link>
+                            <div className="mt-2">
+                                Corretor?{" "}
+                                <Link href="/agent-signup" className="underline text-primary">
+                                    Faça seu cadastro
+                                </Link>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

@@ -1,9 +1,8 @@
 import { pendingVisitRequestsCounts, pendingReservationRequestCounts, pendingAgentRegistrationRequestCounts } from "@/firebase/admin/dashboard/service";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
-import { countProperties } from "@/firebase/properties/service";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     
     try {
         //supabase

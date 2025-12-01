@@ -145,6 +145,12 @@ function Header({ variant }: HeaderProps) {
                             >
                                 Login
                             </Button>
+                            <Button
+                                className={`cursor-pointer text-md bg-transparent hover:bg-primary/90 transition-colors ${navLinkColor} ${navLinkHover}`}
+                                onClick={() => router.push("/signup")}
+                            >
+                                Cadastre-se
+                            </Button>
                         </div>
                     ) : (
                         <DropdownMenu>
@@ -202,7 +208,7 @@ function Header({ variant }: HeaderProps) {
                     <SheetTrigger asChild>
                         <Button
                             size="icon"
-                            className="bg-primary-foreground hover:bg-secondary text-foreground cursor-pointer"
+                            className="bg-primary-foreground hover:bg-secondary text-foreground cursor-pointer rounded-full"
                         >
                             <Menu className="h-6 w-6" />
                         </Button>
@@ -226,15 +232,15 @@ function Header({ variant }: HeaderProps) {
                                     </div>
                                 </>
                             ) : (
-                                <div className="flex w-full gap-2">
-                                    <Button variant="outline" className="w-full" onClick={() => router.push("/login")}>
+                                <div className="flex w-fit gap-2">
+                                    <Button variant="outline" className="w-full cursor-pointer" onClick={() => router.push("/login")}>
                                         Entrar
                                     </Button>
                                     <Button
-                                        className="w-full bg-secondary hover:bg-secondary/90"
+                                        className="w-fit bg-foreground hover:bg-foreground/70 cursor-pointer"
                                         onClick={() => router.push("/signup")}
                                     >
-                                        Cadastrar
+                                        Cadastre-se
                                     </Button>
                                 </div>
                             )}

@@ -5,7 +5,6 @@ import { notifyError } from "@/services/notificationService";
 import { BookmarkCheck, Building, CalendarClock, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { GET } from "@/app/api/admin/dashboard/route";
 
 export default function DashboardPage() {
     const [propertiesNum, setPropertiesNum] = useState<number>(0);
@@ -44,7 +43,7 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <div className="pt-15 h-screen w-screen bg-gray-50 p-6">
+        <div className="pt-15 min-h-screen bg-gray-50 p-6">
             <div className="w-full mb-8">
                 <h1 className="text-5xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-600 mt-2">Visão geral do Meu Apê</p>
