@@ -1,7 +1,6 @@
-import { auth } from "@/firebase/firebase-config";
+import { adminAuth } from "@/firebase/firebase-admin-config";
 import { resetPasswordSchema } from "@/schemas/resetPasswordSchema";
-import { FirebaseError } from "firebase/app";
-import { sendPasswordResetEmail } from "firebase/auth";
+import { FirebaseError } from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -13,7 +12,7 @@ const loginRedirectUrl = (() => {
         process.env.NEXT_PUBLIC_RESET_PASSWORD_REDIRECT_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         process.env.NEXT_PUBLIC_SITE_URL ||
-        "https://meu-ape-vercel.app";
+        "http://meu-ape-vercel.app";
 
     const normalizedBase =
         baseFromEnv.startsWith("http://") || baseFromEnv.startsWith("https://")
@@ -28,12 +27,18 @@ const loginRedirectUrl = (() => {
     }
 })();
 
+const isFirebaseAuthError = (error: unknown): error is FirebaseError & { code: string } =>
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof (error as { code: unknown }).code === "string";
+
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
         const { email } = resetPasswordSchema.parse(body);
 
-        await sendPasswordResetEmail(auth, email, { url: loginRedirectUrl });
+        await adminAuth.generatePasswordResetLink(email, { url: loginRedirectUrl });
 
         return NextResponse.json({ message: SUCCESS_MESSAGE });
     } catch (error) {
@@ -41,10 +46,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: error.issues[0]?.message ?? "Payload inválido" }, { status: 400 });
         }
 
-        if (error instanceof FirebaseError) {
-            if (SILENT_AUTH_ERROR_CODES.includes(error.code)) {
-                return NextResponse.json({ message: SUCCESS_MESSAGE });
-            }
+        if (isFirebaseAuthError(error) && SILENT_AUTH_ERROR_CODES.includes(error.code)) {
+            return NextResponse.json({ message: SUCCESS_MESSAGE });
         }
 
         console.error("Erro ao solicitar redefinição de senha:", error);
