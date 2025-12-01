@@ -194,6 +194,12 @@ export default function RegisterPage() {
                             <Link href="/login" className="underline text-primary">
                                 Entrar
                             </Link>
+                            <div className="mt-2">
+                                É corretor?{" "}
+                                <Link href="/agent-signup" className="underline text-primary">
+                                    Cadastre-se aqui
+                                </Link>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
