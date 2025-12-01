@@ -1271,6 +1271,7 @@ export default function ProfilePage() {
                             <div className="flex justify-end mt-6">
                                 <Button
                                     onClick={handleSaveDocuments}
+                                    className="cursor-pointer"
                                     disabled={
                                         uploading || Object.values(pendingFiles).every(arr => !arr || arr.length === 0)
                                     }

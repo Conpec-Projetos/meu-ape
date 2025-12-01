@@ -328,15 +328,10 @@ function UserManagementContent() {
         });
     };
 
-    const renderContent = () => {
-        if (isLoading) {
-            return <UserTableSkeleton />;
-        }
+    // Match the property management UX: scroll inside the table without locking the page height.
+    const scrollableContainerClasses = "max-h-[60vh] min-h-[24rem] overflow-y-auto pr-1 sm:pr-2";
 
-        if (error) {
-            return <p className="text-red-500">{error}</p>;
-        }
-
+    const renderScrollableTables = () => {
         if (isAgentRequestsTab) {
             return (
                 <AgentRequestTable
@@ -362,6 +357,30 @@ function UserManagementContent() {
                 onView={handleViewUser}
                 onAddUser={handleAddUser}
             />
+        );
+    };
+
+    const renderContent = () => {
+        if (isLoading) {
+            return (
+                <div className={scrollableContainerClasses}>
+                    <UserTableSkeleton />
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className={`${scrollableContainerClasses} flex items-center justify-center`}>
+                    <p className="text-red-500">{error}</p>
+                </div>
+            );
+        }
+
+        return (
+            <div id="admin-users-scrollable" className={scrollableContainerClasses}>
+                {renderScrollableTables()}
+            </div>
         );
     };
 
