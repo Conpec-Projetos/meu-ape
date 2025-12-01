@@ -73,26 +73,34 @@ export function FiltersModal() {
                         <FormField
                             control={form.control}
                             name="priceRange"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Faixa de Preço</FormLabel>
-                                    <FormControl>
-                                        <div>
-                                            <Slider
-                                                min={0}
-                                                max={5000000}
-                                                step={50000}
-                                                value={field.value}
-                                                onValueChange={field.onChange}
-                                            />
-                                            <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                                                <span>R$ {field.value[0].toLocaleString("pt-BR")}</span>
-                                                <span>R$ {field.value[1].toLocaleString("pt-BR")}</span>
+                            render={({ field }) => {
+                                const fallbackRange: [number, number] = [0, 2000000];
+                                const currentValue =
+                                    Array.isArray(field.value) && field.value.length === 2
+                                        ? field.value
+                                        : fallbackRange;
+
+                                return (
+                                    <FormItem>
+                                        <FormLabel>Faixa de Preço</FormLabel>
+                                        <FormControl>
+                                            <div>
+                                                <Slider
+                                                    min={0}
+                                                    max={5000000}
+                                                    step={50000}
+                                                    value={currentValue}
+                                                    onValueChange={field.onChange}
+                                                />
+                                                <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                                                    <span>R$ {currentValue[0].toLocaleString("pt-BR")}</span>
+                                                    <span>R$ {currentValue[1].toLocaleString("pt-BR")}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </FormControl>
-                                </FormItem>
-                            )}
+                                        </FormControl>
+                                    </FormItem>
+                                );
+                            }}
                         />
                         {/* Bedrooms, Bathrooms, Garages */}
                         {(["bedrooms", "bathrooms", "garages"] as const).map(filter => (
