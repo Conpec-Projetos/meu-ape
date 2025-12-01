@@ -1,6 +1,6 @@
 import { adminAuth } from "@/firebase/firebase-admin-config";
 import { resetPasswordSchema } from "@/schemas/resetPasswordSchema";
-import { FirebaseError } from "firebase-admin";
+import type { FirebaseError } from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -8,11 +8,13 @@ const SUCCESS_MESSAGE = "Se houver uma conta associada a este email, um link de 
 const SILENT_AUTH_ERROR_CODES = ["auth/user-not-found", "auth/invalid-email"];
 
 const loginRedirectUrl = (() => {
+    const fallbackHost = "https://meu-ape-conpec.vercel.app";
     const baseFromEnv =
         process.env.NEXT_PUBLIC_RESET_PASSWORD_REDIRECT_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
         process.env.NEXT_PUBLIC_SITE_URL ||
-        "http://meu-ape-vercel.app";
+        process.env.NEXT_PUBLIC_VERCEL_URL ||
+        fallbackHost;
 
     const normalizedBase =
         baseFromEnv.startsWith("http://") || baseFromEnv.startsWith("https://")
@@ -22,16 +24,18 @@ const loginRedirectUrl = (() => {
     try {
         return new URL("/login", normalizedBase).toString();
     } catch (error) {
-        console.warn("Invalid reset redirect base URL. Falling back to localhost.", error);
-        return "http://localhost:3000/login";
+        console.warn("Invalid reset redirect base URL. Falling back to default host.", error);
+        return `${fallbackHost}/login`;
     }
 })();
 
-const isFirebaseAuthError = (error: unknown): error is FirebaseError & { code: string } =>
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code: unknown }).code === "string";
+const isFirebaseAuthError = (error: unknown): error is FirebaseError & { code: string } => {
+    if (typeof error !== "object" || error === null) {
+        return false;
+    }
+
+    return "code" in error && typeof (error as { code: unknown }).code === "string";
+};
 
 export async function POST(req: NextRequest) {
     try {
