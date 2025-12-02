@@ -11,9 +11,11 @@ import {
     FormMessage,
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
+import { auth } from "@/firebase/firebase-config";
 import { ResetPasswordData, resetPasswordSchema } from "@/schemas/resetPasswordSchema";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { sendPasswordResetEmail } from "firebase/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,19 +37,7 @@ export default function ResetPasswordPage() {
     async function onSubmit(values: ResetPasswordData) {
         setIsSubmitting(true);
         try {
-            const response = await fetch("/api/auth/reset-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(values),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => undefined);
-                throw new Error(errorData?.error || "Erro ao solicitar redefinição de senha");
-            }
-
+            await sendPasswordResetEmail(auth, values.email);
             notifySuccess(SUCCESS_MESSAGE);
             setTimeout(() => router.push("/login"), 3000);
         } catch (error) {
