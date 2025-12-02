@@ -11,9 +11,12 @@ import {
     FormMessage,
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
+import { auth } from "@/firebase/firebase-config";
 import { ResetPasswordData, resetPasswordSchema } from "@/schemas/resetPasswordSchema";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { sendPasswordResetEmail } from "firebase/auth";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,19 +38,7 @@ export default function ResetPasswordPage() {
     async function onSubmit(values: ResetPasswordData) {
         setIsSubmitting(true);
         try {
-            const response = await fetch("/api/auth/reset-password", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(values),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => undefined);
-                throw new Error(errorData?.error || "Erro ao solicitar redefinição de senha");
-            }
-
+            await sendPasswordResetEmail(auth, values.email);
             notifySuccess(SUCCESS_MESSAGE);
             setTimeout(() => router.push("/login"), 3000);
         } catch (error) {
@@ -59,9 +50,12 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-            <div className="w-full max-w-md">
-                <Card className="bg-card/95">
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
+            <div className="absolute inset-0 z-0">
+                <Image src="/register/background.png" alt="Background" layout="fill" objectFit="cover" />
+            </div>
+            <div className="relative z-10 w-full max-w-md p-4">
+                <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Redefinir senha</CardTitle>
                         <CardDescription>

@@ -17,6 +17,7 @@ import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FirebaseError } from "firebase/app";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -154,9 +155,12 @@ export default function AuthActionPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background px-4">
-            <div className="w-full max-w-md">
-                <Card className="bg-card/95">
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4">
+            <div className="absolute inset-0 z-0">
+                <Image src="/register/background.png" alt="Background" layout="fill" objectFit="cover" />
+            </div>
+            <div className="relative z-10 w-full max-w-md p-4">
+                <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Redefinir senha</CardTitle>
                         <CardDescription>Escolha uma nova senha para continuar acessando o Meu Apê.</CardDescription>

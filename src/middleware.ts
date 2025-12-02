@@ -8,7 +8,6 @@ export async function middleware(request: NextRequest) {
         "/login",
         "/signup",
         "/forgot-password",
-        "/reset-password",
         "/agent-signup",
         "/auth/action",
     ].some(path => pathname.startsWith(path));
