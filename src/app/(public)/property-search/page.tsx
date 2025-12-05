@@ -9,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 function PropertySearchPageContent() {
@@ -22,6 +22,9 @@ function PropertySearchPageContent() {
     const [hasNextPage, setHasNextPage] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [totalProperties, setTotalProperties] = useState(0);
+    const searchBarContainerRef = useRef<HTMLDivElement | null>(null);
+    const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+    const [searchBarHeight, setSearchBarHeight] = useState(0);
 
     const { ref, inView } = useInView({
         threshold: 0,
@@ -76,11 +79,70 @@ function PropertySearchPageContent() {
         }
     }, [inView, hasNextPage, isLoading, isFetchingMore, nextPageCursor, fetchProperties]);
 
+    useEffect(() => {
+        if (!isMobile || typeof window === "undefined") {
+            return;
+        }
+
+        const updateViewportHeight = () => {
+            setViewportHeight(window.innerHeight);
+        };
+
+        updateViewportHeight();
+        window.addEventListener("resize", updateViewportHeight);
+        window.addEventListener("orientationchange", updateViewportHeight);
+
+        return () => {
+            window.removeEventListener("resize", updateViewportHeight);
+            window.removeEventListener("orientationchange", updateViewportHeight);
+        };
+    }, [isMobile]);
+
+    useEffect(() => {
+        if (!isMobile || !searchBarContainerRef.current) {
+            return;
+        }
+
+        const element = searchBarContainerRef.current;
+        setSearchBarHeight(element.offsetHeight);
+
+        if (typeof ResizeObserver === "undefined") {
+            return;
+        }
+
+        const observer = new ResizeObserver(entries => {
+            if (!entries.length) {
+                return;
+            }
+            setSearchBarHeight(entries[0].contentRect.height);
+        });
+
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    }, [isMobile]);
+
+    const HEADER_OFFSET = 80; // matches pt-20 offset
+    const TABS_LIST_HEIGHT = 56; // h-14 tabs list
+    const MIN_TAB_CONTENT_HEIGHT = 320; // ensure the map always has room
+
+    const tabsAvailableHeight =
+        isMobile && viewportHeight
+            ? Math.max(viewportHeight - HEADER_OFFSET - searchBarHeight, TABS_LIST_HEIGHT + MIN_TAB_CONTENT_HEIGHT)
+            : undefined;
+    const tabPanelsHeight = tabsAvailableHeight ? tabsAvailableHeight - TABS_LIST_HEIGHT : undefined;
+
     if (isMobile) {
         return (
             <div className="pt-20 flex flex-col min-h-screen">
-                <SearchBar />
-                <Tabs defaultValue="list" className="grow flex flex-col">
+                <div ref={searchBarContainerRef} className="shrink-0">
+                    <SearchBar />
+                </div>
+                <Tabs
+                    defaultValue="list"
+                    className="grow flex flex-col min-h-0"
+                    style={tabsAvailableHeight ? { height: tabsAvailableHeight } : undefined}
+                >
                     <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
                         <TabsTrigger value="list" className="text-base h-full">
                             <ListFilter className="mr-2" /> Lista ({totalProperties})
@@ -89,7 +151,11 @@ function PropertySearchPageContent() {
                             <Map className="mr-2" /> Mapa
                         </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="list" className="grow overflow-y-auto">
+                    <TabsContent
+                        value="list"
+                        className="grow overflow-y-auto min-h-0"
+                        style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
+                    >
                         <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
                         {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
                         {!hasNextPage && properties.length > 0 && (
@@ -97,8 +163,14 @@ function PropertySearchPageContent() {
                         )}
                         {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                     </TabsContent>
-                    <TabsContent value="map" className="grow">
-                        <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                    <TabsContent
+                        value="map"
+                        className="grow flex flex-col min-h-0"
+                        style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
+                    >
+                        <div className="flex-1 min-h-80">
+                            <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
