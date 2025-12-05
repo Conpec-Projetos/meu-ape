@@ -222,7 +222,7 @@ function Header({ variant }: HeaderProps) {
                             <Menu className={`h-6 w-6 ${menuColor}`} />
                         </Button>
                     </SheetTrigger>
-                    <SheetContent className="flex flex-col p-4">
+                    <SheetContent className="flex flex-col p-4 w-full sm:max-w-sm" side="right">
                         <div className="flex items-center gap-4 border-b pb-4">
                             {user ? (
                                 <>
@@ -241,7 +241,7 @@ function Header({ variant }: HeaderProps) {
                                     </div>
                                 </>
                             ) : (
-                                <div className="flex w-fit gap-2">
+                                <div className="flex flex-col w-full gap-2 mt-5">
                                     <Button
                                         variant="outline"
                                         className="w-full cursor-pointer"
@@ -250,7 +250,7 @@ function Header({ variant }: HeaderProps) {
                                         Entrar
                                     </Button>
                                     <Button
-                                        className="w-fit bg-foreground hover:bg-foreground/70 cursor-pointer"
+                                        className="w-full sm:w-auto bg-foreground hover:bg-foreground/70 cursor-pointer"
                                         onClick={() => router.push("/signup")}
                                     >
                                         Cadastre-se

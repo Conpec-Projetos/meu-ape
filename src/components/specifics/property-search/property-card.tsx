@@ -9,22 +9,51 @@ import { Bath, BedDouble, Car, Heart, Square } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-const mockData = {
-    minPrice: 100000,
-    bedrooms: [3, 5],
-    minSize: 75,
-    maxSize: 150,
-    baths: [3, 4],
-    garages: [2, 4],
+const truncate = (value: number) => Math.trunc(value);
+
+const formatCurrency = (value?: number | null) => {
+    if (typeof value !== "number") return null;
+    const truncated = truncate(value);
+    return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 0,
+    }).format(truncated);
+};
+
+const formatNumber = (value: number) => new Intl.NumberFormat("pt-BR").format(truncate(value));
+
+const formatArrayRange = (values?: number[]) => {
+    if (!values || values.length === 0) return null;
+    const unique = Array.from(new Set(values.map(num => truncate(num)))).sort((a, b) => a - b);
+    const min = unique[0];
+    const max = unique[unique.length - 1];
+    return min === max ? `${min}` : `${min}-${max}`;
+};
+
+const formatSizeRange = (min?: number | null, max?: number | null) => {
+    if (min == null && max == null) return null;
+    const lowerValue = truncate((min ?? max) as number);
+    const upperValue = truncate((max ?? min) as number);
+    const formattedLower = formatNumber(lowerValue);
+    const formattedUpper = formatNumber(upperValue);
+    const range = lowerValue === upperValue ? formattedLower : `${formattedLower} - ${formattedUpper}`;
+    return `${range} m²`;
 };
 
 export function PropertyCard({ property }: { property: Property }) {
     const { toggleFavorite, isFavorited, isLoading } = useFavorites();
+    const stats = property.searchableUnitFeats;
+    const priceLabel = formatCurrency(stats?.minPrice);
+    const sizeLabel = formatSizeRange(stats?.minSize, stats?.maxSize);
+    const bedroomsLabel = formatArrayRange(stats?.bedrooms);
+    const bathsLabel = formatArrayRange(stats?.baths);
+    const garagesLabel = formatArrayRange(stats?.garages);
 
     return (
-        <Link href={`/properties/${property.id}`} className="block">
-            <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer">
-                <div className="relative aspect-4/3">
+        <Link href={`/properties/${property.id}`} className="block h-full">
+            <Card className="overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col border-0">
+                <div className="relative w-full h-48 sm:h-60 rounded-t-xl overflow-hidden">
                     <Image
                         src={property.propertyImages?.[0] || "/placeholder.png"}
                         alt={property.name}
@@ -41,31 +70,31 @@ export function PropertyCard({ property }: { property: Property }) {
                             toggleFavorite(property.id || "");
                         }}
                         disabled={isLoading}
-                        aria-label={isFavorited(property.id || "") ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                        aria-label={
+                            isFavorited(property.id || "") ? "Remover dos favoritos" : "Adicionar aos favoritos"
+                        }
                     >
-                        <Heart className={cn(
-                            isFavorited(property.id || "") ? "fill-primary" : ""
-                        )}/>
+                        <Heart className={cn(isFavorited(property.id || "") ? "fill-primary" : "")} />
                     </Button>
                 </div>
-                <CardContent className="p-4">
+                <CardContent className="p-4 flex flex-col flex-1">
                     <h3 className="font-bold text-lg truncate">{property.name}</h3>
                     <p className="text-sm text-muted-foreground truncate">{property.address}</p>
                     <p className="font-semibold text-xl text-primary mt-2">
-                        A partir de R$ {mockData.minPrice.toLocaleString("pt-BR")}
+                        {priceLabel ? `A partir de ${priceLabel}` : "Consulte valores"}
                     </p>
-                    <div className="flex items-center justify-between text-muted-foreground mt-3 text-sm border-t pt-3">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between text-muted-foreground mt-3 text-sm border-t pt-3 gap-3">
                         <div className="flex items-center gap-1">
-                            <BedDouble size={16} /> {mockData.bedrooms.join("-")} dorms.
+                            <Square size={16} /> {sizeLabel ?? "Tamanho indisp."}
                         </div>
                         <div className="flex items-center gap-1">
-                            <Square size={16} /> {mockData.minSize}-{mockData.maxSize}m²
+                            <BedDouble size={16} /> {bedroomsLabel ? `${bedroomsLabel} dorms.` : "Dados indisponiveis"}
                         </div>
                         <div className="flex items-center gap-1">
-                            <Bath size={16} /> {mockData.baths.join("-")} banh.
+                            <Bath size={16} /> {bathsLabel ? `${bathsLabel} banh.` : "Banh. indisp."}
                         </div>
                         <div className="flex items-center gap-1">
-                            <Car size={16} /> {mockData.garages.join("-")} vagas
+                            <Car size={16} /> {garagesLabel ? `${garagesLabel} vagas` : "Vagas indisp."}
                         </div>
                     </div>
                 </CardContent>

@@ -14,7 +14,7 @@ export function PropertyList({ properties, isLoading, innerRef }: PropertyListPr
     return (
         <div className="h-full flex flex-col">
             <div className="grow overflow-y-auto p-4">
-                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+                <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
                     {isLoading
                         ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[350px] w-full" />)
                         : properties.map((prop, index) => (
