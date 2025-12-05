@@ -4,17 +4,20 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = request.cookies.get("session")?.value;
     const { pathname } = request.nextUrl;
 
-    const isAuthPage = [
-        "/login",
-        "/signup",
-        "/forgot-password",
-        "/agent-signup",
-        "/auth/action",
-    ].some(path => pathname.startsWith(path));
+    const isAuthPage = ["/login", "/signup", "/forgot-password", "/agent-signup", "/auth/action"].some(path =>
+        pathname.startsWith(path)
+    );
     const isAdminPage = ["/admin", "/beta"].some(path => pathname.startsWith(path));
+    const publicPrefixes = ["/", "/property-search", "/properties"];
+    const isPublicPage = publicPrefixes.some(prefix => {
+        if (prefix === "/") {
+            return pathname === "/";
+        }
+        return pathname === prefix || pathname.startsWith(`${prefix}/`);
+    });
 
     if (!sessionCookie) {
-        if (isAuthPage) {
+        if (isAuthPage || isPublicPage) {
             return NextResponse.next();
         }
         return NextResponse.redirect(new URL("/login", request.url));

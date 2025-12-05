@@ -16,7 +16,7 @@ import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { doc, DocumentData, getDoc } from "firebase/firestore";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ type DetailResponse = { property: Property; unitNavigation: UnitStructure };
 
 function PropertyPageContent() {
     const params = useParams();
+    const router = useRouter();
     const id = params.id as string;
     const [property, setProperty] = useState<Property | null>(null);
     const [unitStructure, setUnitStructure] = useState<UnitStructure | null>(null);
@@ -40,20 +41,24 @@ function PropertyPageContent() {
         const user = auth.currentUser;
         if (!user) {
             setCurrentUser(undefined);
-            return;
+            return undefined;
         }
         const userDocRef = doc(db, "users", user.uid);
         try {
             const docSnap = await getDoc(userDocRef);
             if (docSnap.exists()) {
-                setCurrentUser(docSnap.data());
+                const data = docSnap.data();
+                setCurrentUser(data);
+                return data;
             } else {
                 console.error("Usuário não encontrado no Firestore.");
                 setCurrentUser(undefined);
             }
         } catch (error: unknown) {
             console.error("Erro ao buscar dados do usuário:", String(error));
+            setCurrentUser(undefined);
         }
+        return undefined;
     };
 
     useEffect(() => {
@@ -71,10 +76,22 @@ function PropertyPageContent() {
     const [missingFields, setMissingFields] = useState<string[]>([]);
     const [lastAction, setLastAction] = useState<string>("");
 
+    const buildRedirectPath = () => {
+        if (typeof window === "undefined") {
+            return `/properties/${id}`;
+        }
+        return `${window.location.pathname}${window.location.search}`;
+    };
+
     const handleGuardedAction = async (actionType: "REQUEST_VISIT" | "REQUEST_RESERVATION", unitData: Unit) => {
+        if (!auth.currentUser) {
+            const redirectPath = encodeURIComponent(buildRedirectPath());
+            router.push(`/login?redirect=${redirectPath}`);
+            return;
+        }
+
         const required = actionRequirements[actionType];
-        await refetchUserData();
-        const userData = currentUser;
+        const userData = (await refetchUserData()) ?? currentUser;
         const currentMissingFields: string[] = [];
         const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "bmCert"];
 
