@@ -1,9 +1,8 @@
 "use client";
 
+import { Button } from "@/components/features/buttons/default-button";
 import { PropertyLocationMap } from "@/components/features/maps/property-location-map";
-import { EmbeddedMatterportViewer } from "@/components/specifics/properties/embedded-matterport-viewer";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
-import { MatterportGallery } from "@/components/specifics/properties/matterport-gallery";
 import { PropertyHeader } from "@/components/specifics/properties/property-header";
 import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
 import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
@@ -16,6 +15,7 @@ import { auth, db } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { doc, DocumentData, getDoc } from "firebase/firestore";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ function PropertyPageContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
     const [currentUser, setCurrentUser] = useState<DocumentData>();
+    const [activeTourIndex, setActiveTourIndex] = useState(0);
 
     const refetchUserData = async () => {
         const user = auth.currentUser;
@@ -64,6 +65,10 @@ function PropertyPageContent() {
     useEffect(() => {
         refetchUserData();
     }, []);
+
+    useEffect(() => {
+        setActiveTourIndex(0);
+    }, [id]);
 
     const [visitModal, setVisitModal] = useState<boolean>(false);
     const [unit, setUnit] = useState<Unit>();
@@ -230,11 +235,96 @@ function PropertyPageContent() {
     }
 
     const matterportUrls = property.matterportUrls ?? [];
+    const hasMatterport = matterportUrls.length > 0;
+    const activeMatterportUrl = matterportUrls[activeTourIndex] ?? null;
+    const handleOpenMatterportFullscreen = () => {
+        if (activeMatterportUrl) {
+            window.open(activeMatterportUrl, "_blank", "noopener,noreferrer");
+        }
+    };
+    const goToPreviousTour = () => {
+        if (matterportUrls.length <= 1) return;
+        setActiveTourIndex(prev => (prev - 1 + matterportUrls.length) % matterportUrls.length);
+    };
+    const goToNextTour = () => {
+        if (matterportUrls.length <= 1) return;
+        setActiveTourIndex(prev => (prev + 1) % matterportUrls.length);
+    };
+    const scrollToUnits = () => {
+        if (typeof window === "undefined") return;
+        document.getElementById("units-section")?.scrollIntoView({ behavior: "smooth" });
+    };
 
     return (
         <div className="py-15 bg-background text-foreground pt-20">
             <div className="container mx-auto px-4 py-8">
                 <PropertyHeader id={property.id || ""} name={property.name} address={property.address} />
+                {hasMatterport && activeMatterportUrl && (
+                    <section className="mt-8 rounded-4xl border border-white/10 bg-slate-950 text-white shadow-2xl">
+                        <div className="grid items-center gap-10 p-6 sm:p-10 lg:grid-cols-[1.05fr_0.95fr]">
+                            <div>
+                                <p className="text-sm uppercase tracking-[0.3em] text-primary/80">Tour 3D exclusivo</p>
+                                <h2 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl">
+                                    Explore o {property.name} sem sair de casa
+                                </h2>
+                                <p className="mt-4 text-base text-slate-200">
+                                    Navegue pela planta real em alta definição, descubra acabamentos e tenha a noção
+                                    exata de proporções antes mesmo da visita presencial.
+                                </p>
+                                <div className="mt-8 flex flex-wrap gap-4">
+                                    <Button
+                                        size="lg"
+                                        className="cursor-pointer bg-primary text-primary-foreground"
+                                        onClick={handleOpenMatterportFullscreen}
+                                    >
+                                        Ver em tela cheia
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        size="lg"
+                                        className="cursor-pointer bg-white/5 text-white hover:bg-white/10"
+                                        onClick={scrollToUnits}
+                                    >
+                                        Ver unidades disponíveis
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="relative h-[360px] w-full overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl sm:h-[460px]">
+                                <iframe
+                                    src={activeMatterportUrl}
+                                    title={`Tour 3D ${property.name}`}
+                                    allowFullScreen
+                                    loading="lazy"
+                                    className="h-full w-full border-0"
+                                />
+                                <div className="pointer-events-none absolute inset-0 rounded-3xl border border-white/10" />
+                                {matterportUrls.length > 1 && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur transition hover:bg-white/40 cursor-pointer"
+                                            onClick={goToPreviousTour}
+                                            aria-label="Ver tour anterior"
+                                        >
+                                            <ChevronLeft className="h-5 w-5" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 p-2 text-white backdrop-blur transition hover:bg-white/40 cursor-pointer"
+                                            onClick={goToNextTour}
+                                            aria-label="Ver próximo tour"
+                                        >
+                                            <ChevronRight className="h-5 w-5" />
+                                        </button>
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-1 text-xs font-medium tracking-wide">
+                                            {activeTourIndex + 1} / {matterportUrls.length}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+                )}
                 <div className="my-8 px-0 md:px-8 lg:px-16">
                     <div className="shadow-lg rounded-xl overflow-hidden">
                         <PropertyImageGallery images={property.propertyImages || []} propertyName={property.name} />
@@ -257,7 +347,7 @@ function PropertyPageContent() {
                                 ))}
                             </ul>
                         </div>
-                        <div className="max-w-md">
+                        <div className="max-w-md" id="units-section">
                             <h3 className="text-xl font-semibold text-primary mb-4">Unidades Disponíveis</h3>
                             {unitStructure && (
                                 <UnitSelector
@@ -268,19 +358,20 @@ function PropertyPageContent() {
                                 />
                             )}
                         </div>
-                        {matterportUrls.length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-semibold text-primary mb-4">Tour 3D Imersivo</h3>
-                                {matterportUrls.length > 1 ? (
-                                    <MatterportGallery urls={matterportUrls} />
-                                ) : (
-                                    <EmbeddedMatterportViewer url={matterportUrls[0]} />
-                                )}
+                        {property.areasImages && property.areasImages.length > 0 && (
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-semibold text-primary">Áreas Comuns</h3>
+                                <div className="shadow-lg rounded-xl overflow-hidden">
+                                    <PropertyImageGallery
+                                        images={property.areasImages}
+                                        propertyName={`${property.name} - Areas Comuns`}
+                                    />
+                                </div>
                             </div>
                         )}
                         <div>
                             <h3 className="text-2xl font-semibold text-primary mb-4">Localização</h3>
-                            <div className="h-[800px] w-full rounded-lg overflow-hidden">
+                            <div className="h-[700px] w-full rounded-lg overflow-hidden">
                                 <PropertyLocationMap property={property} />
                             </div>
                         </div>
