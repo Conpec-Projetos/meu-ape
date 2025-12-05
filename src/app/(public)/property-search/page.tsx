@@ -78,7 +78,7 @@ function PropertySearchPageContent() {
 
     if (isMobile) {
         return (
-            <div className="pt-20 flex flex-col h-screen">
+            <div className="pt-20 flex flex-col min-h-screen">
                 <SearchBar />
                 <Tabs defaultValue="list" className="grow flex flex-col">
                     <TabsList className="grid w-full grid-cols-2 rounded-none h-14">
@@ -106,7 +106,7 @@ function PropertySearchPageContent() {
     }
 
     return (
-        <div className="pt-20 flex flex-col h-screen">
+        <div className="pt-20 flex flex-col min-h-screen">
             <SearchBar />
             <ResizablePanelGroup direction="horizontal" className="grow border-t">
                 <ResizablePanel defaultSize={55} minSize={30}>
