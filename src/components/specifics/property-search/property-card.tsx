@@ -34,7 +34,7 @@ export function PropertyCard({ property }: { property: Property }) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute top-2 right-2 bg-white/70 hover:bg-white rounded-full"
+                        className="absolute top-2 right-2 bg-white/70 hover:bg-white rounded-full cursor-pointer"
                         onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
