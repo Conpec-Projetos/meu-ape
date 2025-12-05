@@ -22,7 +22,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         let query = supabaseAdmin
             .from("units")
             .select(
-                "id, identifier, property_id, block, category, price, size_sqm, bedrooms, baths, garages, is_available, floor, images, created_at, updated_at"
+                "id, identifier, property_id, block, category, price, size_sqm, bedrooms, suites, baths, garages, is_available, floor, images, floor_plan_urls, created_at, updated_at"
             )
             .eq("property_id", id)
             .eq("is_available", true)
@@ -54,11 +54,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             price: (u.price as number | null) ?? 0,
             size_sqm: (u.size_sqm as number | null) ?? 0,
             bedrooms: (u.bedrooms as number | null) ?? 0,
+            suites: (u.suites as number | null) ?? undefined,
             baths: (u.baths as number | null) ?? 0,
             garages: (u.garages as number | null) ?? 0,
             isAvailable: (u.is_available as boolean | null) ?? false,
             floor: (u.floor as number | null) ?? 0,
             images: (u.images as string[] | null) ?? [],
+            floorPlanUrls: (u.floor_plan_urls as string[] | null) ?? [],
             createdAt: u.created_at ? new Date(u.created_at as string) : new Date(0),
             updatedAt: u.updated_at ? new Date(u.updated_at as string) : new Date(0),
         }));

@@ -21,8 +21,8 @@ import { doc, getFirestore, setDoc } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -31,6 +31,15 @@ export default function RegisterPage() {
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const redirectParam = searchParams.get("redirect");
+    const safeRedirect = useMemo(() => {
+        if (!redirectParam) return "/";
+        if (!redirectParam.startsWith("/") || redirectParam.startsWith("//")) return "/";
+        return redirectParam;
+    }, [redirectParam]);
+    const buildRedirectLink = (href: string) =>
+        redirectParam ? `${href}?redirect=${encodeURIComponent(redirectParam)}` : href;
 
     const form = useForm<z.infer<typeof signupSchema>>({
         resolver: zodResolver(signupSchema),
@@ -63,7 +72,7 @@ export default function RegisterPage() {
             await setDoc(userRef, newUser);
 
             notifySuccess("Conta criada com sucesso! Redirecionando...");
-            router.push("/");
+            router.push(safeRedirect);
         } catch (error) {
             if (error instanceof Error) {
                 notifyError(error.message);
@@ -191,7 +200,7 @@ export default function RegisterPage() {
                         </Form>
                         <div className="mt-4 text-center text-sm">
                             Já possui uma conta?{" "}
-                            <Link href="/login" className="underline text-primary">
+                            <Link href={buildRedirectLink("/login")} className="underline text-primary">
                                 Entrar
                             </Link>
                             <div className="mt-2">

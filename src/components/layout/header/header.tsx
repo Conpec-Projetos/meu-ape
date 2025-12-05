@@ -77,6 +77,7 @@ function Header({ variant }: HeaderProps) {
     const pathname = usePathname();
     const { logout, user } = useAuth();
     const [scrolled, setScrolled] = useState(false);
+    const isHome = pathname === "/";
 
     useEffect(() => {
         const handleScroll = () => {
@@ -99,14 +100,22 @@ function Header({ variant }: HeaderProps) {
 
     const headerStyle = `${headerBaseStyle} ${isTransparent ? "bg-transparent" : "bg-primary shadow-md"}`;
 
-    const navLinkColor = isTransparent ? "text-primary" : "text-primary-foreground";
-    const navLinkHover = isTransparent ? "hover:bg-primary/5" : "hover:bg-white/10";
+    const navLinkColor = isTransparent ? (isHome ? "text-white" : "text-primary") : "text-primary-foreground";
+    const navLinkHover = isTransparent ? (isHome ? "hover:bg-white/10" : "hover:bg-primary/5") : "hover:bg-white/10";
+    const menuButtonColor = isTransparent
+        ? isHome
+            ? "bg-transparent hover:bg-white/10"
+            : "bg-transparent hover:bg-secondary/20"
+        : "bg-transparent hover:bg-secondary/10";
+    const menuTriggerText = isTransparent && isHome ? "text-white" : "text-foreground";
+    const menuColor = isTransparent ? (isHome ? "text-white" : "") : "text-primary-foreground";
+    const profileButtonText = isTransparent ? (isHome ? "text-white" : "text-primary") : "text-primary-foreground";
 
     return (
         <header className={headerStyle}>
             <div className="flex items-center gap-4">
                 <Image
-                    src={isTransparent ? "/logo.png" : "/invlogo.png"}
+                    src={isTransparent ? (isHome ? "/invlogo.png" : "/logo.png") : "/invlogo.png"}
                     alt="Meu Apê Logo"
                     width={120}
                     height={120}
@@ -157,7 +166,7 @@ function Header({ variant }: HeaderProps) {
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className={`flex cursor-pointer items-center gap-2 focus-visible:ring-0 focus-visible:ring-offset-0 text-primary`}
+                                    className={`flex cursor-pointer items-center gap-2 focus-visible:ring-0 focus-visible:ring-offset-0 ${profileButtonText}`}
                                 >
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage src={user?.photoUrl} alt={user?.fullName} />
@@ -183,7 +192,7 @@ function Header({ variant }: HeaderProps) {
                                 )}
                                 <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/profile")}>
                                     <Settings className="mr-2 h-4 w-4" />
-                                    <span>Configurações</span>
+                                    <span>Perfil</span>
                                 </DropdownMenuItem>
                                 {variant === "client" && (
                                     <DropdownMenuItem onClick={() => router.push("/favorites")}>
@@ -192,7 +201,7 @@ function Header({ variant }: HeaderProps) {
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem  onClick={handleLogout} className="text-destructive cursor-pointer">
+                                <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Sair</span>
                                 </DropdownMenuItem>
@@ -208,9 +217,9 @@ function Header({ variant }: HeaderProps) {
                     <SheetTrigger asChild>
                         <Button
                             size="icon"
-                            className="bg-primary-foreground hover:bg-secondary text-foreground cursor-pointer rounded-full"
+                            className={`${menuButtonColor} ${menuTriggerText} cursor-pointer rounded-full`}
                         >
-                            <Menu className="h-6 w-6" />
+                            <Menu className={`h-6 w-6 ${menuColor}`} />
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="flex flex-col p-4">
@@ -233,7 +242,11 @@ function Header({ variant }: HeaderProps) {
                                 </>
                             ) : (
                                 <div className="flex w-fit gap-2">
-                                    <Button variant="outline" className="w-full cursor-pointer" onClick={() => router.push("/login")}>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full cursor-pointer"
+                                        onClick={() => router.push("/login")}
+                                    >
                                         Entrar
                                     </Button>
                                     <Button
@@ -271,7 +284,7 @@ function Header({ variant }: HeaderProps) {
                                             className="flex items-center gap-3 p-2 rounded-md font-medium hover:bg-muted"
                                         >
                                             <Settings className="h-5 w-5" />
-                                            Configurações
+                                            Perfil
                                         </Link>
                                     </li>
                                     <li>

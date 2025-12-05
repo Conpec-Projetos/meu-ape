@@ -46,3 +46,5 @@ next-env.d.ts
 
 # Firebase Service Account Keys
 *serviceAccountKey.json
+
+.github/copilot-instructions.md

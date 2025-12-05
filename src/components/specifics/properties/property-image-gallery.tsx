@@ -1,14 +1,16 @@
 "use client";
 
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 interface PropertyImageGalleryProps {
     images: string[];
     propertyName: string;
+    fit?: "cover" | "contain";
 }
 
-export function PropertyImageGallery({ images, propertyName }: PropertyImageGalleryProps) {
+export function PropertyImageGallery({ images, propertyName, fit = "cover" }: PropertyImageGalleryProps) {
     if (!images || images.length === 0) {
         return (
             <div className="flex items-center justify-center w-full h-96 bg-muted rounded-lg">
@@ -23,12 +25,21 @@ export function PropertyImageGallery({ images, propertyName }: PropertyImageGall
                 {images.map((src, index) => (
                     <CarouselItem key={index}>
                         <div className="overflow-hidden rounded-lg">
-                            <div className="relative flex aspect-[2.4/1] items-center justify-center overflow-hidden">
+                            <div
+                                className={cn(
+                                    "relative flex aspect-[2.4/1] items-center justify-center overflow-hidden",
+                                    fit === "contain" ? "" : ""
+                                )}
+                            >
                                 <Image
                                     src={src}
                                     alt={`${propertyName} - Image ${index + 1}`}
-                                    layout="fill"
-                                    objectFit="cover"
+                                    fill
+                                    sizes="100vw"
+                                    className={cn(
+                                        "transition-transform duration-500",
+                                        fit === "contain" ? "object-contain" : "object-cover"
+                                    )}
                                 />
                             </div>
                         </div>

@@ -19,12 +19,22 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 export default function LoginPage() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const searchParams = useSearchParams();
+    const redirectParam = searchParams.get("redirect");
+    const safeRedirect = useMemo(() => {
+        if (!redirectParam) return "/";
+        if (!redirectParam.startsWith("/") || redirectParam.startsWith("//")) return "/";
+        return redirectParam;
+    }, [redirectParam]);
+    const buildRedirectLink = (href: string) =>
+        redirectParam ? `${href}?redirect=${encodeURIComponent(redirectParam)}` : href;
 
     const form = useForm<LoginData>({
         resolver: zodResolver(loginSchema),
@@ -51,7 +61,7 @@ export default function LoginPage() {
             if (response.ok) {
                 notifySuccess("Login bem-sucedido! Redirecionando...");
                 setTimeout(() => {
-                    window.location.assign("/");
+                    window.location.assign(safeRedirect);
                 }, 3000);
             } else {
                 const errorData = await response.json();
@@ -141,7 +151,7 @@ export default function LoginPage() {
                         </Form>
                         <div className="mt-4 text-center text-sm">
                             Não possui uma conta?{" "}
-                            <Link href="/signup" className="underline text-primary">
+                            <Link href={buildRedirectLink("/signup")} className="underline text-primary">
                                 Cadastre-se
                             </Link>
                             <div className="mt-2">

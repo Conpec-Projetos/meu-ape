@@ -26,7 +26,7 @@ export function PropertyHeader({ id, name, address }: PropertyHeaderProps) {
                                 <Button 
                                     variant="outline" 
                                     size="icon" 
-                                    className="rounded-full h-9 w-9"
+                                    className="rounded-full h-9 w-9 cursor-pointer"
                                     onClick={() => toggleFavorite(id)}
                                     disabled={isLoading}
                                 >
