@@ -12,9 +12,9 @@ async function isAdmin(request: NextRequest) {
 
 const developerSchema = z.object({
     name: z.string().min(1),
-    website: z.string().optional(),
-    email: z.string().optional(),
-    phone: z.string().optional(),
+    website: z.string().nullable().optional(),
+    email: z.string().nullable().optional(),
+    phone: z.string().nullable().optional(),
     logo_url: z.string().nullable().optional(),
 });
 

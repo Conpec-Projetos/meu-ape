@@ -30,6 +30,17 @@ interface Developer {
     logo_url?: string;
 }
 
+const onlyDigits = (value?: string | null) => (value ?? "").replace(/\D/g, "");
+
+const formatPhone = (value?: string | null) => {
+    const digits = onlyDigits(value).slice(0, 11);
+    if (!digits) return "";
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
 function AdminDevelopersPageContent() {
     const [developers, setDevelopers] = useState<Developer[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -175,7 +186,7 @@ function AdminDevelopersPageContent() {
                                     </div>
                                     <div className="flex items-start gap-2">
                                         <span className="text-muted-foreground">Telefone:</span>
-                                        <span className="break-all">{dev.phone || "—"}</span>
+                                        <span className="break-all">{formatPhone(dev.phone) || "—"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -195,10 +206,10 @@ function AdminDevelopersPageContent() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Nome</TableHead>
-                                        <TableHead>Website</TableHead>
-                                        <TableHead>E-mail</TableHead>
-                                        <TableHead>Telefone</TableHead>
+                                        <TableHead className="w-100">Nome</TableHead>
+                                        <TableHead className="w-100">Website</TableHead>
+                                        <TableHead className="w-100">E-mail</TableHead>
+                                        <TableHead className="w-25">Telefone</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -225,9 +236,23 @@ function AdminDevelopersPageContent() {
                                                     {dev.name}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{dev.website || "—"}</TableCell>
-                                            <TableCell>{dev.email || "—"}</TableCell>
-                                            <TableCell>{dev.phone || "—"}</TableCell>
+                                            <TableCell className="w-[220px]">
+                                                <span
+                                                    className="inline-block max-w-[200px] truncate align-middle"
+                                                    title={dev.website || ""}
+                                                >
+                                                    {dev.website || "—"}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="w-[220px]">
+                                                <span
+                                                    className="inline-block max-w-[200px] truncate align-middle"
+                                                    title={dev.email || ""}
+                                                >
+                                                    {dev.email || "—"}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>{formatPhone(dev.phone) || "—"}</TableCell>
                                             <TableCell className="py-4 text-right space-x-2">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
