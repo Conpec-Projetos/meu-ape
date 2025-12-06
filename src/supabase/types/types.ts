@@ -39,6 +39,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      developer_contacts: {
+        Row: {
+          city: string | null
+          created_at: string
+          developer_id: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          developer_id: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          developer_id?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "developer_contacts_developer_id_fkey"
+            columns: ["developer_id"]
+            isOneToOne: false
+            referencedRelation: "developers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       developers: {
         Row: {
           created_at: string
@@ -611,48 +655,92 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
-      search_properties: {
-        Args: {
-          bathroom_filter?: number[]
-          bedroom_filter?: number[]
-          garage_filter?: number[]
-          max_lat?: number
-          max_lng?: number
-          max_price_filter?: number
-          min_lat?: number
-          min_lng?: number
-          min_price_filter?: number
-          page_limit?: number
-          page_offset?: number
-          query_text?: string
-        }
-        Returns: {
-          address: string
-          areas_images: string[]
-          available_bathrooms: number[]
-          available_bedrooms: number[]
-          available_garages: number[]
-          delivery_date: string
-          description: string
-          features: string[]
-          floors: number
-          groups: string[]
-          id: string
-          lat: number
-          launch_date: string
-          lng: number
-          matterport_urls: string[]
-          max_unit_price: number
-          max_unit_size: number
-          min_unit_price: number
-          min_unit_size: number
-          name: string
-          property_images: string[]
-          total_matching_units: number
-          total_properties: number
-          units_per_floor: number
-        }[]
-      }
+      search_properties:
+        | {
+            Args: {
+              bathroom_filter: number[]
+              bedroom_filter: number[]
+              favorite_ids_filter?: string[]
+              garage_filter: number[]
+              max_lat: number
+              max_lng: number
+              max_price_filter: number
+              min_lat: number
+              min_lng: number
+              min_price_filter: number
+              page_limit: number
+              page_offset: number
+              query_text: string
+            }
+            Returns: {
+              address: string
+              areas_images: string[]
+              available_bathrooms: number[]
+              available_bedrooms: number[]
+              available_garages: number[]
+              delivery_date: string
+              description: string
+              features: string[]
+              floors: number
+              groups: string[]
+              id: string
+              lat: number
+              launch_date: string
+              lng: number
+              matterport_urls: string[]
+              max_unit_price: number
+              max_unit_size: number
+              min_unit_price: number
+              min_unit_size: number
+              name: string
+              property_images: string[]
+              total_matching_units: number
+              total_properties_count: number
+              units_per_floor: number
+            }[]
+          }
+        | {
+            Args: {
+              bathroom_filter?: number[]
+              bedroom_filter?: number[]
+              garage_filter?: number[]
+              max_lat?: number
+              max_lng?: number
+              max_price_filter?: number
+              min_lat?: number
+              min_lng?: number
+              min_price_filter?: number
+              page_limit?: number
+              page_offset?: number
+              query_text?: string
+            }
+            Returns: {
+              address: string
+              areas_images: string[]
+              available_bathrooms: number[]
+              available_bedrooms: number[]
+              available_garages: number[]
+              delivery_date: string
+              description: string
+              features: string[]
+              floors: number
+              groups: string[]
+              id: string
+              lat: number
+              launch_date: string
+              lng: number
+              matterport_urls: string[]
+              max_unit_price: number
+              max_unit_size: number
+              min_unit_price: number
+              min_unit_size: number
+              name: string
+              property_images: string[]
+              total_matching_units: number
+              total_properties: number
+              units_per_floor: number
+            }[]
+          }
       search_properties_fuzzy_with_total: {
         Args: { p_limit: number; p_offset: number; query_text: string }
         Returns: Json

@@ -1,10 +1,23 @@
+export interface DeveloperContact {
+    id?: string;
+    developerId?: string;
+    name: string;
+    email: string;
+    phone: string;
+    state: string;
+    city: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
 export interface Developer {
-    id?: string; // uuid na tabela developers no Supabase
-    name: string; // nome da construtora
-    logoUrl: string; // URL da logo da construtora no Cloud Storage
-    website: string; // website da construtora
-    email: string; // email da construtora
-    phone: string; // telefone da construtora
-    createdAt: Date; // timestampz no supabase
-    updatedAt: Date; // timestampz no supabase
+    id?: string;
+    name: string;
+    logoUrl?: string | null;
+    website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    contacts?: DeveloperContact[];
+    createdAt?: string;
+    updatedAt?: string;
 }
