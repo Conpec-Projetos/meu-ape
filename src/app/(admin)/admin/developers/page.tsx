@@ -107,7 +107,7 @@ function AdminDevelopersPageContent() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-20">
+        <div className="min-h-screen container mx-auto px-4 py-20">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold">Gerenciamento de Construtoras</h1>
@@ -216,8 +216,8 @@ function AdminDevelopersPageContent() {
                                 <TableBody>
                                     {developers.map(dev => (
                                         <TableRow key={dev.id}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex items-center gap-3">
+                                            <TableCell className="font-medium w-[220px]">
+                                                <div className="flex items-center gap-3 max-w-100 truncate align-middle">
                                                     <Avatar>
                                                         {dev.logo_url ? (
                                                             <div className="relative h-10 w-10">
@@ -238,7 +238,7 @@ function AdminDevelopersPageContent() {
                                             </TableCell>
                                             <TableCell className="w-[220px]">
                                                 <span
-                                                    className="inline-block max-w-[200px] truncate align-middle"
+                                                    className="inline-block max-w-100 truncate align-middle"
                                                     title={dev.website || ""}
                                                 >
                                                     {dev.website || "—"}
@@ -246,7 +246,7 @@ function AdminDevelopersPageContent() {
                                             </TableCell>
                                             <TableCell className="w-[220px]">
                                                 <span
-                                                    className="inline-block max-w-[200px] truncate align-middle"
+                                                    className="inline-block max-w-100 truncate align-middle"
                                                     title={dev.email || ""}
                                                 >
                                                     {dev.email || "—"}

@@ -9,8 +9,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, memo } from "react";
 import { useInView } from "react-intersection-observer";
+
+const MemoizedGoogleMap = memo(GoogleMapComponent);
 
 function PropertySearchPageContent() {
     const searchParams = useSearchParams();
@@ -25,6 +27,7 @@ function PropertySearchPageContent() {
     const searchBarContainerRef = useRef<HTMLDivElement | null>(null);
     const [viewportHeight, setViewportHeight] = useState<number | null>(null);
     const [searchBarHeight, setSearchBarHeight] = useState(0);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const { ref, inView } = useInView({
         threshold: 0,
@@ -33,9 +36,15 @@ function PropertySearchPageContent() {
 
     const fetchProperties = useCallback(
         async (pageToFetch: number) => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+
             if (pageToFetch === 1) {
                 setIsLoading(true);
-                setProperties([]); // Clear properties on a new search (page 1)
             } else {
                 setIsFetchingMore(true);
             }
@@ -45,7 +54,10 @@ function PropertySearchPageContent() {
             params.set("page", String(pageToFetch));
 
             try {
-                const response = await fetch(`/api/properties?${params.toString()}`);
+                const response = await fetch(`/api/properties?${params.toString()}`, {
+                    signal: controller.signal
+                });
+                
                 if (!response.ok) {
                     throw new Error(`Failed to fetch: ${response.statusText}`);
                 }
@@ -56,23 +68,24 @@ function PropertySearchPageContent() {
                 setHasNextPage(data.hasNextPage);
                 setTotalProperties(data.totalProperties || 0);
             } catch (e) {
+                if (e instanceof DOMException && e.name === 'AbortError') {
+                    return;
+                }
                 setError(e instanceof Error ? e.message : "An unknown error occurred");
             } finally {
-                setIsLoading(false);
-                setIsFetchingMore(false);
+                if (!controller.signal.aborted) {
+                    setIsLoading(false);
+                    setIsFetchingMore(false);
+                }
             }
         },
         [searchParams]
     );
 
-    // Effect for initial load and search param changes
     useEffect(() => {
-        // This effect triggers whenever the search filters change.
-        // We reset the state and fetch the first page.
         fetchProperties(1);
     }, [searchParams, fetchProperties]);
 
-    // Effect for infinite scroll
     useEffect(() => {
         if (inView && hasNextPage && !isLoading && !isFetchingMore && nextPageCursor) {
             fetchProperties(Number(nextPageCursor));
@@ -122,9 +135,9 @@ function PropertySearchPageContent() {
         return () => observer.disconnect();
     }, [isMobile]);
 
-    const HEADER_OFFSET = 80; // matches pt-20 offset
-    const TABS_LIST_HEIGHT = 56; // h-14 tabs list
-    const MIN_TAB_CONTENT_HEIGHT = 320; // ensure the map always has room
+    const HEADER_OFFSET = 80;
+    const TABS_LIST_HEIGHT = 56;
+    const MIN_TAB_CONTENT_HEIGHT = 320;
 
     const tabsAvailableHeight =
         isMobile && viewportHeight
@@ -156,7 +169,7 @@ function PropertySearchPageContent() {
                         className="grow overflow-y-auto min-h-0"
                         style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
                     >
-                        <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore} innerRef={ref} />
+                        <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore && properties.length === 0} innerRef={ref} />
                         {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
                         {!hasNextPage && properties.length > 0 && (
                             <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
@@ -169,7 +182,7 @@ function PropertySearchPageContent() {
                         style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
                     >
                         <div className="flex-1 min-h-80">
-                            <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                            <MemoizedGoogleMap properties={properties} />
                         </div>
                     </TabsContent>
                 </Tabs>
@@ -182,21 +195,17 @@ function PropertySearchPageContent() {
             <SearchBar />
             <ResizablePanelGroup direction="horizontal" className="grow border-t">
                 <ResizablePanel defaultSize={55} minSize={30}>
-                    <GoogleMapComponent properties={properties} isLoading={isLoading} />
+                    <MemoizedGoogleMap properties={properties} />
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={45} minSize={30}>
                     <div className="flex flex-col h-full">
-                        <div className="grow overflow-y-auto">
+                        <div className="grow min-h-screen max-h-screen overflow-y-auto">
                             <PropertyList
                                 properties={properties}
-                                isLoading={isLoading && !isFetchingMore}
+                                isLoading={isLoading && !isFetchingMore && properties.length === 0}
                                 innerRef={ref}
                             />
-                            {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
-                            {!hasNextPage && properties.length > 0 && (
-                                <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
-                            )}
                             {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                         </div>
                     </div>
