@@ -200,16 +200,12 @@ function PropertySearchPageContent() {
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={45} minSize={30}>
                     <div className="flex flex-col h-full">
-                        <div className="grow overflow-y-auto">
+                        <div className="grow min-h-screen max-h-screen overflow-y-auto">
                             <PropertyList
                                 properties={properties}
                                 isLoading={isLoading && !isFetchingMore && properties.length === 0}
                                 innerRef={ref}
                             />
-                            {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
-                            {!hasNextPage && properties.length > 0 && (
-                                <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
-                            )}
                             {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                         </div>
                     </div>
