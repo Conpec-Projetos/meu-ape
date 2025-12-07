@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Unit } from "@/interfaces/unit";
-import { Bath, Bed, BedDouble, Car, Images, LayoutTemplate, Square } from "lucide-react";
+import { Bath, Bed, BedDouble, Building2, Car, Images, LayoutTemplate, Square } from "lucide-react";
 import { useState } from "react";
 
 interface UnitCardProps {
@@ -31,6 +31,7 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
         typeof unit.garages === "number"
             ? `${unit.garages} Vaga${unit.garages === 1 ? "" : "s"}`
             : "Vagas nao informadas";
+    const floorLabel = typeof unit.floor === "number" ? `${unit.floor}º Andar` : "Andar nao informado";
     const [showImagesGallery, setShowImagesGallery] = useState(false);
     const [showFloorPlanGallery, setShowFloorPlanGallery] = useState(false);
     const hasUnitImages = Array.isArray(unit.images) && unit.images.length > 0;
@@ -45,6 +46,10 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
                 <div className="flex items-center gap-2">
                     <Square className="h-5 w-5 text-primary/80" />
                     <span className="font-medium">{sizeLabel}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary/80" />
+                    <span className="font-medium">{floorLabel}</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <Bed className="h-5 w-5 text-primary/80" />

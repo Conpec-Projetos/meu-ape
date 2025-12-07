@@ -6,7 +6,7 @@ import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-ti
 import { PropertyHeader } from "@/components/specifics/properties/property-header";
 import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
 import { ReservationModal } from "@/components/specifics/properties/reservation-modal";
-import { UnitList } from "@/components/specifics/properties/unit-list";
+import { UnitList, UnitSortDirection, UnitSortOption } from "@/components/specifics/properties/unit-list";
 import { UnitSelector, UnitStructure } from "@/components/specifics/properties/unit-selector";
 import { VisitModal } from "@/components/specifics/properties/visit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,9 +15,9 @@ import { auth } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { User } from "@/interfaces/user";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 type DetailResponse = { property: Property; unitNavigation: UnitStructure };
@@ -37,6 +37,8 @@ function PropertyPageContent() {
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeTourIndex, setActiveTourIndex] = useState(0);
+    const [sortOption, setSortOption] = useState<UnitSortOption>("price");
+    const [sortDirection, setSortDirection] = useState<UnitSortDirection>("asc");
 
     const refetchUserData = async () => {
         if (!auth.currentUser) {
@@ -195,6 +197,38 @@ function PropertyPageContent() {
         fetchUnits();
     }, [selectedBlock, selectedCategory, id]);
 
+    const formatImportantDate = (value?: Date | string | null) => {
+        if (!value) return null;
+        const parsed = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(parsed.getTime())) return null;
+        return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(parsed);
+    };
+
+    const launchDateLabel = formatImportantDate(property?.launchDate ?? null);
+    const deliveryDateLabel = formatImportantDate(property?.deliveryDate ?? null);
+
+    const sortedUnits = useMemo(() => {
+        const getMetric = (unit: Unit) => {
+            if (sortOption === "price") return unit.price;
+            if (sortOption === "size") return unit.size_sqm;
+            return unit.floor;
+        };
+
+        return [...units].sort((a, b) => {
+            const rawA = getMetric(a);
+            const rawB = getMetric(b);
+            const hasValueA = typeof rawA === "number" && !Number.isNaN(rawA);
+            const hasValueB = typeof rawB === "number" && !Number.isNaN(rawB);
+
+            if (!hasValueA && !hasValueB) return 0;
+            if (!hasValueA) return 1;
+            if (!hasValueB) return -1;
+
+            const diff = (rawA as number) - (rawB as number);
+            return sortDirection === "asc" ? diff : -diff;
+        });
+    }, [units, sortOption, sortDirection]);
+
     const handleLoadMore = async () => {
         if (!hasNextPage || isLoadingUnits || !selectedBlock || !selectedCategory || !cursor) return;
         try {
@@ -219,8 +253,16 @@ function PropertyPageContent() {
     };
 
     const handleSelectUnitType = (block: string, category: string) => {
-        setSelectedBlock(block);
-        setSelectedCategory(category);
+        const isSameSelection = selectedBlock === block && selectedCategory === category;
+
+        if (isSameSelection) {
+            setSelectedBlock(undefined);
+            setSelectedCategory(undefined);
+        } else {
+            setSelectedBlock(block);
+            setSelectedCategory(category);
+        }
+
         setUnits([]);
         setCursor(null);
         setHasNextPage(true);
@@ -275,6 +317,27 @@ function PropertyPageContent() {
         if (typeof window === "undefined") return;
         document.getElementById("units-section")?.scrollIntoView({ behavior: "smooth" });
     };
+
+    const unitListSection =
+        selectedBlock && selectedCategory ? (
+            <UnitList
+                units={sortedUnits}
+                onLoadMore={handleLoadMore}
+                hasNextPage={hasNextPage}
+                isLoading={isLoadingUnits}
+                handleGuardedAction={handleGuardedAction}
+                sortOption={sortOption}
+                onSortChange={setSortOption}
+                sortDirection={sortDirection}
+                onSortDirectionChange={setSortDirection}
+            />
+        ) : (
+            <div className="flex items-start justify-center h-full bg-secondary/30 rounded-xl p-8">
+                <p className="text-muted-foreground text-center">
+                    Selecione um bloco e uma tipologia para ver as unidades disponíveis.
+                </p>
+            </div>
+        );
 
     return (
         <div className="py-15 bg-background text-foreground pt-20">
@@ -357,6 +420,44 @@ function PropertyPageContent() {
                             <h2 className="text-2xl font-bold text-primary mb-4">Sobre o imóvel</h2>
                             <p className="text-muted-foreground">{property.description}</p>
                         </div>
+                        {(launchDateLabel || deliveryDateLabel) && (
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                {launchDateLabel && (
+                                    <div className="relative overflow-hidden rounded-lg border border-primary/10 bg-white px-3 py-4 text-primary shadow-sm">
+                                        <div className="flex items-center gap-2">
+                                            <div className="rounded-full bg-white/10 p-1 text-primary">
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] uppercase tracking-[0.3em] text-primary/70">
+                                                    Lançamento
+                                                </p>
+                                                <p className="text-sm font-medium text-primary mt-0.5">
+                                                    {launchDateLabel}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {deliveryDateLabel && (
+                                    <div className="relative overflow-hidden rounded-lg border border-primary/50 bg-slate-950 text-white px-3.5 py-2.5 shadow-lg">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="rounded-full bg-primary p-1.5 text-primary-foreground shadow-md shadow-primary/40">
+                                                <CalendarDays className="h-[18px] w-[18px]" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[12px] uppercase tracking-[0.35em] text-secondary/80">
+                                                    Entrega
+                                                </p>
+                                                <p className="text-xl font-semibold text-white mt-0.5">
+                                                    {deliveryDateLabel}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <div>
                             <h3 className="text-xl font-semibold text-primary mb-4">Características</h3>
                             <ul className="grid grid-cols-2 gap-2">
@@ -379,6 +480,7 @@ function PropertyPageContent() {
                                 />
                             )}
                         </div>
+                        <div className="mt-6 lg:hidden">{unitListSection}</div>
                         {property.areasImages && property.areasImages.length > 0 && (
                             <div className="space-y-4">
                                 <h3 className="text-xl font-semibold text-primary">Áreas Comuns</h3>
@@ -397,23 +499,7 @@ function PropertyPageContent() {
                             </div>
                         </div>
                     </div>
-                    <div className="lg:col-span-2">
-                        {selectedBlock && selectedCategory ? (
-                            <UnitList
-                                units={units}
-                                onLoadMore={handleLoadMore}
-                                hasNextPage={hasNextPage}
-                                isLoading={isLoadingUnits}
-                                handleGuardedAction={handleGuardedAction}
-                            />
-                        ) : (
-                            <div className="flex items-start justify-center h-full bg-secondary/30 rounded-xl p-8">
-                                <p className="text-muted-foreground text-center">
-                                    Selecione um bloco e uma tipologia para ver as unidades disponíveis.
-                                </p>
-                            </div>
-                        )}
-                    </div>
+                    <div className="lg:col-span-2 hidden lg:block">{unitListSection}</div>
                 </div>
             </div>
 
