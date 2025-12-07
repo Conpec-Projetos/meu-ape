@@ -1,6 +1,6 @@
 import { adminAuth, verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { createUser, getUserProfile, updateUserProfileData } from "@/services/usersService";
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const buildUnauthorizedResponse = (message: string, deleteCookie = false) => {
     const response = NextResponse.json({ error: message }, { status: 401 });
@@ -51,7 +51,7 @@ const isAuthError = (error: unknown): error is { code: string } => {
 };
 
 export async function GET(request: NextRequest) {
-    const { userId } = await ensureAuthenticatedUser(request);;
+    const { userId } = await ensureAuthenticatedUser(request);
 
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
     const { userId } = await ensureAuthenticatedUser(request);
-    
+
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

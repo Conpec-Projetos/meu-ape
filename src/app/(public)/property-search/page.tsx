@@ -9,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Property } from "@/interfaces/property";
 import { ListFilter, Map } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState, memo } from "react";
+import { memo, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 const MemoizedGoogleMap = memo(GoogleMapComponent);
@@ -39,7 +39,7 @@ function PropertySearchPageContent() {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
             }
-            
+
             const controller = new AbortController();
             abortControllerRef.current = controller;
 
@@ -55,9 +55,9 @@ function PropertySearchPageContent() {
 
             try {
                 const response = await fetch(`/api/properties?${params.toString()}`, {
-                    signal: controller.signal
+                    signal: controller.signal,
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`Failed to fetch: ${response.statusText}`);
                 }
@@ -68,7 +68,7 @@ function PropertySearchPageContent() {
                 setHasNextPage(data.hasNextPage);
                 setTotalProperties(data.totalProperties || 0);
             } catch (e) {
-                if (e instanceof DOMException && e.name === 'AbortError') {
+                if (e instanceof DOMException && e.name === "AbortError") {
                     return;
                 }
                 setError(e instanceof Error ? e.message : "An unknown error occurred");
@@ -169,7 +169,11 @@ function PropertySearchPageContent() {
                         className="grow overflow-y-auto min-h-0"
                         style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
                     >
-                        <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore && properties.length === 0} innerRef={ref} />
+                        <PropertyList
+                            properties={properties}
+                            isLoading={isLoading && !isFetchingMore && properties.length === 0}
+                            innerRef={ref}
+                        />
                     </TabsContent>
                     <TabsContent
                         value="map"

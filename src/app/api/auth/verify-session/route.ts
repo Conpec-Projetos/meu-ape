@@ -1,14 +1,17 @@
-import { type NextRequest, NextResponse } from "next/server";
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
+import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
     try {
         const { session: sessionCookie } = await request.json();
 
         if (!sessionCookie) {
-            return NextResponse.json({ isAuthenticated: false, error: "Session cookie not provided." }, { status: 401 });
+            return NextResponse.json(
+                { isAuthenticated: false, error: "Session cookie not provided." },
+                { status: 401 }
+            );
         }
 
         const decodedClaims = await verifySessionCookie(sessionCookie);
@@ -19,7 +22,6 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ isAuthenticated: true, decodedClaims }, { status: 200 });
-
     } catch (error) {
         console.error("Error verifying session cookie in API route:", error);
         if (error instanceof SyntaxError) {

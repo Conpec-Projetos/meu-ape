@@ -511,8 +511,12 @@ function AdminRequestsContent() {
 
             <Tabs value={TAB_INTERNAL_TO_URL[tab]} onValueChange={handleTabChange}>
                 <TabsList>
-                    <TabsTrigger className="cursor-pointer" value="visitas">Solicitações de Visita</TabsTrigger>
-                    <TabsTrigger className="cursor-pointer" value="reservas">Solicitações de Reserva</TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="visitas">
+                        Solicitações de Visita
+                    </TabsTrigger>
+                    <TabsTrigger className="cursor-pointer" value="reservas">
+                        Solicitações de Reserva
+                    </TabsTrigger>
                 </TabsList>
             </Tabs>
 

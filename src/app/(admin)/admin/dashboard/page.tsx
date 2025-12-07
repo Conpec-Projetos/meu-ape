@@ -12,16 +12,16 @@ export default function DashboardPage() {
     const [pendingReservationNum, setPendingReservationNum] = useState<number>(0);
     const [pendingRegistrationNum, setPendingRegistrationNum] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);
-    
+
     useEffect(() => {
         const fetchPendingNum = async () => {
             try {
                 setLoading(true);
 
-                const response = await fetch('/api/admin/dashboard', {
+                const response = await fetch("/api/admin/dashboard", {
                     method: "GET",
                 });
-                const { countVisits, countReservations, countRegistrations, countProperties} = await response.json();
+                const { countVisits, countReservations, countRegistrations, countProperties } = await response.json();
 
                 setPendingVisitNum(countVisits.pendingVisitRequest);
                 setPendingReservationNum(countReservations.pendingReservationRequest);
@@ -29,8 +29,12 @@ export default function DashboardPage() {
                 setPropertiesNum(countProperties);
 
                 console.log(`Successfully fetched ${countVisits.pendingVisitRequest} pending visits request`);
-                console.log(`Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`);
-                console.log(`Successfully fetched ${countRegistrations.pendingAgentRegistrationRequest} pending registrations requests`);
+                console.log(
+                    `Successfully fetched ${countReservations.pendingReservationRequest} pending reservations requests`
+                );
+                console.log(
+                    `Successfully fetched ${countRegistrations.pendingAgentRegistrationRequest} pending registrations requests`
+                );
                 console.log(`Successfully fetched ${countProperties} properties`);
             } catch {
                 notifyError("Erro ao carregar dados do dashboard");
@@ -86,7 +90,9 @@ export default function DashboardPage() {
                             <>
                                 <div className="text-2xl font-bold">{pendingRegistrationNum}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    {pendingRegistrationNum == 1 ? "solicitação de corretor" : "solicitações de corretores"}
+                                    {pendingRegistrationNum == 1
+                                        ? "solicitação de corretor"
+                                        : "solicitações de corretores"}
                                 </p>
                             </>
                         )}
@@ -107,7 +113,9 @@ export default function DashboardPage() {
                             <>
                                 <div className="text-2xl font-bold">{pendingVisitNum}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    {pendingVisitNum == 1 ? "solicitação de visita pendente" : "solicitações de visitas pendentes"}
+                                    {pendingVisitNum == 1
+                                        ? "solicitação de visita pendente"
+                                        : "solicitações de visitas pendentes"}
                                 </p>
                             </>
                         )}
@@ -128,7 +136,9 @@ export default function DashboardPage() {
                             <>
                                 <div className="text-2xl font-bold">{pendingReservationNum}</div>
                                 <p className="text-xs text-muted-foreground">
-                                    {pendingReservationNum == 1 ? "solicitação de reserva pendente" : "solicitações de reservas pendentes"}
+                                    {pendingReservationNum == 1
+                                        ? "solicitação de reserva pendente"
+                                        : "solicitações de reservas pendentes"}
                                 </p>
                             </>
                         )}
@@ -155,11 +165,12 @@ export default function DashboardPage() {
                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                         >
                             <h3 className="font-semibold text-slate-800">Gerenciar Visitas e Reservas</h3>
-                            <p className="text-sm text-slate-600">Aprovar ou rejeitar solicitações</p>                        </Link>
+                            <p className="text-sm text-slate-600">Aprovar ou rejeitar solicitações</p>{" "}
+                        </Link>
 
                         <Link
                             href="/admin/users"
-                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                            className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
                         >
                             <h3 className="font-semibold text-slate-800">Gerenciar Usuários</h3>
                             <p className="text-sm text-slate-600">Visualizar e gerenciar usuários da plataforma</p>
