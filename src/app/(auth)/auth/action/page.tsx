@@ -160,7 +160,7 @@ export default function AuthActionPage() {
                 <Image src="/register/background.png" alt="Background" layout="fill" objectFit="cover" />
             </div>
             <div className="relative z-10 w-full max-w-md p-4">
-                <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm">
+                <Card className="bg-card/90 dark:bg-black/80 backdrop-blur-sm py-6">
                     <CardHeader className="text-center">
                         <CardTitle className="text-2xl">Redefinir senha</CardTitle>
                         <CardDescription>Escolha uma nova senha para continuar acessando o Meu Apê.</CardDescription>

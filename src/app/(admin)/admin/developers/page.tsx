@@ -119,7 +119,7 @@ function AdminDevelopersPageContent() {
             </div>
 
             {/* Mobile list (cards) */}
-            <Card className="md:hidden">
+            <Card className="py-6 md:hidden">
                 <CardHeader>
                     <CardTitle>Construtoras</CardTitle>
                 </CardHeader>
@@ -196,7 +196,7 @@ function AdminDevelopersPageContent() {
             </Card>
 
             {/* Desktop table */}
-            <Card className="hidden md:block">
+            <Card className="py-6 hidden md:block">
                 <CardHeader>
                     <CardTitle>Construtoras</CardTitle>
                 </CardHeader>

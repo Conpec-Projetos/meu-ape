@@ -152,7 +152,7 @@ function PropertyManagementContent() {
 
             {/* search is handled via effect */}
 
-            <Card>
+            <Card className="py-6">
                 <CardHeader>
                     <CardTitle>Todos os Imóveis</CardTitle>
                 </CardHeader>

@@ -110,7 +110,7 @@ function RequestItem({ request, onClick }: RequestItemProps) {
 
     return (
         <Card
-            className="w-full cursor-pointer transition-colors border bg-card hover:bg-muted/50 rounded-xl shadow-sm"
+            className="w-full cursor-pointer transition-colors border bg-card hover:bg-muted/50 rounded-xl shadow-sm py-6"
             onClick={onClick}
         >
             <CardHeader className="flex flex-col gap-1 space-y-0 pb-3">

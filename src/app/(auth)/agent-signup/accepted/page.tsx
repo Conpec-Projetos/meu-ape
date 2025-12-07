@@ -8,7 +8,7 @@ export default function AcceptedPage() {
                 <Image src="/register/background.png" alt="Background" layout="fill" objectFit="cover" />
             </div>
             <div className="relative z-10 w-full max-w-4xl p-4">
-                <Card className="bg-white/90 dark:bg-black/80 backdrop-blur-sm">
+                <Card className="bg-white/90 dark:bg-black/80 backdrop-blur-sm py-6">
                     <CardHeader className="text-center">
                         <h1 className="text-3xl font-bold text-green-600 mb-4">Solicitação Enviada com Sucesso!</h1>
                     </CardHeader>

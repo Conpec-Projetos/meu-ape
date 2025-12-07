@@ -225,7 +225,7 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 overflow-auto p-4">
             <div className="relative max-w-full max-h-full w-full sm:w-[90%] lg:w-[750px]">
-                <Card className="p-6 overflow-auto max-h-[90vh] max-w-full">
+                <Card className="p-4 overflow-auto max-h-[90vh] max-w-full">
                     <CardHeader>
                         <h2 className="text-center text-xl font-semibold">
                             Reserve a unidade {unit.identifier} no {property.name}

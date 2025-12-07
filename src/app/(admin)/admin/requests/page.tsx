@@ -520,7 +520,7 @@ function AdminRequestsContent() {
                 </TabsList>
             </Tabs>
 
-            <Card>
+            <Card className="py-6">
                 <CardHeader className="space-y-1">
                     <CardTitle>{tab === "visits" ? "Solicitações de visita" : "Solicitações de reserva"}</CardTitle>
                     <p className="text-sm text-muted-foreground">
