@@ -20,6 +20,16 @@ const AGENT_DOCUMENT_KEYS = new Set(["creciCardPhoto", "creciCert"]);
 
 const nowIso = () => new Date().toISOString();
 
+const escapeForILike = (value: string) => value.replace(/[%_]/g, "\\$&");
+
+const buildSearchPattern = (value?: string) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    const sanitized = escapeForILike(trimmed);
+    const collapsed = sanitized.replace(/\s+/g, "%");
+    return `%${collapsed}%`;
+};
+
 const getAgentRelation = (relation?: AgentRelation | AgentRelation[] | null): AgentRelation =>
     Array.isArray(relation) ? (relation[0] ?? null) : (relation ?? null);
 
@@ -206,7 +216,13 @@ export const getUserCounts = async () => {
     return { client, agent, admin };
 };
 
-export const listUsers = async (role: User["role"], page: number, limitSize: number, status?: User["status"]) => {
+export const listUsers = async (
+    role: User["role"],
+    page: number,
+    limitSize: number,
+    status?: User["status"],
+    search?: string
+) => {
     const from = (page - 1) * limitSize;
     const to = from + limitSize - 1;
 
@@ -219,6 +235,20 @@ export const listUsers = async (role: User["role"], page: number, limitSize: num
 
     if (status) {
         query = query.eq("status", status);
+    }
+
+    const searchPattern = buildSearchPattern(search);
+    if (searchPattern) {
+        query = query.or(
+            [
+                `full_name.ilike.${searchPattern}`,
+                `email.ilike.${searchPattern}`,
+                `cpf.ilike.${searchPattern}`,
+                `rg.ilike.${searchPattern}`,
+                `phone.ilike.${searchPattern}`,
+            ].join(",")
+        );
+        query = query.or(`creci.ilike.${searchPattern},city.ilike.${searchPattern}`, { foreignTable: "agents" });
     }
 
     const { data, count, error } = await query;

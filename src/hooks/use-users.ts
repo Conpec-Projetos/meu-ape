@@ -5,7 +5,8 @@ export function useUsers(
     role: "client" | "agent" | "admin",
     page: number,
     limit: number,
-    status?: string,
+    status?: User["status"],
+    search?: string,
     enabled: boolean = true
 ) {
     const [users, setUsers] = useState<User[]>([]);
@@ -24,11 +25,18 @@ export function useUsers(
         setIsLoading(true);
         setError(null);
         try {
-            let url = `/api/admin/users?role=${role}&page=${page}&limit=${limit}`;
+            const params = new URLSearchParams({
+                role,
+                page: String(page),
+                limit: String(limit),
+            });
             if (status) {
-                url += `&status=${status}`;
+                params.set("status", status);
             }
-            const response = await fetch(url);
+            if (search?.trim()) {
+                params.set("q", search.trim());
+            }
+            const response = await fetch(`/api/admin/users?${params.toString()}`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || "Failed to fetch users");
@@ -45,7 +53,7 @@ export function useUsers(
             }
         }
         setIsLoading(false);
-    }, [role, page, limit, status, enabled]);
+    }, [role, page, limit, status, search, enabled]);
 
     useEffect(() => {
         fetchUsers();

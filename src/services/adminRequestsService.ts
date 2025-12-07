@@ -122,12 +122,6 @@ const reservationSelect = `
     unit:units!inner (id, identifier, block)
 `;
 
-const normalize = (value: string) =>
-    value
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "");
-
 const nowIso = () => new Date().toISOString();
 
 const computePagination = (total: number, pageSize: number) => Math.max(1, Math.ceil(total / pageSize));
@@ -162,17 +156,35 @@ const sendEmail = async (to: string | string[], subject: string, html: string) =
     }
 };
 
-const filterByQuery = <T extends { client: { fullName: string }; property: { name?: string | null } }>(
-    requests: T[],
-    query?: string
-) => {
-    if (!query) return requests;
-    const normalizedQuery = normalize(query);
-    return requests.filter(request => {
-        const clientName = normalize(request.client?.fullName ?? "");
-        const propertyName = normalize(request.property?.name ?? "");
-        return clientName.includes(normalizedQuery) || propertyName.includes(normalizedQuery);
+const escapeForILike = (value: string) => value.replace(/[%_]/g, "\\$&");
+
+const buildSearchPattern = (value?: string) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    const sanitized = escapeForILike(trimmed);
+    const collapsed = sanitized.replace(/\s+/g, "%");
+    return `%${collapsed}%`;
+};
+
+type BuilderWithOr<Builder> = {
+    or: (filters: string, options?: { foreignTable?: string }) => Builder;
+};
+
+const applyRequestSearchFilters = <Builder extends BuilderWithOr<Builder>>(
+    query: Builder,
+    pattern: string
+): Builder => {
+    let builder = query.or(`client_msg.ilike.${pattern},agent_msg.ilike.${pattern}`);
+    builder = builder.or(`full_name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`, {
+        foreignTable: "client",
     });
+    builder = builder.or(`name.ilike.${pattern},address.ilike.${pattern}`, {
+        foreignTable: "property",
+    });
+    builder = builder.or(`identifier.ilike.${pattern},block.ilike.${pattern}`, {
+        foreignTable: "unit",
+    });
+    return builder;
 };
 
 const ensurePendingStatus = (status?: string | null) => {
@@ -365,26 +377,18 @@ export const listVisitRequests = async ({
         query = query.eq("status", status as RequestStatus);
     }
 
-    if (!q) {
-        query = query.range(offset, offset + limit - 1);
+    const searchPattern = buildSearchPattern(q);
+    if (searchPattern) {
+        query = applyRequestSearchFilters(query, searchPattern);
     }
+
+    query = query.range(offset, offset + limit - 1);
 
     const { data, count, error } = await query;
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as VisitRowWithRelations[];
     const requests = await buildVisitListItems(rows);
-
-    if (q) {
-        const filtered = filterByQuery(requests, q);
-        const total = filtered.length;
-        const totalPages = computePagination(total, limit);
-        return {
-            requests: filtered.slice(offset, offset + limit),
-            total,
-            totalPages,
-        };
-    }
 
     const total = count ?? requests.length;
     const totalPages = computePagination(total, limit);
@@ -409,26 +413,18 @@ export const listReservationRequests = async ({
         query = query.eq("status", status as RequestStatus);
     }
 
-    if (!q) {
-        query = query.range(offset, offset + limit - 1);
+    const searchPattern = buildSearchPattern(q);
+    if (searchPattern) {
+        query = applyRequestSearchFilters(query, searchPattern);
     }
+
+    query = query.range(offset, offset + limit - 1);
 
     const { data, count, error } = await query;
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as ReservationRowWithRelations[];
     const requests = await buildReservationListItems(rows);
-
-    if (q) {
-        const filtered = filterByQuery(requests, q);
-        const total = filtered.length;
-        const totalPages = computePagination(total, limit);
-        return {
-            requests: filtered.slice(offset, offset + limit),
-            total,
-            totalPages,
-        };
-    }
 
     const total = count ?? requests.length;
     const totalPages = computePagination(total, limit);

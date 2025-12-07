@@ -17,7 +17,7 @@ import { User } from "@/interfaces/user";
 import { notifyPromise } from "@/services/notificationService";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 function UserManagementContent() {
     const router = useRouter();
@@ -47,11 +47,12 @@ function UserManagementContent() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const isAgentRequestsTab = tab === "agents" && subtab === "registration-requests";
-
-    const isSearching = !!debouncedSearch && !isAgentRequestsTab;
     const basePageSize = 20;
-    const fetchLimit = isSearching ? 200 : basePageSize;
-    const effectivePageForFetch = isSearching ? 1 : page;
+
+    const activeRole: "client" | "agent" | "admin" =
+        tab === "clients" ? "client" : tab === "agents" ? "agent" : "admin";
+    const statusFilter = tab === "agents" && subtab === "registered-agents" ? "approved" : undefined;
+    const searchTerm = !isAgentRequestsTab ? debouncedSearch : undefined;
 
     const {
         users,
@@ -59,13 +60,7 @@ function UserManagementContent() {
         isLoading: usersIsLoading,
         error: usersError,
         refresh: refreshUsers,
-    } = useUsers(
-        tab === "clients" ? "client" : tab === "agents" ? "agent" : "admin",
-        effectivePageForFetch,
-        fetchLimit,
-        tab === "agents" && subtab === "registered-agents" ? "approved" : undefined,
-        !isAgentRequestsTab
-    );
+    } = useUsers(activeRole, page, basePageSize, statusFilter, searchTerm, !isAgentRequestsTab);
     const {
         requests,
         total: requestsTotal,
@@ -76,67 +71,7 @@ function UserManagementContent() {
     } = useAgentRequests("pending", page, 20, isAgentRequestsTab);
     const { counts: userCounts, isLoading: countsIsLoading } = useUserCounts();
 
-    const filteredUsers = useMemo(() => {
-        if (!isSearching) return users;
-        const normalize = (s: string) =>
-            s
-                .toLowerCase()
-                .normalize("NFD")
-                .replace(/\p{Diacritic}/gu, "");
-
-        const subsequenceScore = (text: string, query: string) => {
-            let ti = 0;
-            let qi = 0;
-            let score = 0;
-            let streak = 0;
-            while (ti < text.length && qi < query.length) {
-                if (text[ti] === query[qi]) {
-                    qi++;
-                    streak++;
-                    score += 1 + Math.min(streak, 3);
-                } else {
-                    streak = 0;
-                }
-                ti++;
-            }
-            return qi === query.length ? score : 0;
-        };
-
-        const scoreValue = (value: string, query: string) => {
-            if (!query) return 1;
-            const t = normalize(value);
-            const q = normalize(query);
-            const idx = t.indexOf(q);
-            if (idx !== -1) {
-                return 100 - idx - Math.max(0, t.length - q.length - idx);
-            }
-            return subsequenceScore(t, q);
-        };
-        const withScores = users
-            .map(u => {
-                const fields = [
-                    u.fullName,
-                    u.email,
-                    u.cpf ?? "",
-                    u.rg ?? "",
-                    u.phone ?? "",
-                    u.agentProfile?.creci ?? "",
-                ];
-                const score = Math.max(...fields.map(v => scoreValue(v, debouncedSearch)));
-                return { u, score };
-            })
-            .filter(x => x.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .map(x => x.u);
-        return withScores;
-    }, [users, isSearching, debouncedSearch]);
-
-    const effectiveUsers = isSearching ? filteredUsers.slice((page - 1) * basePageSize, page * basePageSize) : users;
-    const totalPages = isAgentRequestsTab
-        ? requestsTotalPages
-        : isSearching
-          ? Math.max(1, Math.ceil(filteredUsers.length / basePageSize))
-          : usersTotalPages;
+    const totalPages = isAgentRequestsTab ? requestsTotalPages : usersTotalPages;
     const isLoading = isAgentRequestsTab ? requestsIsLoading : usersIsLoading;
     const error = isAgentRequestsTab ? requestsError : usersError;
 
@@ -348,7 +283,7 @@ function UserManagementContent() {
 
         return (
             <UserTable
-                users={effectiveUsers}
+                users={users}
                 page={page}
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
