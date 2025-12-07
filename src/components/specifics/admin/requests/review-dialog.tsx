@@ -233,7 +233,11 @@ export function RequestReviewDialog({
                                             ) : null}
                                             Negar reserva
                                         </Button>
-                                        <Button className="cursor-pointer" onClick={onApproveReservation} disabled={isActionLoading}>
+                                        <Button
+                                            className="cursor-pointer"
+                                            onClick={onApproveReservation}
+                                            disabled={isActionLoading}
+                                        >
                                             {isActionLoading && !showDenialFields ? (
                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : null}

@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const response = await fetch("/api/user/profile", {
                         method: "GET",
                         headers: {
-                            "Authorization": `Bearer ${token}`
+                            Authorization: `Bearer ${token}`,
                         },
                         credentials: "include",
                         cache: "no-store",

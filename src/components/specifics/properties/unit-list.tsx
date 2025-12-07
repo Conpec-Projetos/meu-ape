@@ -59,9 +59,15 @@ export function UnitList({
                                 <SelectValue placeholder="Ordenar por" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem className="cursor-pointer" value="price">Preço</SelectItem>
-                                <SelectItem className="cursor-pointer" value="size">Tamanho</SelectItem>
-                                <SelectItem className="cursor-pointer" value="floor">Andar</SelectItem>
+                                <SelectItem className="cursor-pointer" value="price">
+                                    Preço
+                                </SelectItem>
+                                <SelectItem className="cursor-pointer" value="size">
+                                    Tamanho
+                                </SelectItem>
+                                <SelectItem className="cursor-pointer" value="floor">
+                                    Andar
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                         <Button

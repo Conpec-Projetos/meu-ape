@@ -23,25 +23,19 @@ export function PropertyHeader({ id, name, address }: PropertyHeaderProps) {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button 
-                                    variant="outline" 
-                                    size="icon" 
+                                <Button
+                                    variant="outline"
+                                    size="icon"
                                     className="rounded-full h-9 w-9 cursor-pointer"
                                     onClick={() => toggleFavorite(id)}
                                     disabled={isLoading}
                                 >
-                                    <Heart className={cn(
-                                        isFavorited(id) ? "fill-primary" : ""
-                                    )}/>
+                                    <Heart className={cn(isFavorited(id) ? "fill-primary" : "")} />
                                     <span className="sr-only">Favorite</span>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                {isFavorited(id) ? (
-                                    <p>Remover dos favoritos</p>
-                                ) : (
-                                    <p>Adicionar aos favoritos</p>
-                                )}
+                                {isFavorited(id) ? <p>Remover dos favoritos</p> : <p>Adicionar aos favoritos</p>}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

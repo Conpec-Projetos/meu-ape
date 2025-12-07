@@ -84,7 +84,12 @@ export function RequestsTable({ type, requests, isLoading, error, onAnalyze }: R
                                     })()}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => onAnalyze(request)}>
+                                    <Button
+                                        className="cursor-pointer"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => onAnalyze(request)}
+                                    >
                                         Analisar
                                     </Button>
                                 </TableCell>
