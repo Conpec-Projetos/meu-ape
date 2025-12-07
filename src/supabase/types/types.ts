@@ -39,6 +39,73 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_registration_requests: {
+        Row: {
+          admin_msg: string | null
+          applicant_data: Json
+          created_at: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["request_status"] | null
+          user_id: string
+        }
+        Insert: {
+          admin_msg?: string | null
+          applicant_data: Json
+          created_at?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"] | null
+          user_id: string
+        }
+        Update: {
+          admin_msg?: string | null
+          applicant_data?: Json
+          created_at?: string | null
+          resolved_at?: string | null
+          status?: Database["public"]["Enums"]["request_status"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_registration_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agents: {
+        Row: {
+          agent_documents: Json | null
+          city: string
+          creci: string
+          groups: string[] | null
+          user_id: string
+        }
+        Insert: {
+          agent_documents?: Json | null
+          city: string
+          creci: string
+          groups?: string[] | null
+          user_id: string
+        }
+        Update: {
+          agent_documents?: Json | null
+          city?: string
+          creci?: string
+          groups?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       developer_contacts: {
         Row: {
           city: string | null
@@ -193,6 +260,113 @@ export type Database = {
           },
         ]
       }
+      request_assignments: {
+        Row: {
+          agent_id: string
+          assigned_at: string | null
+          id: string
+          reservation_request_id: string | null
+          visit_request_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          assigned_at?: string | null
+          id?: string
+          reservation_request_id?: string | null
+          visit_request_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          assigned_at?: string | null
+          id?: string
+          reservation_request_id?: string | null
+          visit_request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_assignments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_assignments_reservation_request_id_fkey"
+            columns: ["reservation_request_id"]
+            isOneToOne: false
+            referencedRelation: "reservation_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_assignments_visit_request_id_fkey"
+            columns: ["visit_request_id"]
+            isOneToOne: false
+            referencedRelation: "visit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reservation_requests: {
+        Row: {
+          agent_msg: string | null
+          client_id: string
+          client_msg: string | null
+          created_at: string | null
+          id: string
+          property_id: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          transaction_docs: Json | null
+          unit_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_msg?: string | null
+          client_id: string
+          client_msg?: string | null
+          created_at?: string | null
+          id?: string
+          property_id: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          transaction_docs?: Json | null
+          unit_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_msg?: string | null
+          client_id?: string
+          client_msg?: string | null
+          created_at?: string | null
+          id?: string
+          property_id?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          transaction_docs?: Json | null
+          unit_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -288,8 +462,164 @@ export type Database = {
           },
         ]
       }
+      user_favorites: {
+        Row: {
+          created_at: string | null
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          address: string | null
+          cpf: string | null
+          created_at: string | null
+          documents: Json | null
+          email: string
+          full_name: string
+          id: string
+          phone: string | null
+          photo_url: string | null
+          rg: string | null
+          role: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          documents?: Json | null
+          email: string
+          full_name: string
+          id: string
+          phone?: string | null
+          photo_url?: string | null
+          rg?: string | null
+          role: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          documents?: Json | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string | null
+          photo_url?: string | null
+          rg?: string | null
+          role?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      visit_requests: {
+        Row: {
+          agent_msg: string | null
+          client_id: string
+          client_msg: string | null
+          created_at: string | null
+          id: string
+          property_id: string
+          requested_slots: string[]
+          scheduled_slot: string | null
+          status: Database["public"]["Enums"]["request_status"] | null
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_msg?: string | null
+          client_id: string
+          client_msg?: string | null
+          created_at?: string | null
+          id?: string
+          property_id: string
+          requested_slots: string[]
+          scheduled_slot?: string | null
+          status?: Database["public"]["Enums"]["request_status"] | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_msg?: string | null
+          client_id?: string
+          client_msg?: string | null
+          created_at?: string | null
+          id?: string
+          property_id?: string
+          requested_slots?: string[]
+          scheduled_slot?: string | null
+          status?: Database["public"]["Enums"]["request_status"] | null
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_requests_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      all_user_requests: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          id: string | null
+          property_id: string | null
+          status: Database["public"]["Enums"]["request_status"] | null
+          type: string | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -1345,7 +1675,12 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      request_status:
+        | "pending"
+        | "approved"
+        | "denied"
+        | "completed"
+        | "canceled"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -1483,6 +1818,14 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      request_status: [
+        "pending",
+        "approved",
+        "denied",
+        "completed",
+        "canceled",
+      ],
+    },
   },
 } as const
