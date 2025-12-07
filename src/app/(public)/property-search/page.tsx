@@ -170,11 +170,6 @@ function PropertySearchPageContent() {
                         style={tabPanelsHeight ? { height: tabPanelsHeight } : undefined}
                     >
                         <PropertyList properties={properties} isLoading={isLoading && !isFetchingMore && properties.length === 0} innerRef={ref} />
-                        {isFetchingMore && <div className="text-center p-4">Carregando mais...</div>}
-                        {!hasNextPage && properties.length > 0 && (
-                            <div className="text-center p-4 text-gray-500">Fim dos resultados.</div>
-                        )}
-                        {error && <div className="text-center text-red-500 p-4">Erro: {error}</div>}
                     </TabsContent>
                     <TabsContent
                         value="map"

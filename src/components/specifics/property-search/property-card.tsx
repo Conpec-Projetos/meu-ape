@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useFavorites } from "@/hooks/use-favorites";
 import { Property } from "@/interfaces/property";
 import { cn } from "@/lib/utils";
-import { Bath, BedDouble, Car, Heart, Square } from "lucide-react";
+import { Bath, BedDouble, Calendar, Car, Heart, Square } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -41,6 +41,13 @@ const formatSizeRange = (min?: number | null, max?: number | null) => {
     return `${range} m²`;
 };
 
+const formatDeliveryDate = (value?: Date | string | null) => {
+    if (!value) return null;
+    const parsedDate = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) return null;
+    return new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(parsedDate);
+};
+
 export function PropertyCard({ property }: { property: Property }) {
     const { toggleFavorite, isFavorited, isLoading } = useFavorites();
     const stats = property.searchableUnitFeats;
@@ -49,6 +56,9 @@ export function PropertyCard({ property }: { property: Property }) {
     const bedroomsLabel = formatArrayRange(stats?.bedrooms);
     const bathsLabel = formatArrayRange(stats?.baths);
     const garagesLabel = formatArrayRange(stats?.garages);
+    const deliveryDate = property.deliveryDate ? new Date(property.deliveryDate) : null;
+    const deliveryDateLabel = formatDeliveryDate(deliveryDate);
+    const isUnderConstruction = deliveryDate ? deliveryDate.getTime() > Date.now() : false;
 
     return (
         <Link href={`/properties/${property.id}`} className="block h-full">
@@ -83,6 +93,18 @@ export function PropertyCard({ property }: { property: Property }) {
                     <p className="font-semibold text-xl text-primary mt-2">
                         {priceLabel ? `A partir de ${priceLabel}` : "Consulte valores"}
                     </p>
+                    {deliveryDateLabel && (
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mt-2">
+                            <span className="inline-flex items-center gap-1">
+                                <Calendar size={16} /> Entrega: {deliveryDateLabel}
+                            </span>
+                            {isUnderConstruction && (
+                                <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 px-2 py-0.5 text-xs font-semibold">
+                                    Em construção
+                                </span>
+                            )}
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-between text-muted-foreground mt-3 text-sm border-t pt-3 gap-3">
                         <div className="flex items-center gap-1">
                             <Square size={16} /> {sizeLabel ?? "Tamanho indisp."}
