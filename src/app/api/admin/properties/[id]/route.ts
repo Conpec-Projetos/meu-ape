@@ -105,7 +105,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             "location",
             "matterport_urls",
             "name",
-            "original_firestore_id",
             "property_images",
             "search_tsv",
             "search_vector",

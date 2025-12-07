@@ -24,7 +24,7 @@ function FavoritesPageContent() {
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [nextPageCursor, setNextPageCursor] = useState<string | null>(null);
     const [hasNextPage, setHasNextPage] = useState(false);
-    const [totalFavorites, setTotalFavorites] = useState(0);
+    const [, setTotalFavorites] = useState(0);
 
     const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
