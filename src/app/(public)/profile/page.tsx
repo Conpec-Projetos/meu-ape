@@ -90,6 +90,7 @@ export default function ProfilePage() {
             address: "",
             cpf: "",
             phone: "",
+            rg: "",
         },
     });
 
@@ -105,6 +106,8 @@ export default function ProfilePage() {
 
     // Funções de Formatação
     const onlyDigits = (v: string) => (v || "").toString().replace(/\D/g, "");
+
+    const sanitizeRg = useCallback((value: string) => (value || "").toUpperCase().replace(/[^0-9X]/g, ""), []);
 
     const formatCPF = useCallback((v: string) => {
         const d = onlyDigits(v).slice(0, 11);
@@ -125,6 +128,18 @@ export default function ProfilePage() {
         return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
     }, []);
 
+    const formatRG = useCallback(
+        (value: string) => {
+            const clean = sanitizeRg(value).slice(0, 9);
+            if (!clean) return "";
+            if (clean.length <= 2) return clean;
+            if (clean.length <= 5) return `${clean.slice(0, 2)}.${clean.slice(2)}`;
+            if (clean.length <= 8) return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5)}`;
+            return `${clean.slice(0, 2)}.${clean.slice(2, 5)}.${clean.slice(5, 8)}-${clean.slice(8)}`;
+        },
+        [sanitizeRg]
+    );
+
     // Busca de Dados Iniciais
     const fetchProfile = useCallback(
         async (signal?: AbortSignal) => {
@@ -140,6 +155,7 @@ export default function ProfilePage() {
                     address: user.address || "",
                     cpf: user.cpf ? formatCPF(user.cpf as string) : "",
                     phone: user.phone ? formatPhone(user.phone as string) : "",
+                    rg: user.rg ? formatRG(user.rg as string) : "",
                 });
                 const mergedDocs: Record<string, string[]> = {
                     ...(user.documents || {}),
@@ -157,7 +173,7 @@ export default function ProfilePage() {
                 setLoadingProfile(false);
             }
         },
-        [form, formatCPF, formatPhone]
+        [form, formatCPF, formatPhone, formatRG]
     );
 
     useEffect(() => {
@@ -172,6 +188,7 @@ export default function ProfilePage() {
             ...data,
             cpf: data.cpf ? onlyDigits(data.cpf) : undefined,
             phone: data.phone ? onlyDigits(data.phone) : undefined,
+            rg: data.rg ? sanitizeRg(data.rg) : undefined,
         };
 
         const promise = fetch("/api/user/profile", {
@@ -902,7 +919,7 @@ export default function ProfilePage() {
                                             </FormItem>
                                         )}
                                     />
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <FormField
                                             control={form.control}
                                             name="cpf"
@@ -933,6 +950,24 @@ export default function ProfilePage() {
                                                             {...field}
                                                             value={field.value ?? ""}
                                                             onChange={e => field.onChange(formatPhone(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="rg"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>RG</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="00.000.000-0"
+                                                            {...field}
+                                                            value={field.value ?? ""}
+                                                            onChange={e => field.onChange(formatRG(e.target.value))}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />

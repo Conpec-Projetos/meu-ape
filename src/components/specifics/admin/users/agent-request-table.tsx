@@ -12,6 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
+import { formatCPF } from "@/lib/utils";
 import { Check, Eye, Inbox, X } from "lucide-react";
 
 interface AgentRequestTableProps {
@@ -33,6 +34,7 @@ export function AgentRequestTable({
     onApprove,
     onDeny,
 }: AgentRequestTableProps) {
+    const getMaskedCpf = (cpf?: string | null) => (cpf ? formatCPF(cpf) : "Não informado");
     const coerceDate = (val: unknown): Date | undefined => {
         if (!val) return undefined;
         if (val instanceof Date) return val;
@@ -83,6 +85,7 @@ export function AgentRequestTable({
                             <TableRow>
                                 <TableHead>Nome do Solicitante</TableHead>
                                 <TableHead>Email</TableHead>
+                                <TableHead>CPF</TableHead>
                                 <TableHead>CRECI</TableHead>
                                 <TableHead>Data da Solicitação</TableHead>
                                 <TableHead className="text-right">Ações</TableHead>
@@ -93,6 +96,7 @@ export function AgentRequestTable({
                                 <TableRow key={request.id} onClick={() => onReview(request)}>
                                     <TableCell>{request.applicantData.fullName}</TableCell>
                                     <TableCell>{request.applicantData.email}</TableCell>
+                                    <TableCell>{getMaskedCpf(request.applicantData.cpf)}</TableCell>
                                     <TableCell>{request.applicantData.creci}</TableCell>
                                     <TableCell>{formatDate(request.submittedAt)}</TableCell>
                                     <TableCell className="text-right space-x-2">
@@ -169,6 +173,9 @@ export function AgentRequestTable({
                             <div className="space-y-1">
                                 <div className="text-sm font-medium">{request.applicantData.fullName}</div>
                                 <div className="text-xs text-muted-foreground">{request.applicantData.email}</div>
+                                <div className="text-xs text-muted-foreground">
+                                    CPF: {getMaskedCpf(request.applicantData.cpf)}
+                                </div>
                                 <div className="text-xs text-muted-foreground">
                                     CRECI: {request.applicantData.creci || "N/A"}
                                 </div>

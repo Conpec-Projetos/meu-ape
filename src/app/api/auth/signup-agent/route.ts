@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
         const sanitizedCpf = cpf.replace(/\D/g, "");
         const sanitizedRg = rg.replace(/\D/g, "");
-        const sanitizedPhone = "+55" + phone.replace(/\D/g, "");
+        const sanitizedPhone = phone.replace(/\D/g, "");
 
         await createUser({
             id: userId,

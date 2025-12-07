@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { User } from "@/interfaces/user";
+import { formatCPF } from "@/lib/utils";
 import { Pencil, Trash2, Users, View } from "lucide-react";
 
 interface UserTableProps {
@@ -34,6 +35,8 @@ const getInitials = (name: string) => {
     }
     return name.substring(0, 2).toUpperCase();
 };
+
+const getMaskedCpf = (cpf?: string | null) => (cpf ? formatCPF(cpf) : "Não informado");
 
 export function UserTable({
     users,
@@ -85,7 +88,7 @@ export function UserTable({
                                         </div>
                                     </TableCell>
                                     <TableCell className="py-4">{user.email}</TableCell>
-                                    <TableCell className="py-4">{user.cpf ?? "Não informado"}</TableCell>
+                                    <TableCell className="py-4">{getMaskedCpf(user.cpf)}</TableCell>
                                     <TableCell className="py-4 text-right space-x-2">
                                         <Tooltip>
                                             <TooltipTrigger asChild>
@@ -164,7 +167,7 @@ export function UserTable({
                                 <div>
                                     <div className="text-sm font-medium">{user.fullName}</div>
                                     <div className="text-xs text-muted-foreground">{user.email}</div>
-                                    <div className="text-xs text-muted-foreground">{user.cpf ?? "Não informado"}</div>
+                                    <div className="text-xs text-muted-foreground">{getMaskedCpf(user.cpf)}</div>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">

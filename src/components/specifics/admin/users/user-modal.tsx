@@ -21,24 +21,62 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
 import { User } from "@/interfaces/user";
-import { userSchema } from "@/schemas/userSchema";
+import { digitsOnly, formatCPF, formatPhone, isValidCPF } from "@/lib/utils";
+import { enforceAgentProfileFields, userSchemaBase } from "@/schemas/userSchema";
 import { Download, ExternalLink, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
-const addSchema = userSchema
-    .extend({
-        password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."), 
-        confirmPassword: z.string().min(1, "Confirmação de senha é obrigatória."),
-        adminMsg: z.string().optional(),
-    })
-    .refine(data => data.password === data.confirmPassword, {
+const assertValidCpf = (value: string, ctx: z.RefinementCtx) => {
+    const digits = digitsOnly(value);
+    if (digits.length !== 11) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CPF deve ter 11 dígitos." });
+        return;
+    }
+    if (!isValidCPF(digits)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CPF inválido." });
+    }
+};
+
+const sanitizeDigits = (value?: string, maxLength = 11) => digitsOnly(value).slice(0, maxLength);
+const normalizeDigitsField = (value?: string, maxLength = 11): string | null => {
+    const digits = sanitizeDigits(value, maxLength);
+    return digits.length ? digits : null;
+};
+const normalizeTextField = (value?: string): string | null => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+};
+
+export type UserModalPayload = Omit<Partial<User>, "cpf" | "phone" | "address"> & {
+    cpf?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    password?: string;
+};
+
+const addSchemaBase = userSchemaBase.extend({
+    cpf: z
+        .string({ required_error: "CPF é obrigatório." })
+        .min(1, "CPF é obrigatório.")
+        .superRefine((value, ctx) => assertValidCpf(value, ctx)),
+    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
+    confirmPassword: z.string().min(6, "Confirme a senha para continuar."),
+    adminMsg: z.string().optional(),
+});
+
+const addSchema = addSchemaBase
+    .superRefine(enforceAgentProfileFields)
+    .refine((data: z.infer<typeof addSchemaBase>) => data.password === data.confirmPassword, {
         message: "As senhas não correspondem.",
         path: ["confirmPassword"],
     });
 
-const editSchema = userSchema.omit({ password: true }).extend({
-    adminMsg: z.string().optional(),
-});
+const editSchema = userSchemaBase
+    .omit({ password: true })
+    .extend({
+        adminMsg: z.string().optional(),
+    })
+    .superRefine(enforceAgentProfileFields);
 
 const reviewSchema = z.object({
     adminMsg: z.string().min(1, "Motivo da recusa é obrigatório"),
@@ -52,7 +90,7 @@ interface UserModalProps {
     mode: "add" | "edit" | "review" | "view";
     userData?: User;
     requestData?: AgentRegistrationRequest;
-    onSave: (data: FormValues) => void;
+    onSave: (data: UserModalPayload) => void;
     onApprove?: (request: AgentRegistrationRequest) => void;
     onDeny?: (request: AgentRegistrationRequest, reason: string) => void;
 }
@@ -83,29 +121,48 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
     });
 
     useEffect(() => {
-        if (isOpen) {
-            let defaultValues: Partial<FormValues> = {
-                role: "client",
-                password: "",
-                confirmPassword: "",
+        if (!isOpen) return;
+
+        const defaultValues: FormValues = {
+            fullName: "",
+            email: "",
+            cpf: "",
+            phone: "",
+            address: "",
+            role: "client",
+            password: "",
+            confirmPassword: "",
+            agentProfile: { creci: "", city: "" },
+            adminMsg: "",
+        };
+
+        if ((mode === "edit" || mode === "view") && userData) {
+            defaultValues.fullName = userData.fullName || "";
+            defaultValues.email = userData.email || "";
+            defaultValues.cpf = formatCPF(userData.cpf || "");
+            defaultValues.phone = formatPhone(userData.phone || "");
+            defaultValues.address = userData.address || "";
+            defaultValues.role = userData.role;
+            defaultValues.agentProfile = {
+                creci: userData.agentProfile?.creci || "",
+                city: userData.agentProfile?.city || "",
             };
-            if (mode === "edit" || mode === "view") {
-                defaultValues = userData || {};
-                defaultValues.password = "";
-                defaultValues.confirmPassword = "";
-            } else if (mode === "review" && requestData?.applicantData) {
-                const { creci, city, ...rest } = requestData.applicantData;
-                defaultValues = {
-                    ...rest,
-                    role: "agent",
-                    agentProfile: { creci: creci || "", city: city || "" },
-                    password: "",
-                    confirmPassword: "",
-                };
-            }
-            form.reset(defaultValues as FormValues);
-            setShowDenialReason(false);
+        } else if (mode === "review" && requestData?.applicantData) {
+            const applicant = requestData.applicantData;
+            defaultValues.fullName = applicant.fullName || "";
+            defaultValues.email = applicant.email || "";
+            defaultValues.cpf = formatCPF(applicant.cpf || "");
+            defaultValues.phone = formatPhone(applicant.phone || "");
+            defaultValues.address = applicant.address || "";
+            defaultValues.role = "agent";
+            defaultValues.agentProfile = {
+                creci: applicant.creci || "",
+                city: applicant.city || "",
+            };
         }
+
+        form.reset(defaultValues);
+        setShowDenialReason(false);
     }, [isOpen, mode, userData, requestData, form]);
 
     const role = form.watch("role");
@@ -119,7 +176,27 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
     }, [role]);
 
     const onSubmit = (data: FormValues) => {
-        onSave(data);
+        const payload: UserModalPayload = {
+            fullName: data.fullName.trim(),
+            email: data.email.trim(),
+            role: data.role,
+            cpf: normalizeDigitsField(data.cpf),
+            phone: normalizeDigitsField(data.phone, 11),
+            address: normalizeTextField(data.address),
+        };
+
+        if (data.role === "agent") {
+            payload.agentProfile = {
+                creci: normalizeTextField(data.agentProfile?.creci) || "",
+                city: normalizeTextField(data.agentProfile?.city) || "",
+            };
+        }
+
+        if (mode === "add" && data.password) {
+            payload.password = data.password;
+        }
+
+        onSave(payload);
     };
 
     const handleDenyClick = () => {
@@ -179,7 +256,14 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                         <FormItem>
                             <FormLabel>CPF</FormLabel>
                             <FormControl>
-                                <Input {...field} disabled={disabled} value={field.value || ""} />
+                                <Input
+                                    {...field}
+                                    inputMode="numeric"
+                                    disabled={disabled}
+                                    value={field.value || ""}
+                                    onChange={event => field.onChange(formatCPF(event.target.value))}
+                                    maxLength={14}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -192,7 +276,15 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                         <FormItem>
                             <FormLabel>Telefone</FormLabel>
                             <FormControl>
-                                <Input {...field} disabled={disabled} value={field.value || ""} />
+                                <Input
+                                    {...field}
+                                    type="tel"
+                                    inputMode="tel"
+                                    disabled={disabled}
+                                    value={field.value || ""}
+                                    onChange={event => field.onChange(formatPhone(event.target.value))}
+                                    maxLength={16}
+                                />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -280,19 +372,34 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                 )}
 
                 {(role === "agent" || (mode === "review" && requestData)) && (
-                    <FormField
-                        control={form.control}
-                        name="agentProfile.creci"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>CRECI</FormLabel>
-                                <FormControl>
-                                    <Input {...field} disabled={disabled} value={field.value || ""} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="agentProfile.creci"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>CRECI</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} disabled={disabled} value={field.value || ""} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="agentProfile.city"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Cidade de Atuação</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} disabled={disabled} value={field.value || ""} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 )}
             </div>
         );

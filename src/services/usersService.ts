@@ -313,11 +313,14 @@ export const createUser = async (userData: Partial<User> & { password?: string }
         throw new Error("Email is required to create a user profile.");
     }
 
+    const resolvedRole = profileData.role ?? "client";
+    const resolvedStatus = profileData.status ?? (resolvedRole === "agent" ? "approved" : null);
+
     const insertPayload: UserInsert = {
         id: userId,
         email,
-        role: profileData.role ?? "client",
-        status: profileData.status ?? "pending",
+        role: resolvedRole,
+        status: resolvedStatus,
         full_name: profileData.fullName ?? "",
         cpf: profileData.cpf ?? null,
         rg: profileData.rg ?? null,

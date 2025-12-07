@@ -11,8 +11,59 @@ import { Eye, EyeOff, FileCheck, FileText, FileWarning } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { useForm } from "react-hook-form";
+
+const formatCpf = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (digits.length <= 3) {
+        return digits;
+    }
+    if (digits.length <= 6) {
+        return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    }
+    if (digits.length <= 9) {
+        return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    }
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+};
+
+const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    if (!digits) {
+        return "";
+    }
+
+    const areaCode = digits.slice(0, 2);
+    if (digits.length <= 2) {
+        return `(${areaCode}`;
+    }
+    if (digits.length <= 6) {
+        return `(${areaCode}) ${digits.slice(2)}`;
+    }
+
+    const firstBlockLength = digits.length === 11 ? 5 : 4;
+    const firstBlock = digits.slice(2, 2 + firstBlockLength);
+    const secondBlock = digits.slice(2 + firstBlockLength);
+    return `(${areaCode}) ${firstBlock}${secondBlock ? `-${secondBlock}` : ""}`;
+};
+
+const formatRg = (value: string) => {
+    const sanitized = value
+        .replace(/[^0-9Xx]/g, "")
+        .toUpperCase()
+        .slice(0, 9);
+    if (sanitized.length <= 2) {
+        return sanitized;
+    }
+    if (sanitized.length <= 5) {
+        return `${sanitized.slice(0, 2)}.${sanitized.slice(2)}`;
+    }
+    if (sanitized.length <= 8) {
+        return `${sanitized.slice(0, 2)}.${sanitized.slice(2, 5)}.${sanitized.slice(5)}`;
+    }
+    return `${sanitized.slice(0, 2)}.${sanitized.slice(2, 5)}.${sanitized.slice(5, 8)}-${sanitized.slice(8)}`;
+};
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -43,6 +94,29 @@ export default function RegisterPage() {
         resolver: zodResolver(agentSchema),
     });
 
+    const cpfValue = watch("cpf") ?? "";
+    const phoneValue = watch("phone") ?? "";
+    const rgValue = watch("rg") ?? "";
+
+    const handleCpfChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const formattedValue = formatCpf(event.target.value);
+        setValue("cpf", formattedValue, { shouldValidate: true, shouldDirty: true });
+    };
+
+    const handlePhoneChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const formattedValue = formatPhone(event.target.value);
+        setValue("phone", formattedValue, { shouldValidate: true, shouldDirty: true });
+    };
+
+    const handleRgChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const formattedValue = formatRg(event.target.value);
+        setValue("rg", formattedValue, { shouldValidate: true, shouldDirty: true });
+    };
+
+    const cpfRegister = register("cpf");
+    const phoneRegister = register("phone");
+    const rgRegister = register("rg");
+
     // Função de submissão do formulário
     const onSubmit = async (formData: AgentFormData) => {
         console.log(formData);
@@ -72,36 +146,35 @@ export default function RegisterPage() {
             formPayload.append("creciCert", file);
         });
 
-        try{
-            const res = await fetch('api/auth/signup-agent', {
+        try {
+            const res = await fetch("api/auth/signup-agent", {
                 method: "POST",
                 body: formPayload,
             });
 
             const data = await res.json();
 
-            if(res.ok) {
+            if (res.ok) {
                 notifySuccess("Registro solicitado com sucesso!");
                 router.push("/agent-signup/accepted");
             } else {
                 const message = data.error || "Erro ao enviar solicitação. Tente novamente.";
 
-                if(data.path){
+                if (data.path) {
                     setFirebaseError({
                         message: message,
-                        path: data.path
+                        path: data.path,
                     });
                 } else {
                     notifyError(message);
                 }
             }
-        } catch(error){
+        } catch (error) {
             console.error(error);
             notifyError("Erro de conexão com o servidor");
         } finally {
             setIsUploading(false);
         }
-
     };
 
     return (
@@ -148,14 +221,23 @@ export default function RegisterPage() {
                                 <Input
                                     id="cpf"
                                     placeholder="XXX.XXX.XXX-XX"
-                                    {...register("cpf")}
+                                    {...cpfRegister}
+                                    value={cpfValue}
+                                    onChange={handleCpfChange}
                                     disabled={isUploading}
                                 />
                                 {errors.cpf && <span className="text-sm text-red-600">*{errors.cpf.message}</span>}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="rg">RG</Label>
-                                <Input id="rg" placeholder="12.345.678-9" {...register("rg")} disabled={isUploading} />
+                                <Input
+                                    id="rg"
+                                    placeholder="12.345.678-9"
+                                    {...rgRegister}
+                                    value={rgValue}
+                                    onChange={handleRgChange}
+                                    disabled={isUploading}
+                                />
                                 {errors.rg && <span className="text-sm text-red-600">*{errors.rg.message}</span>}
                             </div>
 
@@ -178,7 +260,9 @@ export default function RegisterPage() {
                                 <Input
                                     id="phone"
                                     placeholder="(DD) X XXXXX-XXXX"
-                                    {...register("phone")}
+                                    {...phoneRegister}
+                                    value={phoneValue}
+                                    onChange={handlePhoneChange}
                                     disabled={isUploading}
                                 />
                                 {errors.phone && <span className="text-sm text-red-600">*{errors.phone.message}</span>}
@@ -258,7 +342,9 @@ export default function RegisterPage() {
                             <div className="col-span-1 md:col-span-2 mt-4">
                                 <Label className="text-lg">Documentos</Label>
                                 {(errors.creciCardPhoto || errors.creciCert) && (
-                                    <span className="text-sm text-red-600">*Documento obrigatório {errors.creciCardPhoto?.message}</span>
+                                    <span className="text-sm text-red-600">
+                                        *Documento obrigatório {errors.creciCardPhoto?.message}
+                                    </span>
                                 )}
                                 <div className="flex flex-row gap-10 justify-center">
                                     <Label
@@ -295,7 +381,9 @@ export default function RegisterPage() {
                                         accept="image/*,.pdf"
                                         {...register("creciCardPhoto", {
                                             onChange: e => {
-                                                const files = e.target.files ? Array.from(e.target.files) as File[]: [];
+                                                const files = e.target.files
+                                                    ? (Array.from(e.target.files) as File[])
+                                                    : [];
                                                 setCreciCardPhotoSelected(files.length > 0);
                                                 setValue("creciCardPhoto", files, { shouldValidate: true });
                                             },
@@ -340,9 +428,12 @@ export default function RegisterPage() {
                                         accept="image/*,.pdf"
                                         {...register("creciCert", {
                                             onChange: e => {
-                                                const files = e.target.files ? Array.from(e.target.files) as File[] : [];
+                                                const files = e.target.files
+                                                    ? (Array.from(e.target.files) as File[])
+                                                    : [];
                                                 setCreciCertSelected(files.length > 0);
-                                                setValue("creciCert", files, { shouldValidate: true });                                            },
+                                                setValue("creciCert", files, { shouldValidate: true });
+                                            },
                                         })}
                                         className="hidden"
                                         disabled={isUploading}

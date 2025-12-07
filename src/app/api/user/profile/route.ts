@@ -1,6 +1,6 @@
 import { adminAuth, verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { createUser, getUserProfile, updateUserProfileData } from "@/services/usersService";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 const buildUnauthorizedResponse = (message: string, deleteCookie = false) => {
     const response = NextResponse.json({ error: message }, { status: 401 });
@@ -10,24 +10,33 @@ const buildUnauthorizedResponse = (message: string, deleteCookie = false) => {
     return response;
 };
 
-const ensureSessionUser = async (request: NextRequest) => {
-    const sessionCookie = request.cookies.get("session")?.value;
-    if (!sessionCookie) {
-        return { response: buildUnauthorizedResponse("Unauthorized") };
-    }
-
-    const decodedClaims = await verifySessionCookie(sessionCookie);
-    if (!decodedClaims) {
-        return { response: buildUnauthorizedResponse("Unauthorized - Invalid session", true) };
-    }
-
-    return { userId: decodedClaims.uid };
-};
-
 const extractBearerToken = (request: NextRequest) => {
     const authHeader = request.headers.get("authorization") ?? "";
     const [, token] = authHeader.match(/^Bearer\s+(.+)$/i) ?? [];
     return token;
+};
+
+const ensureAuthenticatedUser = async (request: NextRequest) => {
+    // 1. Tenta validar pelo Cookie de Sessão
+    const sessionCookie = request.cookies.get("session")?.value;
+    if (sessionCookie) {
+        const decodedClaims = await verifySessionCookie(sessionCookie);
+        if (decodedClaims) {
+            return { userId: decodedClaims.uid };
+        }
+    }
+
+    const idToken = extractBearerToken(request);
+    if (idToken) {
+        try {
+            const decoded = await adminAuth.verifyIdToken(idToken);
+            return { userId: decoded.uid };
+        } catch (error) {
+            console.error("Token verification failed:", error);
+        }
+    }
+
+    return { userId: null };
 };
 
 const isAuthError = (error: unknown): error is { code: string } => {
@@ -42,12 +51,10 @@ const isAuthError = (error: unknown): error is { code: string } => {
 };
 
 export async function GET(request: NextRequest) {
-    const { userId, response } = await ensureSessionUser(request);
-    if (response) {
-        return response;
-    }
+    const { userId } = await ensureAuthenticatedUser(request);;
+
     if (!userId) {
-        return buildUnauthorizedResponse("Unauthorized");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {
@@ -103,12 +110,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-    const { userId, response } = await ensureSessionUser(request);
-    if (response) {
-        return response;
-    }
+    const { userId } = await ensureAuthenticatedUser(request);
+    
     if (!userId) {
-        return buildUnauthorizedResponse("Unauthorized");
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     try {

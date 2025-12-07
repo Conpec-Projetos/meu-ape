@@ -17,8 +17,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
             if (firebaseUser) {
                 try {
+                    const token = await firebaseUser.getIdToken();
                     const response = await fetch("/api/user/profile", {
                         method: "GET",
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        },
                         credentials: "include",
                         cache: "no-store",
                     });

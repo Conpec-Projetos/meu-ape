@@ -30,7 +30,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type Variant = "guest" | "client" | "agent" | "admin";
 
@@ -78,6 +78,9 @@ function Header({ variant }: HeaderProps) {
     const pathname = usePathname();
     const { logout, user } = useAuth();
     const [scrolled, setScrolled] = useState(false);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const sheetHistoryRef = useRef(false);
+    const pendingNavigationRef = useRef<string | null>(null);
     const isHome = pathname === "/";
 
     useEffect(() => {
@@ -89,9 +92,62 @@ function Header({ variant }: HeaderProps) {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    const closeSheet = useCallback((options?: { skipHistoryPop?: boolean }) => {
+        setIsSheetOpen(false);
+        if (typeof window === "undefined") return;
+        if (!sheetHistoryRef.current) return;
+        if (options?.skipHistoryPop) {
+            sheetHistoryRef.current = false;
+            return;
+        }
+        sheetHistoryRef.current = false;
+        window.history.back();
+    }, []);
+
+    const openSheet = useCallback(() => {
+        setIsSheetOpen(true);
+        if (typeof window === "undefined") return;
+        if (sheetHistoryRef.current) return;
+        window.history.pushState({ sheet: true }, "", window.location.href);
+        sheetHistoryRef.current = true;
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const handlePopState = () => {
+            if (sheetHistoryRef.current) {
+                sheetHistoryRef.current = false;
+                setIsSheetOpen(false);
+            }
+            if (pendingNavigationRef.current) {
+                const nextHref = pendingNavigationRef.current;
+                pendingNavigationRef.current = null;
+                router.push(nextHref);
+            }
+        };
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, [router]);
+
+    useEffect(() => {
+        if (isSheetOpen) {
+            closeSheet({ skipHistoryPop: true });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname]);
+
+    const handleNavigation = (href: string) => {
+        if (isSheetOpen && sheetHistoryRef.current) {
+            pendingNavigationRef.current = href;
+            closeSheet();
+        } else {
+            router.push(href);
+        }
+    };
+
     const handleLogout = async () => {
         await logout();
-        router.push("/login");
+        handleNavigation("/login");
     };
 
     // Define styles based on scroll state
@@ -214,7 +270,7 @@ function Header({ variant }: HeaderProps) {
 
             {/* Mobile Navigation */}
             <div className="lg:hidden">
-                <Sheet>
+                <Sheet open={isSheetOpen} onOpenChange={open => (open ? openSheet() : closeSheet())}>
                     <SheetTrigger asChild>
                         <Button
                             size="icon"
@@ -229,7 +285,7 @@ function Header({ variant }: HeaderProps) {
                                 <>
                                     <Avatar
                                         className="cursor-pointer h-12 w-12"
-                                        onClick={() => router.push("/profile")}
+                                        onClick={() => handleNavigation("/profile")}
                                     >
                                         <AvatarImage src={user.photoUrl} alt={user.fullName} />
                                         <AvatarFallback className="text-lg">
@@ -246,13 +302,13 @@ function Header({ variant }: HeaderProps) {
                                     <Button
                                         variant="outline"
                                         className="w-full cursor-pointer"
-                                        onClick={() => router.push("/login")}
+                                        onClick={() => handleNavigation("/login")}
                                     >
                                         Entrar
                                     </Button>
                                     <Button
                                         className="w-full sm:w-auto bg-foreground hover:bg-foreground/70 cursor-pointer"
-                                        onClick={() => router.push("/signup")}
+                                        onClick={() => handleNavigation("/signup")}
                                     >
                                         Cadastre-se
                                     </Button>
@@ -266,6 +322,10 @@ function Header({ variant }: HeaderProps) {
                                     <li key={link.label}>
                                         <Link
                                             href={link.href}
+                                            onClick={event => {
+                                                event.preventDefault();
+                                                handleNavigation(link.href);
+                                            }}
                                             className="flex items-center gap-3 p-2 rounded-md text-lg font-medium hover:bg-muted"
                                         >
                                             <link.icon className="h-6 w-6" />
@@ -282,6 +342,10 @@ function Header({ variant }: HeaderProps) {
                                     <li>
                                         <Link
                                             href="/profile"
+                                            onClick={event => {
+                                                event.preventDefault();
+                                                handleNavigation("/profile");
+                                            }}
                                             className="flex items-center gap-3 p-2 rounded-md font-medium hover:bg-muted"
                                         >
                                             <Settings className="h-5 w-5" />

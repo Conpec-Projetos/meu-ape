@@ -3,6 +3,7 @@
 import { AgentRequestTable } from "@/components/specifics/admin/users/agent-request-table";
 import { DeleteConfirmationModal } from "@/components/specifics/admin/users/delete-confirmation-modal";
 import { DenialModal } from "@/components/specifics/admin/users/denial-modal";
+import type { UserModalPayload } from "@/components/specifics/admin/users/user-modal";
 import { UserModal } from "@/components/specifics/admin/users/user-modal";
 import { UserTable, UserTableSkeleton } from "@/components/specifics/admin/users/user-table";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,7 @@ function UserManagementContent() {
         }
     };
 
-    const handleSave = async (data: Partial<User>) => {
+    const handleSave = async (data: UserModalPayload) => {
         const promise = () =>
             new Promise(async (resolve, reject) => {
                 try {

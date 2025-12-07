@@ -1,4 +1,5 @@
-import { adminAuth, adminDb } from "@/firebase/firebase-admin-config";
+import { adminAuth } from "@/firebase/firebase-admin-config";
+import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -12,22 +13,33 @@ export async function POST(req: NextRequest) {
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         const { uid } = decodedToken;
 
-        const userDoc = await adminDb.collection("users").doc(uid).get();
-        const user = userDoc.data();
+        let role: string | undefined;
+        try {
+            const { data, error } = await supabaseAdmin.from("users").select("role").eq("id", uid).maybeSingle();
+            if (error) {
+                throw error;
+            }
+            role = data?.role ?? undefined;
+        } catch (fetchError) {
+            console.error("Error fetching user role from Supabase:", fetchError);
+        }
 
-        if (user) {
-            await adminAuth.setCustomUserClaims(uid, { role: user.role });
+        if (role) {
+            await adminAuth.setCustomUserClaims(uid, { role });
         }
 
         const expiresIn = 60 * 60 * 24 * 14 * 1000; // 14 days in milliseconds
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
 
+        const cookieMaxAge = Math.floor(expiresIn / 1000); // cookies expect seconds
         const options = {
             name: "session",
             value: sessionCookie,
-            maxAge: expiresIn,
+            maxAge: cookieMaxAge,
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax" as const,
+            path: "/",
         };
 
         const response = NextResponse.json({ status: "success" }, { status: 200 });
