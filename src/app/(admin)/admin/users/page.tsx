@@ -3,6 +3,7 @@
 import { AgentRequestTable } from "@/components/specifics/admin/users/agent-request-table";
 import { DeleteConfirmationModal } from "@/components/specifics/admin/users/delete-confirmation-modal";
 import { DenialModal } from "@/components/specifics/admin/users/denial-modal";
+import { GroupsManagementModal } from "@/components/specifics/admin/users/groups-management-modal";
 import type { UserModalPayload } from "@/components/specifics/admin/users/user-modal";
 import { UserModal } from "@/components/specifics/admin/users/user-modal";
 import { UserTable, UserTableSkeleton } from "@/components/specifics/admin/users/user-table";
@@ -46,6 +47,7 @@ function UserManagementContent() {
     const [selectedUser, setSelectedUser] = useState<User | undefined>();
     const [selectedRequest, setSelectedRequest] = useState<AgentRegistrationRequest | undefined>();
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isGroupsModalOpen, setIsGroupsModalOpen] = useState(false);
 
     const isAgentRequestsTab = tab === "agents" && subtab === "registration-requests";
     const basePageSize = 20;
@@ -353,9 +355,18 @@ function UserManagementContent() {
                         disabled={isAgentRequestsTab}
                     />
                 </div>
-                <Button onClick={handleAddUser} className="cursor-pointer w-full sm:w-auto">
-                    Adicionar Novo Usuário
-                </Button>
+                <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsGroupsModalOpen(true)}
+                        className="cursor-pointer w-full sm:w-auto"
+                    >
+                        Gerenciar Grupos
+                    </Button>
+                    <Button onClick={handleAddUser} className="cursor-pointer w-full sm:w-auto">
+                        Adicionar Novo Usuário
+                    </Button>
+                </div>
             </div>
 
             <Tabs
@@ -437,6 +448,7 @@ function UserManagementContent() {
                 onClose={() => setIsDenialModalOpen(false)}
                 onConfirm={handleDenialModalConfirm}
             />
+            <GroupsManagementModal isOpen={isGroupsModalOpen} onClose={() => setIsGroupsModalOpen(false)} />
         </div>
     );
 }

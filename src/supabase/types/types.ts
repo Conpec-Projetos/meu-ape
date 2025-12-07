@@ -183,6 +183,27 @@ export type Database = {
         }
         Relationships: []
       }
+      groups: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       properties: {
         Row: {
           address: string | null
@@ -1026,6 +1047,49 @@ export type Database = {
               property_images: string[]
               total_matching_units: number
               total_properties_count: number
+              units_per_floor: number
+            }[]
+          }
+        | {
+            Args: {
+              bathroom_filter?: number[]
+              bedroom_filter?: number[]
+              garage_filter?: number[]
+              groups_filter?: string[]
+              max_lat?: number
+              max_lng?: number
+              max_price_filter?: number
+              min_lat?: number
+              min_lng?: number
+              min_price_filter?: number
+              page_limit?: number
+              page_offset?: number
+              query_text?: string
+            }
+            Returns: {
+              address: string
+              areas_images: string[]
+              available_bathrooms: number[]
+              available_bedrooms: number[]
+              available_garages: number[]
+              delivery_date: string
+              description: string
+              features: string[]
+              floors: number
+              groups: string[]
+              id: string
+              lat: number
+              launch_date: string
+              lng: number
+              matterport_urls: string[]
+              max_unit_price: number
+              max_unit_size: number
+              min_unit_price: number
+              min_unit_size: number
+              name: string
+              property_images: string[]
+              total_matching_units: number
+              total_properties: number
               units_per_floor: number
             }[]
           }

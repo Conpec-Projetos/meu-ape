@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -14,6 +15,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,7 +30,7 @@ import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest"
 import { User } from "@/interfaces/user";
 import { digitsOnly, formatCPF, formatPhone, isValidCPF } from "@/lib/utils";
 import { enforceAgentProfileFields, userSchemaBase } from "@/schemas/userSchema";
-import { Download, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { ChevronsUpDown, Download, ExternalLink, Eye, EyeOff, Loader2 } from "lucide-react";
 import Image from "next/image";
 
 const assertValidCpf = (value: string, ctx: z.RefinementCtx) => {
@@ -45,6 +52,30 @@ const normalizeDigitsField = (value?: string, maxLength = 11): string | null => 
 const normalizeTextField = (value?: string): string | null => {
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+};
+
+type AccessGroup = {
+    id: string;
+    name: string;
+};
+
+const parseGroupsPayload = (payload: unknown): AccessGroup[] => {
+    const rawList = Array.isArray(payload)
+        ? payload
+        : Array.isArray((payload as { groups?: unknown[] })?.groups)
+          ? ((payload as { groups: unknown[] }).groups as unknown[])
+          : [];
+
+    return rawList
+        .filter(Boolean)
+        .map(item => {
+            const record = item as Partial<AccessGroup> & { name?: string };
+            const id = record?.id ? String(record.id) : "";
+            const name = record?.name ? String(record.name) : "";
+            return { id, name };
+        })
+        .filter(group => group.id && group.name)
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
 };
 
 export type UserModalPayload = Omit<Partial<User>, "cpf" | "phone" | "address"> & {
@@ -99,6 +130,9 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const [showDenialReason, setShowDenialReason] = useState(false);
+    const [availableGroups, setAvailableGroups] = useState<AccessGroup[]>([]);
+    const [isGroupsLoading, setIsGroupsLoading] = useState(false);
+    const [groupsError, setGroupsError] = useState<string | null>(null);
 
     const currentSchema = mode === "add" ? addSchema : editSchema;
     const form = useForm<FormValues>({
@@ -115,6 +149,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             agentProfile: {
                 creci: "",
                 city: "",
+                groups: [],
             },
             adminMsg: "",
         },
@@ -132,7 +167,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             role: "client",
             password: "",
             confirmPassword: "",
-            agentProfile: { creci: "", city: "" },
+            agentProfile: { creci: "", city: "", groups: [] },
             adminMsg: "",
         };
 
@@ -146,6 +181,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             defaultValues.agentProfile = {
                 creci: userData.agentProfile?.creci || "",
                 city: userData.agentProfile?.city || "",
+                groups: Array.isArray(userData.agentProfile?.groups) ? userData.agentProfile?.groups : [],
             };
         } else if (mode === "review" && requestData?.applicantData) {
             const applicant = requestData.applicantData;
@@ -158,6 +194,7 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
             defaultValues.agentProfile = {
                 creci: applicant.creci || "",
                 city: applicant.city || "",
+                groups: [],
             };
         }
 
@@ -165,12 +202,44 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
         setShowDenialReason(false);
     }, [isOpen, mode, userData, requestData, form]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        let active = true;
+
+        async function fetchGroups() {
+            setIsGroupsLoading(true);
+            setGroupsError(null);
+            try {
+                const response = await fetch("/api/admin/groups");
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload?.error || "Não foi possível carregar os grupos.");
+                }
+                if (!active) return;
+                setAvailableGroups(parseGroupsPayload(payload));
+            } catch (error) {
+                console.error("Erro ao carregar grupos", error);
+                if (!active) return;
+                setGroupsError("Não foi possível carregar os grupos.");
+                setAvailableGroups([]);
+            } finally {
+                if (active) setIsGroupsLoading(false);
+            }
+        }
+
+        fetchGroups();
+        return () => {
+            active = false;
+        };
+    }, [isOpen]);
+
     const role = form.watch("role");
 
     useEffect(() => {
         if (role !== "agent") {
             form.setValue("agentProfile.creci", "");
             form.setValue("agentProfile.city", "");
+            form.setValue("agentProfile.groups", []);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [role]);
@@ -186,9 +255,20 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
         };
 
         if (data.role === "agent") {
+            const sanitizedGroups = Array.isArray(data.agentProfile?.groups)
+                ? Array.from(
+                      new Set(
+                          data.agentProfile.groups
+                              .filter(groupId => typeof groupId === "string")
+                              .map(groupId => groupId.trim())
+                              .filter(Boolean)
+                      )
+                  )
+                : [];
             payload.agentProfile = {
                 creci: normalizeTextField(data.agentProfile?.creci) || "",
                 city: normalizeTextField(data.agentProfile?.city) || "",
+                groups: sanitizedGroups,
             };
         }
 
@@ -372,32 +452,113 @@ export function UserModal({ isOpen, onClose, mode, userData, requestData, onSave
                 )}
 
                 {(role === "agent" || (mode === "review" && requestData)) && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="agentProfile.creci"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>CRECI</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} disabled={disabled} value={field.value || ""} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="agentProfile.city"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Cidade de Atuação</FormLabel>
+                                        <FormControl>
+                                            <Input {...field} disabled={disabled} value={field.value || ""} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <FormField
                             control={form.control}
-                            name="agentProfile.creci"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>CRECI</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={disabled} value={field.value || ""} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="agentProfile.city"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Cidade de Atuação</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} disabled={disabled} value={field.value || ""} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                            name="agentProfile.groups"
+                            render={({ field }) => {
+                                const selectedIds = Array.isArray(field.value) ? field.value : [];
+
+                                return (
+                                    <FormItem>
+                                        <FormLabel>Grupos de Acesso</FormLabel>
+                                        <FormControl>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="w-full justify-between cursor-pointer"
+                                                        disabled={disabled || isGroupsLoading}
+                                                    >
+                                                        {isGroupsLoading ? (
+                                                            <span className="flex items-center gap-2">
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                                Carregando...
+                                                            </span>
+                                                        ) : (
+                                                            `${selectedIds.length} selecionado${selectedIds.length === 1 ? "" : "s"}`
+                                                        )}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] max-h-60 overflow-y-auto">
+                                                    {availableGroups.length === 0 ? (
+                                                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                                                            Nenhum grupo cadastrado.
+                                                        </div>
+                                                    ) : (
+                                                        availableGroups.map(group => (
+                                                            <DropdownMenuCheckboxItem
+                                                                key={group.id}
+                                                                checked={selectedIds.includes(group.id)}
+                                                                onCheckedChange={checked => {
+                                                                    if (disabled) return;
+                                                                    const next =
+                                                                        checked === true
+                                                                            ? Array.from(
+                                                                                  new Set([...selectedIds, group.id])
+                                                                              )
+                                                                            : selectedIds.filter(id => id !== group.id);
+                                                                    field.onChange(next);
+                                                                }}
+                                                                className="cursor-pointer"
+                                                            >
+                                                                {group.name}
+                                                            </DropdownMenuCheckboxItem>
+                                                        ))
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </FormControl>
+                                        {groupsError && !isGroupsLoading && (
+                                            <p className="mt-2 text-sm text-destructive">{groupsError}</p>
+                                        )}
+                                        {selectedIds.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {selectedIds.map(id => {
+                                                    const label =
+                                                        availableGroups.find(group => group.id === id)?.name || id;
+                                                    return (
+                                                        <Badge key={id} variant="secondary">
+                                                            {label}
+                                                        </Badge>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                );
+                            }}
                         />
                     </div>
                 )}

@@ -1,3 +1,4 @@
+import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { normalizePropertyArrays } from "@/lib/normalizePropertyArrays";
 import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
@@ -5,6 +6,47 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
     const supabase = supabaseAdmin;
     const { searchParams } = new URL(request.url);
+
+    const sessionCookie = request.cookies.get("session")?.value;
+    let groupsFilter: string[] | null = null;
+
+    if (sessionCookie) {
+        try {
+            const claims = await verifySessionCookie(sessionCookie).catch(() => null);
+            const uid = claims?.uid;
+
+            // busca a role direto do banco para garantir consistência dos claims
+            if (uid) {
+                const { data: userRow, error: userError } = await supabase
+                    .from("users")
+                    .select("role, agents(groups)")
+                    .eq("id", uid)
+                    .single();
+
+                if (userError && userError.code !== "PGRST116") {
+                    console.error("Supabase User Role Error:", userError);
+                }
+
+                const role = (userRow?.role as string | undefined) ?? claims?.role;
+
+                if (role === "agent") {
+                    const agentGroups = Array.isArray(
+                        (userRow?.agents as { groups?: unknown } | null | undefined)?.groups
+                    )
+                        ? ((userRow?.agents as { groups?: string[] })?.groups ?? [])
+                        : [];
+
+                    const normalizedGroups = agentGroups.map(g => `${g}`.trim()).filter(Boolean);
+                    groupsFilter = normalizedGroups.length > 0 ? normalizedGroups : [];
+                } else {
+                    groupsFilter = null; // admins e clientes veem tudo
+                }
+            }
+        } catch (err) {
+            console.error("Erro ao verificar sessão para grupos", err);
+            // sem sessão válida mantém groupsFilter como null para busca pública
+        }
+    }
 
     const q = searchParams.get("q") || undefined;
     const boundsStr = searchParams.get("bounds");
@@ -46,6 +88,7 @@ export async function GET(request: NextRequest) {
         garage_filter,
         page_limit: pageSize,
         page_offset,
+        groups_filter: groupsFilter,
     });
 
     if (error) {

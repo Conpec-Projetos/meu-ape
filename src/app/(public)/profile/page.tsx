@@ -752,7 +752,7 @@ export default function ProfilePage() {
     // Renderização
     if (loadingProfile) {
         return (
-            <div className="container mx-auto py-10 px-4 pt-20">
+            <div className="container min-h-screen mx-auto py-10 px-4 pt-20">
                 {" "}
                 <Card className="max-w-3xl mx-auto">
                     <CardHeader>
@@ -795,7 +795,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="container mx-auto py-10 px-4 pt-20">
+        <div className="flex container min-h-screen mx-auto py-10 px-4 pt-20">
             {" "}
             <Tabs defaultValue="conta" className="max-w-3xl mx-auto">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -1268,7 +1268,7 @@ export default function ProfilePage() {
                                 onRemoveExisting={url => handleRemoveExisting("incomeProof", url)}
                             />
                             <DocumentRow
-                                label="Certidão (Nascimente/Casamento)"
+                                label="Certidão (Nascimento/Casamento)"
                                 typeKey="bmCert"
                                 existingUrls={uploadedUrls["bmCert"] || []}
                                 pendingFiles={pendingFiles["bmCert"] || []}

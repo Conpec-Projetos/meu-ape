@@ -37,6 +37,7 @@ const optionalAgentField = (min: number, message: string) =>
 const agentProfileSchema = z.object({
     creci: optionalAgentField(3, "CRECI deve ter pelo menos 3 caracteres."),
     city: optionalAgentField(2, "Cidade deve ter pelo menos 2 caracteres."),
+    groups: z.array(z.string().min(1)).optional(),
 });
 
 export const userSchemaBase = z.object({

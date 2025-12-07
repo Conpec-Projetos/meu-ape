@@ -502,7 +502,7 @@ export const uploadUserDocuments = async (
 
     const { data, error } = await supabaseAdmin
         .from("users")
-        .select("documents, agents(agent_documents)")
+        .select("documents, agents(user_id, agent_documents)")
         .eq("id", userId)
         .single();
 
@@ -590,7 +590,7 @@ export const deleteUserDocument = async (userId: string, fieldName: string, file
 
     const { data, error } = await supabaseAdmin
         .from("users")
-        .select("documents, agents(agent_documents)")
+        .select("documents, agents(user_id, agent_documents)")
         .eq("id", userId)
         .single();
 

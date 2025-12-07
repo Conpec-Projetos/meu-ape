@@ -19,7 +19,7 @@ import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
 import { propertySchema } from "@/schemas/propertySchema";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
-import { Check, ChevronsUpDown, PlusCircle, Trash2, X } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, PlusCircle, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ptBR } from "react-day-picker/locale";
@@ -82,10 +82,27 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
     const [featureInput, setFeatureInput] = useState("");
 
     const [developers, setDevelopers] = useState<{ id: string; name: string }[]>([]);
-    const [groups] = useState([
-        { id: "corretores-sp", name: "Corretores SP" },
-        { id: "corretores-rj", name: "Corretores RJ" },
-    ]);
+    const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+    const [isGroupsLoading, setIsGroupsLoading] = useState(false);
+    const [groupsError, setGroupsError] = useState<string | null>(null);
+
+    const parseGroupsPayload = (payload: unknown): { id: string; name: string }[] => {
+        const raw = Array.isArray(payload)
+            ? payload
+            : Array.isArray((payload as { groups?: unknown[] })?.groups)
+              ? ((payload as { groups: unknown[] }).groups as unknown[])
+              : [];
+
+        return raw
+            .map(item => {
+                const rec = item as { id?: unknown; name?: unknown };
+                const id = rec.id ? String(rec.id) : "";
+                const name = rec.name ? String(rec.name) : "";
+                return { id, name };
+            })
+            .filter(g => g.id && g.name)
+            .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+    };
 
     const isValidCoords = (c: unknown): c is { lat: number; lng: number } => {
         const obj = c as { lat?: unknown; lng?: unknown };
@@ -178,6 +195,35 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
         const current = Array.isArray(form.features) ? form.features : [];
         setForm(prev => ({ ...prev, features: current.filter(f => f !== value) }));
     }
+
+    useEffect(() => {
+        let mounted = true;
+        async function fetchGroups() {
+            try {
+                setIsGroupsLoading(true);
+                setGroupsError(null);
+                const res = await fetch(`/api/admin/groups`);
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error((data as { error?: string })?.error || "Falha ao carregar grupos.");
+                }
+                if (!mounted) return;
+                setGroups(parseGroupsPayload(data));
+            } catch (e) {
+                console.error("Falha ao buscar grupos:", e);
+                if (!mounted) return;
+                setGroupsError("Não foi possível carregar os grupos.");
+                setGroups([]);
+            } finally {
+                if (mounted) setIsGroupsLoading(false);
+            }
+        }
+
+        fetchGroups();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     useEffect(() => {
         let mounted = true;
@@ -850,29 +896,51 @@ export default function PropertyManagementForm({ property, onSave, onClose }: Pr
                                 <Label>Grupos Visíveis</Label>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-between cursor-pointer">
-                                            {form.groups?.length || 0} selecionados
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-between cursor-pointer"
+                                            disabled={isGroupsLoading}
+                                        >
+                                            {isGroupsLoading ? (
+                                                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+                                                </span>
+                                            ) : (
+                                                `${form.groups?.length || 0} selecionado${
+                                                    (form.groups?.length || 0) === 1 ? "" : "s"
+                                                }`
+                                            )}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                                        {groups.map(group => (
-                                            <DropdownMenuCheckboxItem
-                                                key={group.id}
-                                                checked={form.groups?.includes(group.id)}
-                                                onCheckedChange={checked => {
-                                                    const newGroups = checked
-                                                        ? [...(form.groups || []), group.id]
-                                                        : form.groups?.filter(id => id !== group.id);
-                                                    setForm(prev => ({ ...prev, groups: newGroups }));
-                                                }}
-                                                className="cursor-pointer"
-                                            >
-                                                {group.name}
-                                            </DropdownMenuCheckboxItem>
-                                        ))}
+                                    <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width] max-h-60 overflow-y-auto">
+                                        {groups.length === 0 && !isGroupsLoading ? (
+                                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                                                {groupsError || "Nenhum grupo cadastrado."}
+                                            </div>
+                                        ) : (
+                                            groups.map(group => (
+                                                <DropdownMenuCheckboxItem
+                                                    key={group.id}
+                                                    checked={Boolean(form.groups?.includes(group.id))}
+                                                    onCheckedChange={checked => {
+                                                        const current = Array.isArray(form.groups) ? form.groups : [];
+                                                        const next = checked
+                                                            ? Array.from(new Set([...current, group.id]))
+                                                            : current.filter(id => id !== group.id);
+                                                        setForm(prev => ({ ...prev, groups: next }));
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    {group.name}
+                                                </DropdownMenuCheckboxItem>
+                                            ))
+                                        )}
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                                {groupsError && !isGroupsLoading && (
+                                    <p className="text-sm text-destructive">{groupsError}</p>
+                                )}
                             </div>
                         </div>
                     </div>
