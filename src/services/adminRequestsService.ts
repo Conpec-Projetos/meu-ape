@@ -166,25 +166,63 @@ const buildSearchPattern = (value?: string) => {
     return `%${collapsed}%`;
 };
 
-type BuilderWithOr<Builder> = {
-    or: (filters: string, options?: { foreignTable?: string }) => Builder;
+const buildOrFilters = (columns: string[], pattern: string) =>
+    columns.map(column => `${column}.ilike.${pattern}`).join(",");
+
+type SearchTarget = {
+    columns: string[];
+    foreignTable?: "client" | "property" | "unit";
 };
 
-const applyRequestSearchFilters = <Builder extends BuilderWithOr<Builder>>(
-    query: Builder,
+const SEARCH_TARGETS: SearchTarget[] = [
+    { columns: ["client_msg", "agent_msg"] },
+    { columns: ["full_name", "email", "phone"], foreignTable: "client" },
+    { columns: ["name", "address"], foreignTable: "property" },
+    { columns: ["identifier", "block"], foreignTable: "unit" },
+];
+
+const VISIT_SEARCH_SELECT = `
+    id,
+    client:users!inner (id),
+    property:properties!inner (id),
+    unit:units!left (id)
+`;
+
+const RESERVATION_SEARCH_SELECT = `
+    id,
+    client:users!inner (id),
+    property:properties!inner (id),
+    unit:units!inner (id)
+`;
+
+const findMatchingRequestIds = async (
+    table: "visit_requests" | "reservation_requests",
+    status: string | undefined,
     pattern: string
-): Builder => {
-    let builder = query.or(`client_msg.ilike.${pattern},agent_msg.ilike.${pattern}`);
-    builder = builder.or(`full_name.ilike.${pattern},email.ilike.${pattern},phone.ilike.${pattern}`, {
-        foreignTable: "client",
-    });
-    builder = builder.or(`name.ilike.${pattern},address.ilike.${pattern}`, {
-        foreignTable: "property",
-    });
-    builder = builder.or(`identifier.ilike.${pattern},block.ilike.${pattern}`, {
-        foreignTable: "unit",
-    });
-    return builder;
+) => {
+    const selectClause = table === "visit_requests" ? VISIT_SEARCH_SELECT : RESERVATION_SEARCH_SELECT;
+    const ids = new Set<string>();
+
+    await Promise.all(
+        SEARCH_TARGETS.map(async target => {
+            let builder = supabaseAdmin.from(table).select(selectClause);
+            if (status) {
+                builder = builder.eq("status", status as RequestStatus);
+            }
+            if (target.foreignTable) {
+                builder = builder.or(buildOrFilters(target.columns, pattern), { foreignTable: target.foreignTable });
+            } else {
+                builder = builder.or(buildOrFilters(target.columns, pattern));
+            }
+            const { data, error } = await builder;
+            if (error) throw new Error(error.message);
+            for (const row of data ?? []) {
+                if (row?.id) ids.add(row.id);
+            }
+        })
+    );
+
+    return Array.from(ids);
 };
 
 const ensurePendingStatus = (status?: string | null) => {
@@ -379,7 +417,11 @@ export const listVisitRequests = async ({
 
     const searchPattern = buildSearchPattern(q);
     if (searchPattern) {
-        query = applyRequestSearchFilters(query, searchPattern);
+        const matchingIds = await findMatchingRequestIds("visit_requests", status, searchPattern);
+        if (matchingIds.length === 0) {
+            return { requests: [], total: 0, totalPages: 1 };
+        }
+        query = query.in("id", matchingIds);
     }
 
     query = query.range(offset, offset + limit - 1);
@@ -415,7 +457,11 @@ export const listReservationRequests = async ({
 
     const searchPattern = buildSearchPattern(q);
     if (searchPattern) {
-        query = applyRequestSearchFilters(query, searchPattern);
+        const matchingIds = await findMatchingRequestIds("reservation_requests", status, searchPattern);
+        if (matchingIds.length === 0) {
+            return { requests: [], total: 0, totalPages: 1 };
+        }
+        query = query.in("id", matchingIds);
     }
 
     query = query.range(offset, offset + limit - 1);
