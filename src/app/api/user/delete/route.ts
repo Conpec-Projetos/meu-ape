@@ -1,5 +1,5 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
-import { deleteUser } from "@/firebase/users/service";
+import { deleteUser } from "@/services/usersService";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function DELETE(request: NextRequest) {

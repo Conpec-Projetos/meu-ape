@@ -12,16 +12,14 @@ import {
 } from "@/components/features/forms/default-form";
 import { Input } from "@/components/features/inputs/default-input";
 import { auth } from "@/firebase/firebase-config";
-import { User } from "@/interfaces/user";
 import { signupSchema } from "@/schemas/signupSchema";
 import { notifyError, notifySuccess } from "@/services/notificationService";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, getFirestore, setDoc } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -30,7 +28,6 @@ export default function RegisterPage() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const router = useRouter();
     const searchParams = useSearchParams();
     const redirectParam = searchParams.get("redirect");
     const safeRedirect = useMemo(() => {
@@ -55,30 +52,46 @@ export default function RegisterPage() {
         setIsLoading(true);
         try {
             const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-            const user = userCredential.user;
+            const idToken = await userCredential.user.getIdToken();
 
-            const db = getFirestore();
-            const userRef = doc(db, "users", user.uid);
+            const profileResponse = await fetch("/api/user/profile", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
+                },
+                body: JSON.stringify({
+                    fullName: values.fullName,
+                    role: "client",
+                    status: "approved",
+                }),
+            });
 
-            const newUser: Omit<User, "id"> = {
-                fullName: values.fullName,
-                email: values.email,
-                role: "client",
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                favorited: [],
-            };
+            if (!profileResponse.ok) {
+                const errorData = await profileResponse.json().catch(() => ({ error: "Erro ao salvar usuário" }));
+                throw new Error(errorData.error || "Não foi possível salvar o usuário.");
+            }
 
-            await setDoc(userRef, newUser);
+            const loginResponse = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ idToken }),
+            });
+
+            if (!loginResponse.ok) {
+                const errorData = await loginResponse.json().catch(() => ({ error: "Erro ao iniciar sessão" }));
+                throw new Error(errorData.error || "Falha ao iniciar sessão.");
+            }
 
             notifySuccess("Conta criada com sucesso! Redirecionando...");
-            router.push(safeRedirect);
+            setTimeout(() => {
+                window.location.assign(safeRedirect);
+            }, 2000);
         } catch (error) {
-            if (error instanceof Error) {
-                notifyError(error.message);
-            } else {
-                notifyError("Ocorreu um erro desconhecido.");
-            }
+            const message = error instanceof Error ? error.message : "Ocorreu um erro desconhecido.";
+            notifyError(message);
         } finally {
             setIsLoading(false);
         }

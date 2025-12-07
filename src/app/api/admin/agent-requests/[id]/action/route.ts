@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { approveAgentRequest, denyAgentRequest } from '@/firebase/users/service';
+import { approveAgentRequest, denyAgentRequest } from '@/services/usersService';
 
 export async function POST(req: NextRequest, context: { params: Promise<{id: string}>}) {
   try {

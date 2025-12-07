@@ -1,11 +1,8 @@
-import { verifySessionCookie } from "@/firebase/firebase-admin-config"; // For getting user ID
-import { db } from "@/firebase/firebase-config";
-import { createVisitRequest } from "@/firebase/visitRequest/service";
+import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { VisitRequest } from "@/interfaces/visitRequest";
 import { sendEmailAdmin } from "@/lib/sendEmailAdmin";
-import { and, collection, doc, getCountFromServer, getDoc, or, query, Timestamp, where } from "firebase/firestore";
+import { supabaseAdmin } from "@/supabase/supabase-admin";
 import { NextResponse, type NextRequest } from "next/server";
 
 interface RequestData {
@@ -28,11 +25,20 @@ export async function POST(req: NextRequest) {
         const userId = decodedClaims.uid;
 
         // Get data from request body
-        const dataToUpload = await req.json();
+        const dataToUpload = (await req.json()) as Partial<RequestData> & {
+            propertyId?: string;
+            unitId?: string;
+            clientMsg?: string;
+        };
 
-        const { requestedSlots, property, unit } = dataToUpload as RequestData;
+        const propertyId = dataToUpload.propertyId ?? dataToUpload.property?.id;
+        const unitId = dataToUpload.unitId ?? dataToUpload.unit?.id;
+        const propertyName = dataToUpload.property?.name;
+        const unitIdentifier = dataToUpload.unit?.identifier;
+        const unitBlock = dataToUpload.unit?.block;
+        const requestedSlots = dataToUpload.requestedSlots ?? [];
 
-        if (!property.id || !unit.id) {
+        if (!propertyId || !unitId || requestedSlots.length === 0) {
             return NextResponse.json({ error: "Bad Request" }, { status: 400 });
         }
 
@@ -63,70 +69,45 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Verify if already exist a request
-        const userRef = doc(db, "users", userId);
-        // Supabase-first: não usamos mais referências do Firebase para property/unit
+        const { count: duplicateCount, error: duplicateError } = await supabaseAdmin
+            .from("visit_requests")
+            .select("id", { count: "exact", head: true })
+            .eq("client_id", userId)
+            .eq("property_id", propertyId)
+            .eq("unit_id", unitId)
+            .in("status", ["pending", "approved"]);
 
-        const q = query(
-            collection(db, "visitRequests"),
-            and(
-                where("client.ref", "==", userRef),
-                where("property.id", "==", property.id),
-                or(where("status", "==", "pending"), where("status", "==", "approved"))
-            )
-        );
+        if (duplicateError) {
+            throw new Error(duplicateError.message);
+        }
 
-        const snapshot = await getCountFromServer(q);
-
-        if (snapshot.data().count > 0) {
+        if ((duplicateCount ?? 0) > 0) {
             return NextResponse.json({ error: "Conflict" }, { status: 409 });
         }
+        const normalizedSlots = requestedSlots.map(slot => toTimeStamp(slot).toISOString());
 
-        // Create Request
-        // Get user name
-        const userSnap = await getDoc(userRef);
-        let userName: string;
-        if (userSnap.exists()) {
-            userName = userSnap.data().fullName as string;
-        } else {
-            console.error("User not found");
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        // format selected dates to Timestamp
-        const timeSlots: Timestamp[] = [];
-        requestedSlots.map(time => {
-            timeSlots.push(toTimeStamp(time));
+        const { error: insertError } = await supabaseAdmin.from("visit_requests").insert({
+            client_id: userId,
+            property_id: propertyId,
+            unit_id: unitId,
+            requested_slots: normalizedSlots,
+            client_msg: dataToUpload.clientMsg ?? null,
         });
 
-        // Upload
-        const uploadData = {
-            client: {
-                fullName: userName,
-                ref: userRef,
-            },
-            property: {
-                name: property.name,
-                id: property.id!,
-            },
-            unit: {
-                block: unit.block ? unit.block : "",
-                identifier: unit.identifier,
-                id: unit.id!,
-            },
-            requestedSlots: timeSlots,
-        } as Partial<VisitRequest>;
+        if (insertError) {
+            throw new Error(insertError.message);
+        }
 
-        await createVisitRequest(uploadData);
+        const userName = await fetchUserName(userId);
 
         // Send emails to admins
         try {
             await sendEmailAdmin({
                 type: "visitRequest",
                 clientName: userName,
-                propertyName: property.name,
-                unitIdentifier: unit.identifier,
-                unitBlock: unit.block,
+                propertyName: propertyName ?? "",
+                unitIdentifier: unitIdentifier ?? "",
+                unitBlock,
                 requestedSlots,
             });
         } catch (error) {
@@ -140,6 +121,12 @@ export async function POST(req: NextRequest) {
         const message = error instanceof Error ? error.message : "Internal Server Error";
         return NextResponse.json({ error: message }, { status: 500 });
     }
+}
+
+async function fetchUserName(userId: string): Promise<string> {
+    const { data, error } = await supabaseAdmin.from("users").select("full_name").eq("id", userId).single();
+    if (error) throw new Error(error.message);
+    return data?.full_name ?? "";
 }
 
 function getDate(date: string) {
@@ -163,9 +150,5 @@ function getDate(date: string) {
 }
 
 function toTimeStamp(date: string) {
-    // Create a Date object
-    const dateObj = getDate(date);
-
-    // Convert to Firebase Timestamp
-    return Timestamp.fromDate(dateObj);
+    return getDate(date);
 }

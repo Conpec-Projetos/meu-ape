@@ -4,12 +4,12 @@ import { Button } from "@/components/features/buttons/default-button";
 import { Card, CardContent, CardHeader } from "@/components/features/cards/default-card";
 import { Checkbox } from "@/components/features/checkboxes/default-checkbox";
 import { JustInTimeDataModal } from "@/components/specifics/properties/justIn-time-data-modal";
-import { auth, db } from "@/firebase/firebase-config";
+import { auth } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
+import { User } from "@/interfaces/user";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/scrollLock";
 import { notifyError, notifySuccess } from "@/services/notificationService";
-import { doc, getDoc } from "firebase/firestore";
 import { Loader, SquareCheck, SquareX } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -54,54 +54,100 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
     }, [isOpen]);
 
     async function loadUserAndStatus() {
-        const user = auth.currentUser;
-        const userDocRef = doc(db, "users", user?.uid || "");
-        const docSnap = await getDoc(userDocRef);
-        if (!docSnap.exists()) return;
-        const userData = docSnap.data() as {
-            fullName?: string;
-            cpf?: string;
-            address?: string;
-            phone?: string;
-            documents?: {
-                addressProof?: string[];
-                incomeProof?: string[];
-                identityDoc?: string[];
-                marriageCert?: string[];
-                bmCert?: string[];
+        if (!auth.currentUser) {
+            setClientName("");
+            setHaveFiles({ addressProof: false, incomeProof: false, identityDoc: false, marriageCert: false });
+            setMissingFields([
+                "fullName",
+                "cpf",
+                "address",
+                "phone",
+                "addressProof",
+                "incomeProof",
+                "identityDoc",
+                "bmCert",
+            ]);
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/user/profile", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    setClientName("");
+                    setHaveFiles({ addressProof: false, incomeProof: false, identityDoc: false, marriageCert: false });
+                    setMissingFields([
+                        "fullName",
+                        "cpf",
+                        "address",
+                        "phone",
+                        "addressProof",
+                        "incomeProof",
+                        "identityDoc",
+                        "bmCert",
+                    ]);
+                    return;
+                }
+                const errPayload = await response.json().catch(() => null);
+                console.error("Erro ao buscar perfil do usuário:", errPayload);
+                return;
+            }
+
+            const payload = await response.json();
+            const userData = (payload?.user as User | undefined) ?? null;
+
+            if (!userData) {
+                setClientName("");
+                setMissingFields([
+                    "fullName",
+                    "cpf",
+                    "address",
+                    "phone",
+                    "addressProof",
+                    "incomeProof",
+                    "identityDoc",
+                    "bmCert",
+                ]);
+                setHaveFiles({ addressProof: false, incomeProof: false, identityDoc: false, marriageCert: false });
+                return;
+            }
+
+            setClientName(userData.fullName ?? "");
+            const documentsRecord = (userData.documents ?? {}) as Record<string, unknown>;
+            const hasDoc = (key: string) => {
+                const value = documentsRecord[key];
+                return Array.isArray(value) && value.length > 0;
             };
-        };
 
-        setClientName(userData?.fullName || "");
+            const filesStatus = {
+                addressProof: hasDoc("addressProof"),
+                incomeProof: hasDoc("incomeProof"),
+                identityDoc: hasDoc("identityDoc"),
+                marriageCert: hasDoc("bmCert") || hasDoc("marriageCert"),
+            };
+            setHaveFiles(filesStatus);
 
-        const filesStatus = {
-            addressProof: Array.isArray(userData?.documents?.addressProof)
-                ? userData!.documents!.addressProof!.length > 0
-                : false,
-            incomeProof: Array.isArray(userData?.documents?.incomeProof)
-                ? userData!.documents!.incomeProof!.length > 0
-                : false,
-            identityDoc: Array.isArray(userData?.documents?.identityDoc)
-                ? userData!.documents!.identityDoc!.length > 0
-                : false,
-            marriageCert: Array.isArray(userData?.documents?.marriageCert)
-                ? userData!.documents!.marriageCert!.length > 0
-                : Array.isArray(userData?.documents?.bmCert)
-                  ? userData!.documents!.bmCert!.length > 0
-                  : false,
-        };
-        setHaveFiles(filesStatus);
-
-        const missing: string[] = [];
-        if (!userData?.fullName) missing.push("fullName");
-        if (!userData?.cpf) missing.push("cpf");
-        if (!userData?.address) missing.push("address");
-        if (!userData?.phone) missing.push("phone");
-        if (!filesStatus.addressProof) missing.push("addressProof");
-        if (!filesStatus.incomeProof) missing.push("incomeProof");
-        if (!filesStatus.identityDoc) missing.push("identityDoc");
-        if (!filesStatus.marriageCert) missing.push("bmCert");
-        setMissingFields(missing);
+            const missing: string[] = [];
+            const requiredFields = ["fullName", "cpf", "address", "phone"] as const;
+            requiredFields.forEach(field => {
+                const value = userData[field];
+                if (!value || (typeof value === "string" && value.trim() === "")) {
+                    missing.push(field);
+                }
+            });
+            if (!filesStatus.addressProof) missing.push("addressProof");
+            if (!filesStatus.incomeProof) missing.push("incomeProof");
+            if (!filesStatus.identityDoc) missing.push("identityDoc");
+            if (!filesStatus.marriageCert) missing.push("bmCert");
+            setMissingFields(missing);
+        } catch (error) {
+            console.error("Erro ao carregar dados do usuário:", error);
+        }
     }
 
     useEffect(() => {

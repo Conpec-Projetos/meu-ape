@@ -1,5 +1,5 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
-import { deleteUserProfilePhoto, uploadUserProfilePhoto } from "@/firebase/users/service";
+import { deleteUserProfilePhoto, uploadUserProfilePhoto } from "@/services/usersService";
 import { NextResponse, type NextRequest } from "next/server";
 
 const MAX_SIZE_BYTES = 3 * 1024 * 1024; // 3 MB

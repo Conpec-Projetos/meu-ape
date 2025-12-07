@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listAgentRequests } from '@/firebase/users/service';
+import { listAgentRequests } from '@/services/usersService';
 
 export async function GET(req: NextRequest) {
   try {

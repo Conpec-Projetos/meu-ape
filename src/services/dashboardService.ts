@@ -1,31 +1,60 @@
-import { createClient } from "@/supabase/supabase"; // Seu client server-side ou client-side
+import { supabaseAdmin } from "@/supabase/supabase-admin";
 
-export async function getUserRequests(userId: string, type: "visits" | "reservations", page = 1) {
-    const supabase = await createClient(); // Se for Server Component
+const PAGE_SIZE = 15;
+
+type RequestType = "visits" | "reservations";
+
+const selectMap: Record<RequestType, string> = {
+    visits: `
+        id,
+        status,
+        requested_slots,
+        scheduled_slot,
+        client_msg,
+        agent_msg,
+        created_at,
+        updated_at,
+        property:properties(id,name,address),
+        unit:units(id,identifier,block)
+    `,
+    reservations: `
+        id,
+        status,
+        client_msg,
+        agent_msg,
+        transaction_docs,
+        created_at,
+        updated_at,
+        property:properties(id,name,address),
+        unit:units(id,identifier,block)
+    `,
+};
+
+export async function getUserRequests(userId: string, type: RequestType, page = 1, pageSize = PAGE_SIZE) {
+    if (!userId) {
+        throw new Error("User ID is required");
+    }
+
     const table = type === "visits" ? "visit_requests" : "reservation_requests";
-    const from = (page - 1) * 15;
-    const to = from + 14;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-    // A mágica do Supabase: Join automático com propriedades e unidades
-    const { data, count, error } = await supabase
+    const { data, count, error } = await supabaseAdmin
         .from(table)
-        .select(`
-            *,
-            property:properties(name, address),
-            unit:units(identifier, block),
-            assignments:request_assignments(
-                agent:users(full_name, email, phone)
-            )
-        `, { count: 'exact' })
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false })
+        .select(selectMap[type], { count: "exact" })
+        .eq("client_id", userId)
+        .order("created_at", { ascending: false })
         .range(from, to);
 
     if (error) throw new Error(error.message);
 
-    return { 
-        requests: data, 
-        total: count,
-        totalPages: Math.ceil((count || 0) / 15) 
+    const total = count ?? 0;
+    const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize);
+
+    return {
+        requests: data ?? [],
+        total,
+        totalPages,
+        pageSize,
     };
 }

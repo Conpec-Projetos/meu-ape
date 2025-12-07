@@ -1,4 +1,4 @@
-import { listAdminEmails } from "@/firebase/users/service";
+import { listAdminEmails } from "@/services/usersService";
 import { Resend } from "resend";
 
 interface AgentRequestEmailData {

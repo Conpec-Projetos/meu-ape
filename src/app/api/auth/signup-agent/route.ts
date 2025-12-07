@@ -1,16 +1,12 @@
-
-import { auth, db, storage } from "@/firebase/firebase-config";
-import { AgentRegistrationRequest } from "@/interfaces/agentRegistrationRequest";
-import { User } from "@/interfaces/user";
+import { auth } from "@/firebase/firebase-config";
 import { sendEmailAdmin } from "@/lib/sendEmailAdmin";
 import { agentSchema } from "@/schemas/agentRegistrationRequestSchema";
+import { createAgentRegistrationRequest, createUser, uploadUserDocuments } from "@/services/usersService";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function POST (req: NextRequest){
-    try{
+export async function POST(req: NextRequest) {
+    try {
         // 1. Get data from request body
         const form = await req.formData();
 
@@ -44,99 +40,81 @@ export async function POST (req: NextRequest){
             creciCert: filesCreciCert,
         };
 
-
         // Validade zod form
         const validation = agentSchema.safeParse(parsedData);
         if (!validation.success) {
-            return NextResponse.json({error: "Invalid data"}, {status: 400})
+            return NextResponse.json({ error: "Invalid data" }, { status: 400 });
         }
-            
-        const { email, fullName, cpf, rg, address, city, creci, phone, creciCardPhoto, creciCert, password } = validation.data;
+
+        const { email, fullName, cpf, rg, address, city, creci, phone, creciCardPhoto, creciCert, password } =
+            validation.data;
 
         // 2. Create Account
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const userId = userCredential.user.uid;
 
-        // 3. Upload files
-        const urlsCard = await uploadFiles(Array.from(creciCardPhoto) as File[], userId);
-        const urlsCert = await uploadFiles(Array.from(creciCert) as File[], userId);
+        const sanitizedCpf = cpf.replace(/\D/g, "");
+        const sanitizedRg = rg.replace(/\D/g, "");
+        const sanitizedPhone = "+55" + phone.replace(/\D/g, "");
 
-
-        // 4. Create User doc
-        const newUser: User = {
+        await createUser({
             id: userId,
             email,
             role: "agent",
             status: "pending",
             fullName,
-            rg: rg.replace(/\./g, "").replace(/-/g, ""),
-            cpf: cpf.replace(/\./g, "").replace(/-/g, ""),
+            rg: sanitizedRg,
+            cpf: sanitizedCpf,
             address,
-            phone: "+55" + phone.replace(/\D/g, ""),
+            phone: sanitizedPhone,
             documents: {},
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
             agentProfile: {
                 creci,
                 city,
                 documents: {
-                    creciCardPhoto: urlsCard[0] ? urlsCard : [],
-                    creciCert: urlsCert[0] ? urlsCert : [],
+                    creciCardPhoto: [],
+                    creciCert: [],
                 },
             },
-        };
+        });
 
-        const userDocRef = doc(db, "users", userId);
-        await setDoc(userDocRef, newUser);
+        const uploadedDocs = await uploadUserDocuments(userId, {
+            creciCardPhoto: Array.from(creciCardPhoto) as File[],
+            creciCert: Array.from(creciCert) as File[],
+        });
 
-        // 5. Create registration request
-        const resgDocRef = doc(db, "agentRegistrationRequests", userId);
-    
-        await setDoc(resgDocRef, {
-            status: "pending",
-            applicantData: {
-                email,
-                fullName,
-                cpf: cpf.replace(/\./g, "").replace(/-/g, ""),
-                rg: rg.replace(/\./g, "").replace(/-/g, ""),
-                address,
-                city,
-                creci,
-                phone: "+55" + phone.replace(/\D/g, ""), // Remove todos os caracteres não numéricos
-                creciCardPhoto: urlsCard[0] ? urlsCard : [],
-                creciCert: urlsCert[0] ? urlsCert : [],
-            },
-            submittedAt: serverTimestamp(),
-            requesterId: userDocRef,
-        } as AgentRegistrationRequest);
+        await createAgentRegistrationRequest(userId, {
+            email,
+            fullName,
+            cpf: sanitizedCpf,
+            rg: sanitizedRg,
+            address,
+            city,
+            creci,
+            phone: sanitizedPhone,
+            creciCardPhoto: uploadedDocs.creciCardPhoto ?? [],
+            creciCert: uploadedDocs.creciCert ?? [],
+        });
 
         // 6. Enviar email de notificação para admins
-        try{
-            await sendEmailAdmin({type: "agentRequest", agentName: fullName});
-        } catch(error){
+        try {
+            await sendEmailAdmin({ type: "agentRequest", agentName: fullName });
+        } catch (error) {
             console.error(error);
         }
 
         // 7. Return success response
         return NextResponse.json({ success: true, message: "Registration requested successfully" });
-
-
-    } catch(error){
+    } catch (error) {
         console.error("Error creating visit request:", error);
         if (error instanceof Error && "code" in error) {
             // Creating account error
-            switch(error.code){
+            switch (error.code) {
                 case "auth/email-already-in-use":
-                    return NextResponse.json(
-                        { error: "Email já cadastrado", path: "email" },
-                        { status: 400 }
-                    );
+                    return NextResponse.json({ error: "Email já cadastrado", path: "email" }, { status: 400 });
 
                 case "auth/invalid-email":
-                    return NextResponse.json(
-                        { error: "Email inválido", path: "email" },
-                        { status: 400 }
-                    );
+                    return NextResponse.json({ error: "Email inválido", path: "email" }, { status: 400 });
 
                 case "auth/weak-password":
                     return NextResponse.json(
@@ -145,27 +123,11 @@ export async function POST (req: NextRequest){
                     );
 
                 default:
-                    return NextResponse.json(
-                        { error: "Não foi possível criar o usuário." },
-                        { status: 500 }
-                    );
+                    return NextResponse.json({ error: "Não foi possível criar o usuário." }, { status: 500 });
             }
         } else {
-            const message = error instanceof Error? error.message : "Internal Server Error";
-            return NextResponse.json({error: message}, {status: 500});
+            const message = error instanceof Error ? error.message : "Internal Server Error";
+            return NextResponse.json({ error: message }, { status: 500 });
         }
     }
-
-}
-
-
-async function uploadFiles(files: File[], agentId: string): Promise<string[]> {
-    const urls: string[] = [];
-    for (const file of files) {
-        const storageRef = ref(storage, `agentFiles/${agentId}/${file.name}`);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        urls.push(url);
-    }
-    return urls;
 }

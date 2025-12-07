@@ -1,5 +1,5 @@
-import { listReservationRequests, listVisitRequests } from "@/firebase/admin/requests/service";
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
+import { listReservationRequests, listVisitRequests } from "@/services/adminRequestsService";
 import { NextRequest, NextResponse } from "next/server";
 
 async function isAdmin(request: NextRequest): Promise<boolean> {

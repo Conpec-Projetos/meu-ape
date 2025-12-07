@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateUser, deleteUser } from '@/firebase/users/service';
+import { updateUser, deleteUser } from '@/services/usersService';
 
 export async function PUT(req: NextRequest, context: { params: Promise<{id: string}>}) {
   try {

@@ -1,6 +1,8 @@
-import { getUserRequests } from "@/firebase/dashboard/service";
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
+import { getUserRequests } from "@/services/dashboardService";
 import { NextResponse, type NextRequest } from "next/server";
+
+const PAGE_SIZE = 15;
 
 export async function GET(request: NextRequest) {
     try {
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
         // 2. Parse query parameters
         const { searchParams } = new URL(request.url);
         const typeParam = searchParams.get("type");
-        const cursor = searchParams.get("cursor") || undefined; // Passa como undefined se for null
+        const cursor = searchParams.get("cursor") || searchParams.get("page") || undefined;
 
         if (typeParam !== "visits" && typeParam !== "reservations") {
             return NextResponse.json(
@@ -30,11 +32,16 @@ export async function GET(request: NextRequest) {
         }
         const type = typeParam as "visits" | "reservations";
 
-        // 3. Fetch data using the service function
-        const result = await getUserRequests(userId, type, cursor);
+        const page = cursor ? Math.max(1, Number.parseInt(cursor, 10) || 1) : 1;
 
-        // 4. Return the data
-        return NextResponse.json(result);
+        const { requests: rawRequests, totalPages } = await getUserRequests(userId, type, page, PAGE_SIZE);
+
+        const requests = type === "visits" ? mapVisitRequests(rawRequests) : mapReservationRequests(rawRequests);
+
+        const hasNextPage = page < totalPages;
+        const nextPageCursor = hasNextPage ? String(page + 1) : null;
+
+        return NextResponse.json({ requests, nextPageCursor, hasNextPage });
     } catch (error) {
         console.error("Error fetching user requests:", error);
         const message = error instanceof Error ? error.message : "Internal Server Error";
@@ -56,3 +63,88 @@ export async function GET(request: NextRequest) {
         return response;
     }
 }
+
+type PropertyShape = {
+    id: string;
+    name: string | null;
+    address: string | null;
+} | null;
+
+type UnitShape = {
+    id: string;
+    identifier: string | null;
+    block: string | null;
+} | null;
+
+type VisitRequestRow = {
+    id: string;
+    status: string;
+    requested_slots: string[] | null;
+    scheduled_slot: string | null;
+    client_msg: string | null;
+    agent_msg: string | null;
+    created_at: string;
+    updated_at: string;
+    property: PropertyShape;
+    unit: UnitShape;
+};
+
+type ReservationRequestRow = {
+    id: string;
+    status: string;
+    client_msg: string | null;
+    agent_msg: string | null;
+    transaction_docs: Record<string, unknown> | null;
+    created_at: string;
+    updated_at: string;
+    property: PropertyShape;
+    unit: UnitShape;
+};
+
+const mapVisitRequest = (row: VisitRequestRow) => ({
+    id: row.id,
+    status: row.status,
+    property: normalizeProperty(row.property),
+    unit: normalizeUnit(row.unit),
+    requestedSlots: row.requested_slots ?? [],
+    scheduledSlot: row.scheduled_slot,
+    clientMsg: row.client_msg,
+    agentMsg: row.agent_msg,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+});
+
+const mapReservationRequest = (row: ReservationRequestRow) => ({
+    id: row.id,
+    status: row.status,
+    property: normalizeProperty(row.property),
+    unit: normalizeUnit(row.unit),
+    clientMsg: row.client_msg,
+    agentMsg: row.agent_msg,
+    transactionDocs: row.transaction_docs ?? {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+});
+
+const normalizeProperty = (property: PropertyShape) =>
+    property
+        ? {
+              id: property.id,
+              name: property.name ?? "",
+              address: property.address ?? "",
+          }
+        : null;
+
+const normalizeUnit = (unit: UnitShape) =>
+    unit
+        ? {
+              id: unit.id,
+              identifier: unit.identifier ?? "",
+              block: unit.block ?? "",
+          }
+        : null;
+
+const mapVisitRequests = (rows: unknown[]) => rows.map(row => mapVisitRequest(row as VisitRequestRow));
+
+const mapReservationRequests = (rows: unknown[]) =>
+    rows.map(row => mapReservationRequest(row as ReservationRequestRow));

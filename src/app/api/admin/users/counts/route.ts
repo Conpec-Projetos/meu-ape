@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getUserCounts } from '@/firebase/users/service';
+import { getUserCounts } from '@/services/usersService';
 
 export async function GET() {
   try {

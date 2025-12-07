@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listUsers, createUser } from '@/firebase/users/service';
+import { listUsers, createUser } from '@/services/usersService';
 
 export async function GET(req: NextRequest) {
   try {

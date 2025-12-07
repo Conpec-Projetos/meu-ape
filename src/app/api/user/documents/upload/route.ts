@@ -1,5 +1,5 @@
 import { verifySessionCookie } from "@/firebase/firebase-admin-config";
-import { uploadUserDocuments } from "@/firebase/users/service";
+import { uploadUserDocuments } from "@/services/usersService";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {

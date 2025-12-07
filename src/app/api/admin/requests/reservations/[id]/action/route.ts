@@ -1,11 +1,11 @@
+import { verifySessionCookie } from "@/firebase/firebase-admin-config";
 import {
     approveReservationRequest,
     cancelReservationRequest,
     completeReservationRequest,
     denyReservationRequest,
     RequestActionError,
-} from "@/firebase/admin/requests/service";
-import { verifySessionCookie } from "@/firebase/firebase-admin-config";
+} from "@/services/adminRequestsService";
 import { NextRequest, NextResponse } from "next/server";
 
 type ActionRequestBody =

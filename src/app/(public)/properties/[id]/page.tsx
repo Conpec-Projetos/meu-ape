@@ -11,10 +11,10 @@ import { UnitSelector, UnitStructure } from "@/components/specifics/properties/u
 import { VisitModal } from "@/components/specifics/properties/visit-modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { actionRequirements } from "@/config/actionRequirements";
-import { auth, db } from "@/firebase/firebase-config";
+import { auth } from "@/firebase/firebase-config";
 import { Property } from "@/interfaces/property";
 import { Unit } from "@/interfaces/unit";
-import { doc, DocumentData, getDoc } from "firebase/firestore";
+import { User } from "@/interfaces/user";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -35,31 +35,42 @@ function PropertyPageContent() {
     const [hasNextPage, setHasNextPage] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingUnits, setIsLoadingUnits] = useState(false);
-    const [currentUser, setCurrentUser] = useState<DocumentData>();
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeTourIndex, setActiveTourIndex] = useState(0);
 
     const refetchUserData = async () => {
-        const user = auth.currentUser;
-        if (!user) {
-            setCurrentUser(undefined);
-            return undefined;
+        if (!auth.currentUser) {
+            setCurrentUser(null);
+            return null;
         }
-        const userDocRef = doc(db, "users", user.uid);
+
         try {
-            const docSnap = await getDoc(userDocRef);
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setCurrentUser(data);
-                return data;
-            } else {
-                console.error("Usuário não encontrado no Firestore.");
-                setCurrentUser(undefined);
+            const response = await fetch("/api/user/profile", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    setCurrentUser(null);
+                    return null;
+                }
+                const errorPayload = await response.json().catch(() => null);
+                console.error("Erro ao buscar dados do usuário:", errorPayload);
+                setCurrentUser(null);
+                return null;
             }
-        } catch (error: unknown) {
-            console.error("Erro ao buscar dados do usuário:", String(error));
-            setCurrentUser(undefined);
+
+            const payload = await response.json();
+            const data = (payload?.user as User) ?? null;
+            setCurrentUser(data);
+            return data;
+        } catch (error) {
+            console.error("Erro ao buscar dados do usuário:", error);
+            setCurrentUser(null);
+            return null;
         }
-        return undefined;
     };
 
     useEffect(() => {
@@ -99,14 +110,24 @@ function PropertyPageContent() {
         const userData = (await refetchUserData()) ?? currentUser;
         const currentMissingFields: string[] = [];
         const requiredDocs = ["addressProof", "incomeProof", "identityDoc", "bmCert"];
+        const documentsRecord = (userData?.documents ?? {}) as Record<string, unknown>;
+        const userRecord = (userData ?? {}) as Record<string, unknown>;
 
         required.forEach(field => {
             if (requiredDocs.includes(field)) {
-                if (!userData?.documents || !userData?.documents[field] || userData?.documents[field].length === 0) {
+                const docValue = documentsRecord[field];
+                if (!Array.isArray(docValue) || docValue.length === 0) {
                     currentMissingFields.push(field);
                 }
-            } else if (!userData?.[field]) {
-                currentMissingFields.push(field);
+            } else {
+                const profileValue = userRecord[field];
+                if (
+                    profileValue === undefined ||
+                    profileValue === null ||
+                    (typeof profileValue === "string" && profileValue.trim() === "")
+                ) {
+                    currentMissingFields.push(field);
+                }
             }
         });
 
