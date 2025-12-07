@@ -220,7 +220,6 @@ export type Database = {
           location: unknown
           matterport_urls: string[] | null
           name: string
-          original_firestore_id: string | null
           property_images: string[] | null
           search_tsv: unknown
           search_vector: unknown
@@ -242,7 +241,6 @@ export type Database = {
           location?: unknown
           matterport_urls?: string[] | null
           name: string
-          original_firestore_id?: string | null
           property_images?: string[] | null
           search_tsv?: unknown
           search_vector?: unknown
@@ -264,7 +262,6 @@ export type Database = {
           location?: unknown
           matterport_urls?: string[] | null
           name?: string
-          original_firestore_id?: string | null
           property_images?: string[] | null
           search_tsv?: unknown
           search_vector?: unknown
@@ -943,6 +940,29 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_favorites_with_data: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          address: string
+          available_bathrooms: number[]
+          available_bedrooms: number[]
+          available_garages: number[]
+          delivery_date: string
+          description: string
+          features: string[]
+          id: string
+          lat: number
+          launch_date: string
+          lng: number
+          max_unit_price: number
+          max_unit_size: number
+          min_unit_price: number
+          min_unit_size: number
+          name: string
+          property_images: string[]
+          total_count: number
+        }[]
+      }
       get_property_with_latlng: {
         Args: { p_id: string }
         Returns: {

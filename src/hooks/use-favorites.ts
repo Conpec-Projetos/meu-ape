@@ -1,6 +1,4 @@
-import { db } from "@/firebase/firebase-config";
 import { notifySuccess } from "@/services/notificationService";
-import { arrayRemove, arrayUnion, doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./use-auth";
 
@@ -11,30 +9,49 @@ export function useFavorites() {
     const [favorites, setFavorites] = useState<string[]>([]);
 
     useEffect(() => {
-        if (!user?.id) {
+        const userId = user?.id;
+
+        if (!userId) {
             setFavorites([]);
             return;
         }
 
-        const userRef = doc(db, "users", user.id);
-        const unsubscribe = onSnapshot(
-            userRef,
-            doc => {
-                if (doc.exists()) {
-                    const favorites = doc.data().favorited || [];
-                    const favoritesArray = Array.isArray(favorites)
-                        ? favorites.map(ref => (typeof ref === "string" ? ref : ref.id))
-                        : [];
-                    setFavorites(favoritesArray);
-                } else {
+        let isActive = true;
+
+        const fetchFavorites = async () => {
+            try {
+                const response = await fetch("/api/user/favorites", {
+                    method: "GET",
+                    credentials: "include",
+                    cache: "no-store",
+                });
+
+                if (!isActive) return;
+
+                if (!response.ok) {
+                    const message = `Failed to load favorites (${response.status})`;
+                    console.error(message);
+                    setError(message);
                     setFavorites([]);
+                    return;
                 }
-            },
-            error => {
-                console.error("Error listening to favorites:", error);
+
+                const payload = (await response.json()) as { favorites?: string[] };
+                setFavorites(payload.favorites ?? []);
+            } catch (err) {
+                if (!isActive) return;
+                const message = err instanceof Error ? err.message : "Erro ao carregar favoritos";
+                console.error(message);
+                setError(message);
+                setFavorites([]);
             }
-        );
-        return () => unsubscribe();
+        };
+
+        fetchFavorites();
+
+        return () => {
+            isActive = false;
+        };
     }, [user?.id]);
 
     const isFavorited = useCallback(
@@ -61,12 +78,28 @@ export function useFavorites() {
             setError(null);
 
             try {
-                const userRef = doc(db, "users", user.id);
                 const addToFavorites = !isFavorited(propertyId);
 
-                await updateDoc(userRef, {
-                    favorited: addToFavorites ? arrayUnion(propertyId) : arrayRemove(propertyId),
-                });
+                const response = addToFavorites
+                    ? await fetch("/api/user/favorites", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          credentials: "include",
+                          body: JSON.stringify({ propertyId }),
+                      })
+                    : await fetch(`/api/user/favorites?propertyId=${encodeURIComponent(propertyId)}`, {
+                          method: "DELETE",
+                          credentials: "include",
+                      });
+
+                if (!response.ok) {
+                    const { error: apiError } = (await response.json().catch(() => ({}))) as { error?: string };
+                    throw new Error(apiError ?? "Falha ao atualizar favoritos");
+                }
+
+                setFavorites(prev =>
+                    addToFavorites ? [...prev, propertyId] : prev.filter(favoriteId => favoriteId !== propertyId)
+                );
 
                 if (addToFavorites) {
                     notifySuccess("Imovel adicionado aos favoritos!");

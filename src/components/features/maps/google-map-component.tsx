@@ -100,7 +100,12 @@ function MapEvents() {
     return null;
 }
 
-export function GoogleMapComponent({ properties}: { properties: Property[]}) {
+interface GoogleMapComponentProps {
+    properties: Property[];
+    enableUrlUpdates?: boolean;
+}
+
+export function GoogleMapComponent({ properties, enableUrlUpdates = true}: GoogleMapComponentProps) {
     const isLoaded = useApiIsLoaded();
     const router = useRouter();
     const [colorScheme, setColorScheme] = useState<google.maps.ColorScheme | null>(null);
@@ -155,7 +160,7 @@ export function GoogleMapComponent({ properties}: { properties: Property[]}) {
                 gestureHandling={"greedy"}
                 reuseMaps={true}
             >
-                <MapEvents />
+                {enableUrlUpdates && <MapEvents />}
                 {markers}
             </Map>
         </div>
