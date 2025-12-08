@@ -1013,3 +1013,37 @@ export const cancelReservationRequest = async ({
         await sendEmail(clientEmail, "Reserva cancelada", html);
     }
 };
+
+export const deleteVisitRequest = async (id: string) => {
+    const request = await fetchVisitRequestById(id);
+
+    await supabaseAdmin.from("request_assignments").delete().eq("visit_request_id", id);
+
+    const { data, error } = await supabaseAdmin.from("visit_requests").delete().eq("id", id).select("id");
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de visita não encontrada.");
+    }
+
+    // Se a visita estava aprovada, não há efeito colateral em unidades; limpeza já foi feita.
+    return request.id;
+};
+
+export const deleteReservationRequest = async (id: string) => {
+    const request = await fetchReservationRequestById(id);
+
+    const unitId = request.unit?.id ?? request.unit_id;
+    if (unitId && (request.status === "approved" || request.status === "completed")) {
+        await supabaseAdmin.from("units").update({ is_available: true }).eq("id", unitId);
+    }
+
+    await supabaseAdmin.from("request_assignments").delete().eq("reservation_request_id", id);
+
+    const { data, error } = await supabaseAdmin.from("reservation_requests").delete().eq("id", id).select("id");
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) {
+        throw new RequestActionError("NOT_FOUND", "Solicitação de reserva não encontrada.");
+    }
+
+    return request.id;
+};

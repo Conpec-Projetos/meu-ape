@@ -1,11 +1,6 @@
 "use client";
 
-import {
-    DOCUMENT_GROUPS,
-    RequestTab,
-    STATUS_META,
-    formatDateTime,
-} from "@/components/specifics/admin/requests/constants";
+import { RequestTab, STATUS_META, formatDateTime } from "@/components/specifics/admin/requests/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/adminRequestsResponse";
 import { User } from "@/interfaces/user";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ChangeEvent } from "react";
 
 interface BaseRequestSelection<
@@ -358,12 +353,12 @@ function VisitRequestDetails({
                                 !!request.scheduledSlot
                             }
                         >
-                            <SelectTrigger className="w-full justify-between">
+                            <SelectTrigger className="w-full justify-between cursor-pointer">
                                 <SelectValue placeholder="Selecione o horário" />
                             </SelectTrigger>
                             <SelectContent>
                                 {request.requestedSlots.map(slot => (
-                                    <SelectItem key={slot} value={slot}>
+                                    <SelectItem className="cursor-pointer" key={slot} value={slot}>
                                         {formatDateTime(slot)}
                                     </SelectItem>
                                 ))}
@@ -401,7 +396,11 @@ function VisitRequestDetails({
                                 {agents
                                     .filter(agent => agent.id)
                                     .map(agent => (
-                                        <SelectItem key={agent.id} value={agent.id as string}>
+                                        <SelectItem
+                                            className="cursor-pointer"
+                                            key={agent.id}
+                                            value={agent.id as string}
+                                        >
                                             {agent.fullName}
                                         </SelectItem>
                                     ))}
@@ -421,37 +420,6 @@ function ReservationRequestDetails({ request }: { request: ReservationRequestLis
                 <InfoField label="Telefone" value={request.client.phone} />
                 <InfoField label="CPF" value={request.client.cpf} />
                 <InfoField label="Endereço" value={request.client.address} />
-            </div>
-            <div className="space-y-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Documentos enviados</p>
-                {DOCUMENT_GROUPS.map(group => {
-                    const value = request.client[group.key];
-                    if (!Array.isArray(value)) return null;
-                    return (
-                        <div key={group.key.toString()} className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">{group.label}</p>
-                            {value.length > 0 ? (
-                                <ul className="list-inside list-disc space-y-1">
-                                    {value.map((url, index) => (
-                                        <li key={`${group.key}-${index}`} className="text-sm">
-                                            <a
-                                                href={url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="inline-flex items-center gap-1 text-primary underline-offset-2 hover:underline"
-                                            >
-                                                Documento {index + 1}
-                                                <ExternalLink className="h-3.5 w-3.5" />
-                                            </a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">Nenhum documento enviado.</p>
-                            )}
-                        </div>
-                    );
-                })}
             </div>
         </div>
     );

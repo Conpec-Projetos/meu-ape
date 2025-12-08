@@ -10,9 +10,20 @@ import {
     TAB_URL_TO_INTERNAL,
 } from "@/components/specifics/admin/requests/constants";
 import { RequestFilters } from "@/components/specifics/admin/requests/filters";
-import { RequestReviewDialog, type RequestSelection } from "@/components/specifics/admin/requests/review-dialog";
+import { ReservationDocumentsGallery } from "@/components/specifics/admin/requests/reservation-documents-gallery";
+import { RequestReviewDialog, RequestSelection } from "@/components/specifics/admin/requests/review-dialog";
 import { PageSkeleton } from "@/components/specifics/admin/requests/skeletons";
 import { RequestsTable } from "@/components/specifics/admin/requests/table";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Pagination,
@@ -63,10 +74,18 @@ function AdminRequestsContent() {
     const [agentMsg, setAgentMsg] = useState("");
     const [showDenialFields, setShowDenialFields] = useState(false);
     const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [requestToDelete, setRequestToDelete] = useState<VisitRequestListItem | ReservationRequestListItem | null>(
+        null
+    );
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Agents (for visit approval)
     const [agents, setAgents] = useState<User[]>([]);
     const [isAgentsLoading, setIsAgentsLoading] = useState(false);
+
+    const [docsOpen, setDocsOpen] = useState(false);
+    const [docSections, setDocSections] = useState<{ title: string; items: string[] }[]>([]);
 
     // Helper to push URL params without scroll jump
     const pushParams = useCallback(
@@ -193,6 +212,21 @@ function AdminRequestsContent() {
         pushParams(params);
     };
 
+    const openDocs = (request: ReservationRequestListItem) => {
+        const sections: { title: string; items: string[] }[] = [];
+        const push = (title: string, items?: string[]) => {
+            if (items && items.length) sections.push({ title, items });
+        };
+
+        push("Documentos de identidade", request.client.identityDoc);
+        push("Comprovantes de renda", request.client.incomeProof);
+        push("Comprovantes de endereço", request.client.addressProof);
+        push("Certidões", request.client.bmCert);
+
+        setDocSections(sections);
+        setDocsOpen(true);
+    };
+
     const activeStatusUrl = normalizedStatus ? STATUS_INTERNAL_TO_URL[normalizedStatus] : undefined;
 
     // Open/close modal
@@ -222,6 +256,43 @@ function AdminRequestsContent() {
         setAgentMsg("");
         setShowDenialFields(false);
         setIsActionLoading(false);
+    };
+
+    const handleDeleteRequest = (request: VisitRequestListItem | ReservationRequestListItem) => {
+        setRequestToDelete(request);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteRequest = async () => {
+        if (!requestToDelete) return;
+        const type = tab === "visits" ? "visits" : "reservations";
+        const label = type === "visits" ? "visita" : "reserva";
+
+        setIsDeleting(true);
+        const promise = async () => {
+            const res = await fetch(`/api/admin/requests/${type}/${requestToDelete.id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Erro ao excluir solicitação.");
+            }
+            await fetchRequests();
+            if (selectedRequest?.data.id === requestToDelete.id) {
+                closeModal();
+            }
+            setRequestToDelete(null);
+            setIsDeleteModalOpen(false);
+            return `Solicitação de ${label} excluída com sucesso.`;
+        };
+
+        const promiseResult = promise();
+
+        notifyPromise(promiseResult, {
+            loading: "Excluindo solicitação...",
+            success: message => `${message}`,
+            error: e => (e instanceof Error ? e.message : "Erro ao excluir solicitação."),
+        });
+
+        promiseResult.finally(() => setIsDeleting(false));
     };
 
     const handleModalOpenChange = (open: boolean) => {
@@ -543,6 +614,8 @@ function AdminRequestsContent() {
                         isLoading={isLoading}
                         error={error}
                         onAnalyze={openModal}
+                        onViewDocs={openDocs}
+                        onDelete={handleDeleteRequest}
                     />
 
                     {totalPages > 1 && !isLoading && (
@@ -614,6 +687,36 @@ function AdminRequestsContent() {
                 onCancelReservation={handleCancelReservation}
                 disableDenyAction={showDenialFields && !clientMsg.trim()}
             />
+            <AlertDialog
+                open={isDeleteModalOpen}
+                onOpenChange={open => {
+                    setIsDeleteModalOpen(open);
+                    if (!open) setRequestToDelete(null);
+                }}
+            >
+                <AlertDialogContent className="w-[95vw] max-w-md p-4 sm:p-6">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir solicitação?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação é permanente e removerá a solicitação de {tab === "visits" ? "visita" : "reserva"}
+                            {requestToDelete ? ` para ${requestToDelete.property.name}` : ""}.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+                        <AlertDialogCancel disabled={isDeleting} className="cursor-pointer w-full sm:w-auto">
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={confirmDeleteRequest}
+                            disabled={isDeleting}
+                            className="bg-destructive hover:bg-destructive/90 cursor-pointer w-full sm:w-auto"
+                        >
+                            {isDeleting ? "Removendo..." : "Remover"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <ReservationDocumentsGallery open={docsOpen} sections={docSections} onClose={() => setDocsOpen(false)} />
         </div>
     );
 }
