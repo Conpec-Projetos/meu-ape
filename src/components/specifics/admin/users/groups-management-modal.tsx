@@ -151,7 +151,7 @@ export function GroupsManagementModal({ isOpen, onClose }: GroupsManagementModal
                             <Label htmlFor="group-name">Nome do Grupo</Label>
                             <Input
                                 id="group-name"
-                                placeholder="Ex.: Plaenge"
+                                placeholder="Ex.: Corretores Campinas"
                                 value={formValues.name}
                                 onChange={event => setFormValues(prev => ({ ...prev, name: event.target.value }))}
                                 disabled={isSubmitting}

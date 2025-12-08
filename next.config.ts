@@ -26,6 +26,10 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "*.vercel-storage.com",
             },
+            {
+                protocol: "https",
+                hostname: "storage.googleapis.com",
+            },
         ],
     },
 };

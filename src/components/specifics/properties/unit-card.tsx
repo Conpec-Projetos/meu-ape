@@ -1,12 +1,18 @@
 "use client";
 
-import { PropertyImageGallery } from "@/components/specifics/properties/property-image-gallery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import NextJsImage from "@/components/ui/lightbox-image";
 import { Unit } from "@/interfaces/unit";
 import { Bath, Bed, BedDouble, Building2, Car, Images, LayoutTemplate, Square } from "lucide-react";
 import { useState } from "react";
+import Lightbox from "yet-another-react-lightbox";
+import Counter from "yet-another-react-lightbox/plugins/counter";
+import "yet-another-react-lightbox/plugins/counter.css";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import "yet-another-react-lightbox/plugins/thumbnails.css";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 
 interface UnitCardProps {
     unit: Unit;
@@ -36,6 +42,8 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
     const [showFloorPlanGallery, setShowFloorPlanGallery] = useState(false);
     const hasUnitImages = Array.isArray(unit.images) && unit.images.length > 0;
     const hasFloorPlans = Array.isArray(unit.floorPlanUrls) && unit.floorPlanUrls.length > 0;
+    const imageSlides = hasUnitImages ? unit.images.map(src => ({ src })) : [];
+    const floorPlanSlides = hasFloorPlans && unit.floorPlanUrls ? unit.floorPlanUrls.map(src => ({ src })) : [];
 
     return (
         <Card className="w-full shadow-md hover:shadow-lg transition-shadow border border-border/40 rounded-xl overflow-hidden">
@@ -116,38 +124,42 @@ export function UnitCard({ unit, handleGuardedAction }: UnitCardProps) {
                     </Button>
                 </div>
             </CardFooter>
-            <Dialog open={showImagesGallery} onOpenChange={setShowImagesGallery}>
-                <DialogContent className="w-full max-w-5xl lg:max-w-6xl max-h-[90vh] overflow-y-auto" showCloseButton>
-                    <DialogHeader>
-                        <DialogTitle>Fotos da Unidade {unit.identifier}</DialogTitle>
-                    </DialogHeader>
-                    {hasUnitImages ? (
-                        <PropertyImageGallery
-                            images={unit.images || []}
-                            propertyName={`Unidade ${unit.identifier}`}
-                            fit="contain"
-                        />
-                    ) : (
-                        <p className="text-muted-foreground text-sm">Nenhuma foto cadastrada.</p>
-                    )}
-                </DialogContent>
-            </Dialog>
-            <Dialog open={showFloorPlanGallery} onOpenChange={setShowFloorPlanGallery}>
-                <DialogContent className="w-full max-w-5xl lg:max-w-6xl max-h-[90vh] overflow-y-auto" showCloseButton>
-                    <DialogHeader>
-                        <DialogTitle>Plantas da Unidade {unit.identifier}</DialogTitle>
-                    </DialogHeader>
-                    {hasFloorPlans ? (
-                        <PropertyImageGallery
-                            images={unit.floorPlanUrls || []}
-                            propertyName={`Plantas da Unidade ${unit.identifier}`}
-                            fit="contain"
-                        />
-                    ) : (
-                        <p className="text-muted-foreground text-sm">Nenhuma planta cadastrada.</p>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <Lightbox
+                open={showImagesGallery}
+                close={() => setShowImagesGallery(false)}
+                slides={imageSlides}
+                render={{ slide: NextJsImage }}
+                plugins={[Zoom, Thumbnails, Counter]}
+                zoom={{ maxZoomPixelRatio: 3, zoomInMultiplier: 2, doubleTapDelay: 300 }}
+                thumbnails={{
+                    position: "bottom",
+                    width: 120,
+                    height: 80,
+                    border: 2,
+                    borderRadius: 4,
+                    padding: 4,
+                    gap: 16,
+                }}
+                styles={{ container: { backgroundColor: "rgba(0, 0, 0, .9)" } }}
+            />
+            <Lightbox
+                open={showFloorPlanGallery}
+                close={() => setShowFloorPlanGallery(false)}
+                slides={floorPlanSlides}
+                render={{ slide: NextJsImage }}
+                plugins={[Zoom, Thumbnails, Counter]}
+                zoom={{ maxZoomPixelRatio: 3, zoomInMultiplier: 2, doubleTapDelay: 300 }}
+                thumbnails={{
+                    position: "bottom",
+                    width: 120,
+                    height: 80,
+                    border: 2,
+                    borderRadius: 4,
+                    padding: 4,
+                    gap: 16,
+                }}
+                styles={{ container: { backgroundColor: "rgba(0, 0, 0, .9)" } }}
+            />
         </Card>
     );
 }
