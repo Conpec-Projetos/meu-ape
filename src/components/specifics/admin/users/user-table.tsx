@@ -65,7 +65,7 @@ export function UserTable({
         <TooltipProvider>
             <div>
                 {/* Desktop / Tablet table */}
-                <div className="hidden sm:block overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <Table className="min-w-full">
                         <TableHeader>
                             <TableRow>
@@ -152,7 +152,7 @@ export function UserTable({
                 </div>
 
                 {/* Mobile card list */}
-                <div className="block sm:hidden space-y-3">
+                <div className="block md:hidden space-y-3">
                     {users.map(user => (
                         <div
                             key={user.id}

@@ -28,7 +28,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
         <TooltipProvider>
             <div>
                 {/* Desktop / Tablet table - hidden on small screens */}
-                <div className="hidden sm:block overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <Table className="min-w-full">
                         <TableHeader>
                             <TableRow>
@@ -111,7 +111,7 @@ export function PropertiesTable({ properties, onEdit, onDelete }: PropertiesTabl
                 </div>
 
                 {/* Mobile card list - visible on small screens */}
-                <div className="block sm:hidden space-y-3">
+                <div className="block md:hidden space-y-3">
                     {properties.map(property => {
                         const imageUrl = property.propertyImages?.[0];
                         return (

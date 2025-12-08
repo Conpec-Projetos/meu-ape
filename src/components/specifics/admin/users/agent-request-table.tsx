@@ -79,7 +79,7 @@ export function AgentRequestTable({
         <TooltipProvider>
             <div>
                 {/* Desktop / Tablet table - hidden on small screens */}
-                <div className="hidden sm:block overflow-x-auto">
+                <div className="hidden md:block overflow-x-auto">
                     <Table className="min-w-full">
                         <TableHeader>
                             <TableRow>
@@ -163,7 +163,7 @@ export function AgentRequestTable({
                 </div>
 
                 {/* Mobile card list - visible on small screens */}
-                <div className="block sm:hidden space-y-3">
+                <div className="block md:hidden space-y-3">
                     {requests.map(request => (
                         <div
                             key={request.id}

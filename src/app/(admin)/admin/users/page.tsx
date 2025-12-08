@@ -266,7 +266,6 @@ function UserManagementContent() {
         });
     };
 
-    // Match the property management UX: scroll inside the table without locking the page height.
     const scrollableContainerClasses = "max-h-[60vh] min-h-[24rem] overflow-y-auto pr-1 sm:pr-2";
 
     const renderScrollableTables = () => {

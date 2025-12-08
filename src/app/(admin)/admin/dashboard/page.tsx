@@ -47,7 +47,7 @@ export default function DashboardPage() {
     }, []);
 
     return (
-        <div className="pt-15 min-h-screen bg-gray-50 p-6">
+        <div className="pt-15 min-h-screen p-6">
             <div className="w-full mb-8">
                 <h1 className="text-5xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-600 mt-2">Visão geral do Meu Apê</p>
@@ -152,6 +152,13 @@ export default function DashboardPage() {
                         <CardTitle>Ações Rápidas</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <Link
+                        href="/admin/developers"
+                        className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+                    >
+                        <h3 className="font-semibold text-slate-800">Gerenciar Construtoras</h3>
+                        <p className="text-sm text-slate-600">Editar, remover e gerenciar construtoras existentes e seus contatos.</p>
+                    </Link>
                         <Link
                             href="/admin/property"
                             className="block w-full p-4 text-left bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"

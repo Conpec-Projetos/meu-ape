@@ -20,8 +20,6 @@ function PropertyManagementContent() {
     const [searchQuery, setSearchQuery] = useState("");
     const debounceRef = useRef<number | null>(null);
 
-    // Debounce search input and trigger server search
-    // Debounced search: skip initial run to avoid duplicating the initial load from the hook
     const didMountRef = useRef(false);
     useEffect(() => {
         if (!didMountRef.current) {
@@ -31,14 +29,10 @@ function PropertyManagementContent() {
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
         }
-        // window.setTimeout returns a number in browser environments
         debounceRef.current = window.setTimeout(() => {
             const q = searchQuery.trim();
-            // Use fuzzy search by default
-            // When the search input is cleared, pass an empty string so the
-            // hook treats it as an explicit (empty) query and clears the server-side filter.
             searchProperties(q.length ? q : "", true);
-        }, 400) as unknown as number;
+        }, 500) as unknown as number;
 
         return () => {
             if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -99,8 +93,6 @@ function PropertyManagementContent() {
         }
 
         return (
-            // Use max-height so the container shrinks to fit small result sets
-            // but still scrolls when content exceeds the viewport fraction.
             <div id="scrollableDiv" className="max-h-[60vh] overflow-y-auto">
                 <InfiniteScroll
                     dataLength={properties.length}
@@ -149,8 +141,6 @@ function PropertyManagementContent() {
                     Adicionar Novo Imóvel
                 </Button>
             </div>
-
-            {/* search is handled via effect */}
 
             <Card className="py-6">
                 <CardHeader>
