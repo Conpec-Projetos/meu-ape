@@ -217,7 +217,6 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
                     toast.success("Sua solicitação foi enviada!");
                     onSubmit();
                 } else {
-                    console.error(data);
                     if (res.status == 409) {
                         notifyError("Você já possui uma solicitação para este imóvel");
                     } else {

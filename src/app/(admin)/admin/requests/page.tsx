@@ -174,7 +174,6 @@ function AdminRequestsContent() {
                 setAgents(Array.isArray(data.users) ? data.users : []);
             } catch (e) {
                 if (e instanceof DOMException && e.name === "AbortError") return;
-                console.error(e);
             } finally {
                 if (!controller.signal.aborted) setIsAgentsLoading(false);
             }

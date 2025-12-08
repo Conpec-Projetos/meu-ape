@@ -119,7 +119,6 @@ export default function RegisterPage() {
 
     // Função de submissão do formulário
     const onSubmit = async (formData: AgentFormData) => {
-        console.log(formData);
         setFirebaseError(null);
         setIsUploading(true);
 

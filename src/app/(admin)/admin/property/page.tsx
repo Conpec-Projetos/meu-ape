@@ -63,7 +63,6 @@ function PropertyManagementContent() {
                 toast.success("Imóvel excluído com sucesso!");
                 refreshProperties();
             } catch (error) {
-                console.error("Erro ao excluir imóvel:", error);
                 toast.error(error instanceof Error ? error.message : "Falha ao excluir o imóvel.");
             }
         }

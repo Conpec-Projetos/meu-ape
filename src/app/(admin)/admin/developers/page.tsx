@@ -56,7 +56,6 @@ function AdminDevelopersPageContent() {
             const data = await res.json();
             setDevelopers(data.developers || []);
         } catch (e) {
-            console.error(e);
             toast.error(e instanceof Error ? e.message : "Erro ao carregar construtoras");
         }
     };
@@ -89,7 +88,6 @@ function AdminDevelopersPageContent() {
             toast.success("Construtora removida");
             fetchDevelopers();
         } catch (e) {
-            console.error(e);
             toast.error(e instanceof Error ? e.message : "Erro ao excluir");
         }
     };

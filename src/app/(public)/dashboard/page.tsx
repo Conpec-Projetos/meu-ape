@@ -24,7 +24,7 @@ import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
 import { formatPhone } from "@/lib/utils";
 import { Building2, Calendar, CheckCircle2, Clock, Inbox, Loader2, User2, XCircle } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface RequestItemProps {
@@ -105,7 +105,7 @@ function RequestItem({ request, onClick }: RequestItemProps) {
     const requestedSlots = isVisit ? ((request as VisitRequest).requestedSlots ?? []) : [];
     const scheduledSlot = isVisit ? (request as VisitRequest).scheduledSlot : undefined;
     const agent =
-        isVisit && (request.status === "approved" || request.status === "completed") && request.agents?.length
+        (request.status === "approved" || request.status === "completed") && request.agents?.length
             ? request.agents[0]
             : null;
 
@@ -115,8 +115,8 @@ function RequestItem({ request, onClick }: RequestItemProps) {
             onClick={onClick}
         >
             <CardHeader className="flex flex-col gap-1 space-y-0 pb-3">
-                <div className="flex items-center justify-between gap-3">
-                    <CardTitle className="text-base font-semibold truncate">{propertyName}</CardTitle>
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
+                    <CardTitle className="text-base font-semibold truncate min-w-0">{propertyName}</CardTitle>
                     {(() => {
                         const { Icon, classes } = getStatusMeta(request.status);
                         return (
@@ -129,10 +129,10 @@ function RequestItem({ request, onClick }: RequestItemProps) {
                         );
                     })()}
                 </div>
-                <div className="text-xs text-muted-foreground truncate mb-1">
+                <div className="text-xs text-muted-foreground wrap-break-word leading-snug mb-1">
                     {request.property?.address ?? "Endereço indisponível"}
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground wrap-break-word">
                     <span className="inline-flex items-center gap-1">
                         <Building2 className="h-3.5 w-3.5" />
                         <span className="truncate">
@@ -410,6 +410,7 @@ export default function DashboardPage() {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [fetchTrigger, setFetchTrigger] = useState(0);
     const [cancelLoading, setCancelLoading] = useState(false);
+    const sheetHistoryRef = useRef(false);
 
     const cancelSelectedRequest = async () => {
         if (!selectedRequest?.id) return;
@@ -433,7 +434,6 @@ export default function DashboardPage() {
             setIsSheetOpen(false);
             toast.success("Solicitação cancelada com sucesso.");
         } catch (e) {
-            console.error(e);
             toast.error(e instanceof Error ? e.message : "Erro ao cancelar solicitação.");
         } finally {
             setCancelLoading(false);
@@ -508,7 +508,6 @@ export default function DashboardPage() {
                 setCursor(nextPageCursor);
                 setHasNextPage(newHasNextPage);
             } catch (error) {
-                console.error("Erro ao buscar solicitações:", error);
                 toast.error(error instanceof Error ? error.message : "Erro desconhecido ao buscar dados.");
                 setHasNextPage(false);
             } finally {
@@ -529,9 +528,38 @@ export default function DashboardPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchTrigger, fetchData]);
 
+    const closeSheet = useCallback(() => {
+        setIsSheetOpen(false);
+        if (typeof window === "undefined") return;
+        if (sheetHistoryRef.current) {
+            sheetHistoryRef.current = false;
+            window.history.back();
+        }
+    }, []);
+
+    const openSheet = useCallback(() => {
+        setIsSheetOpen(true);
+        if (typeof window === "undefined") return;
+        if (sheetHistoryRef.current) return;
+        window.history.pushState({ sheet: true }, "", window.location.href);
+        sheetHistoryRef.current = true;
+    }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const handlePopState = () => {
+            if (sheetHistoryRef.current) {
+                sheetHistoryRef.current = false;
+                setIsSheetOpen(false);
+            }
+        };
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, []);
+
     const handleRequestClick = (request: VisitRequest | ReservationRequest) => {
         setSelectedRequest(request);
-        setIsSheetOpen(true);
+        openSheet();
     };
 
     const renderList = (currentRequests: (VisitRequest | ReservationRequest)[], type: "visit" | "reservation") => {
@@ -623,7 +651,7 @@ export default function DashboardPage() {
                     {renderList(requests, "reservation")}
                 </TabsContent>
             </Tabs>
-            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <Sheet open={isSheetOpen} onOpenChange={open => (open ? openSheet() : closeSheet())}>
                 <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
                     {" "}
                     <SheetHeader className="p-4 border-b">

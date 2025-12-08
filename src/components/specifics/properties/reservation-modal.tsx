@@ -195,7 +195,6 @@ export function ReservationModal({ onClose, unit, property, onSubmit, isOpen }: 
                 notifySuccess("Sua solicitação de reserva foi enviada e está em análise!");
                 onSubmit();
             } else {
-                console.error(data);
                 if (res.status === 409) {
                     switch (data.code) {
                         case "AVAILABILITY":

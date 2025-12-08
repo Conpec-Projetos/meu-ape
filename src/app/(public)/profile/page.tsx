@@ -294,7 +294,6 @@ export default function ProfilePage() {
                 });
             })
             .catch((error: Error) => {
-                console.error("Erro ao remover documento:", error);
                 throw error;
             });
 
@@ -377,7 +376,6 @@ export default function ProfilePage() {
                 error: (e: Error) => e.message || "Erro ao enviar foto",
             });
         } catch (e) {
-            console.error(e);
             setProfilePhotoUploading(false);
             notifyError(e instanceof Error ? e.message : "Erro ao processar a imagem");
         }
@@ -681,14 +679,12 @@ export default function ProfilePage() {
                         return "Senha alterada com sucesso!";
                     },
                     error: (err: unknown) => {
-                        console.error("Erro ao atualizar senha:", err);
                         return (err instanceof Error ? err.message : String(err)) || "Erro ao atualizar senha.";
                     },
                 });
                 return "Autenticação confirmada. Atualizando...";
             },
             error: (err: unknown) => {
-                console.error("Erro de reautenticação:", err);
                 let code: unknown = undefined;
                 if (err && typeof err === "object" && "code" in err) code = (err as { code: string }).code;
                 if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
@@ -922,10 +918,28 @@ export default function ProfilePage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <FormField
                                             control={form.control}
+                                            name="rg"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>RG</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="00.000.000-0"
+                                                            {...field}
+                                                            value={field.value ?? ""}
+                                                            onChange={e => field.onChange(formatRG(e.target.value))}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
                                             name="cpf"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>CPF</FormLabel>
+                                                    <FormLabel>CPF/CIN</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             placeholder="000.000.000-00"
@@ -950,24 +964,6 @@ export default function ProfilePage() {
                                                             {...field}
                                                             value={field.value ?? ""}
                                                             onChange={e => field.onChange(formatPhone(e.target.value))}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={form.control}
-                                            name="rg"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>RG</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            placeholder="00.000.000-0"
-                                                            {...field}
-                                                            value={field.value ?? ""}
-                                                            onChange={e => field.onChange(formatRG(e.target.value))}
                                                         />
                                                     </FormControl>
                                                     <FormMessage />

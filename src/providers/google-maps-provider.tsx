@@ -8,7 +8,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
             libraries={["places"]}
             language="pt-BR"
             region="BR"
-            onLoad={() => console.log("Maps API has loaded.")}
+            onLoad={() => console.log("Ok")}
         >
             {children}
         </APIProvider>

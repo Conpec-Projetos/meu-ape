@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/adminRequestsResponse";
 import { User } from "@/interfaces/user";
-import { formatCPF, formatPhone } from "@/lib/utils";
+import { formatCPF, formatPhone, formatRG } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -122,8 +122,8 @@ export function RequestReviewDialog({
     })();
 
     return (
-        <Dialog  open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] max-w-5xl">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-[calc(100vw-1rem)] max-w-5xl max-h-[85vh] overflow-y-auto p-4 sm:p-8">
                 <DialogHeader>
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>
@@ -249,27 +249,31 @@ export function RequestReviewDialog({
                 </div>
 
                 {(isPending || isApproved) && (
-                    <DialogFooter className="sm:justify-between">
+                    <DialogFooter className="flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <DialogClose asChild>
-                            <Button className="cursor-pointer" variant="outline" disabled={isActionLoading}>
+                            <Button
+                                className="w-full cursor-pointer sm:w-auto"
+                                variant="outline"
+                                disabled={isActionLoading}
+                            >
                                 Fechar
                             </Button>
                         </DialogClose>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                             {isPending ? (
                                 mode === "view" ? (
                                     isVisitRequest ? (
                                         <>
                                             <Button
                                                 variant="outline"
-                                                className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                                className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer sm:w-auto"
                                                 onClick={() => setMode("deny")}
                                                 disabled={isActionLoading}
                                             >
                                                 Negar visita
                                             </Button>
                                             <Button
-                                                className="cursor-pointer"
+                                                className="w-full cursor-pointer sm:w-auto"
                                                 onClick={() => setMode("approve")}
                                                 disabled={
                                                     isActionLoading ||
@@ -285,14 +289,14 @@ export function RequestReviewDialog({
                                         <>
                                             <Button
                                                 variant="outline"
-                                                className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                                className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer sm:w-auto"
                                                 onClick={() => setMode("deny")}
                                                 disabled={isActionLoading}
                                             >
                                                 Negar reserva
                                             </Button>
                                             <Button
-                                                className="cursor-pointer"
+                                                className="w-full cursor-pointer sm:w-auto"
                                                 onClick={() => setMode("approve")}
                                                 disabled={isActionLoading}
                                             >
@@ -304,14 +308,14 @@ export function RequestReviewDialog({
                                     <>
                                         <Button
                                             variant="outline"
-                                            className="cursor-pointer"
+                                            className="w-full cursor-pointer sm:w-auto"
                                             onClick={() => setMode("view")}
                                             disabled={isActionLoading}
                                         >
                                             Voltar
                                         </Button>
                                         <Button
-                                            className="cursor-pointer"
+                                            className="w-full cursor-pointer sm:w-auto"
                                             onClick={isVisitRequest ? onApproveVisit : onApproveReservation}
                                             disabled={
                                                 isActionLoading ||
@@ -327,7 +331,7 @@ export function RequestReviewDialog({
                                     <>
                                         <Button
                                             variant="outline"
-                                            className="cursor-pointer"
+                                            className="w-full cursor-pointer sm:w-auto"
                                             onClick={() => setMode("view")}
                                             disabled={isActionLoading}
                                         >
@@ -335,7 +339,7 @@ export function RequestReviewDialog({
                                         </Button>
                                         <Button
                                             variant="outline"
-                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                            className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer sm:w-auto"
                                             onClick={isVisitRequest ? onDenyVisit : onDenyReservation}
                                             disabled={isActionLoading || isClientMsgEmpty}
                                         >
@@ -348,7 +352,7 @@ export function RequestReviewDialog({
                                 <>
                                     <Button
                                         variant="outline"
-                                        className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"
+                                        className="w-full text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer sm:w-auto"
                                         onClick={onCompleteVisit}
                                         disabled={isActionLoading}
                                     >
@@ -360,7 +364,7 @@ export function RequestReviewDialog({
                                 <>
                                     <Button
                                         variant="outline"
-                                        className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"
+                                        className="w-full text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer sm:w-auto"
                                         onClick={onCompleteReservation}
                                         disabled={isActionLoading}
                                     >
@@ -400,6 +404,7 @@ function VisitRequestDetails({
 }) {
     const phoneMasked = request.client.phone ? formatPhone(request.client.phone) : "";
     const cpfMasked = request.client.cpf ? formatCPF(request.client.cpf) : "";
+    const rgMasked = formatRG((request.client as { rg?: string }).rg);
 
     return (
         <div className="space-y-4">
@@ -408,6 +413,7 @@ function VisitRequestDetails({
                 <InfoField label="Email" value={request.client.email} />
                 <InfoField label="Telefone" value={phoneMasked} />
                 <InfoField label="CPF" value={cpfMasked} />
+                <InfoField label="RG" value={rgMasked} />
             </div>
 
             <div className="space-y-2">
@@ -510,6 +516,7 @@ function VisitRequestDetails({
 function ReservationRequestDetails({ request }: { request: ReservationRequestListItem; readOnly: boolean }) {
     const phoneMasked = request.client.phone ? formatPhone(request.client.phone) : "";
     const cpfMasked = request.client.cpf ? formatCPF(request.client.cpf) : "";
+    const rgMasked = formatRG(request.client.rg as string | undefined);
 
     return (
         <div className="space-y-4">
@@ -517,6 +524,7 @@ function ReservationRequestDetails({ request }: { request: ReservationRequestLis
                 <InfoField label="Email" value={request.client.email} />
                 <InfoField label="Telefone" value={phoneMasked} />
                 <InfoField label="CPF" value={cpfMasked} />
+                <InfoField label="RG" value={rgMasked} />
                 <InfoField label="Endereço" value={request.client.address} />
             </div>
         </div>

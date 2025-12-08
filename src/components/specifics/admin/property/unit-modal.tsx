@@ -127,43 +127,48 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                 if (!open) onClose();
             }}
         >
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-w-[min(100vw-1.5rem,640px)] max-h-[90vh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{unit?.id ? "Editar Unidade" : "Adicionar Nova Unidade"}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="identifier" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="identifier" className="text-left sm:text-right">
                             Identificador <span className="text-red-500">*</span>
                         </Label>
                         <Input
                             id="identifier"
                             value={formData.identifier || ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="block" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="block" className="text-left sm:text-right">
                             Bloco
                         </Label>
-                        <Input id="block" value={formData.block || ""} onChange={handleChange} className="col-span-3" />
+                        <Input
+                            id="block"
+                            value={formData.block || ""}
+                            onChange={handleChange}
+                            className="sm:col-span-3"
+                        />
                     </div>
 
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="category" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="category" className="text-left sm:text-right">
                             Categoria
                         </Label>
                         <Input
                             id="category"
                             value={formData.category || ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="price" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="price" className="text-left sm:text-right">
                             Preço <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -171,12 +176,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.price ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="bedrooms" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="bedrooms" className="text-left sm:text-right">
                             Quartos <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -184,12 +189,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.bedrooms ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="suites" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="suites" className="text-left sm:text-right">
                             Suítes
                         </Label>
                         <Input
@@ -197,11 +202,11 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.suites ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="baths" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="baths" className="text-left sm:text-right">
                             Banheiros <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -209,12 +214,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.baths ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="size_sqm" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="size_sqm" className="text-left sm:text-right">
                             Área (m²) <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -222,12 +227,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.size_sqm ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="garages" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="garages" className="text-left sm:text-right">
                             Vagas <span className="text-red-500">*</span>
                         </Label>
                         <Input
@@ -235,12 +240,12 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.garages ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                             aria-required="true"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="floor" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="floor" className="text-left sm:text-right">
                             Andar
                         </Label>
                         <Input
@@ -248,11 +253,11 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.floor ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="final" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="final" className="text-left sm:text-right">
                             Final
                         </Label>
                         <Input
@@ -260,14 +265,14 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                             type="number"
                             value={formData.final ?? ""}
                             onChange={handleChange}
-                            className="col-span-3"
+                            className="sm:col-span-3"
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="isAvailable" className="text-right">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="isAvailable" className="text-left sm:text-right">
                             Disponível
                         </Label>
-                        <div className="col-span-3">
+                        <div className="sm:col-span-3">
                             <Switch
                                 id="isAvailable"
                                 checked={Boolean(formData.isAvailable)}
@@ -280,9 +285,9 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                     </div>
                     {/* Floor plan images */}
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <Label>Plantas da Unidade</Label>
-                            <div>
+                            <div className="flex gap-2 sm:justify-end">
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -295,7 +300,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                                     type="button"
                                     variant="outline"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer w-full sm:w-auto"
                                 >
                                     Adicionar Imagens +
                                 </Button>
@@ -353,9 +358,9 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
 
                     {/* Unit images */}
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <Label>Imagens da Unidade</Label>
-                            <div>
+                            <div className="flex gap-2 sm:justify-end">
                                 <input
                                     ref={imagesFileInputRef}
                                     type="file"
@@ -368,7 +373,7 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                                     type="button"
                                     variant="outline"
                                     onClick={() => imagesFileInputRef.current?.click()}
-                                    className="cursor-pointer"
+                                    className="cursor-pointer w-full sm:w-auto"
                                 >
                                     Adicionar Imagens +
                                 </Button>
@@ -424,14 +429,19 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         )}
                     </div>
                 </div>
-                <DialogFooter>
-                    <p className="text-xs text-muted-foreground mr-auto self-center">
+                <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <p className="text-xs text-muted-foreground sm:mr-auto sm:self-center text-center sm:text-left">
                         Campos marcados com * são obrigatórios.
                     </p>
-                    <Button type="button" variant="outline" onClick={onClose} className="cursor-pointer">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        className="cursor-pointer w-full sm:w-auto"
+                    >
                         <X className="w-4 h-4 mr-2" /> Cancelar
                     </Button>
-                    <Button type="button" onClick={handleSave} className="cursor-pointer">
+                    <Button type="button" onClick={handleSave} className="cursor-pointer w-full sm:w-auto">
                         <Check className="w-4 h-4 mr-2" /> Salvar
                     </Button>
                 </DialogFooter>

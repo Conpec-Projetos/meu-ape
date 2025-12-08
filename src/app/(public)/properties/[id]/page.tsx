@@ -518,7 +518,6 @@ function PropertyPageContent() {
                             openReservationConfirmModal();
                         }
                     } else {
-                        console.error("Estado 'unit' perdido após JIT modal.");
                         toast.error("Erro ao continuar ação. Tente novamente.");
                     }
                 }}

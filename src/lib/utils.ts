@@ -29,6 +29,17 @@ export const formatPhone = (value: string) => {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 };
 
+export const formatRG = (value?: string) => {
+    const digits = digitsOnly(value).slice(0, 9);
+    if (!digits) return "";
+    const p1 = digits.slice(0, 2);
+    const p2 = digits.slice(2, 5);
+    const p3 = digits.slice(5, 8);
+    const p4 = digits.slice(8, 9);
+    const parts = [p1, p2, p3].filter(Boolean).join(".");
+    return p4 ? `${parts}-${p4}` : parts;
+};
+
 export const isValidCPF = (value: string) => {
     const digits = digitsOnly(value);
     if (digits.length !== 11 || /^([0-9])\1{10}$/.test(digits)) return false;

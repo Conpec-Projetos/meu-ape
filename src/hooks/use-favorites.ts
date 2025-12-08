@@ -30,7 +30,6 @@ export function useFavorites() {
 
                 if (!response.ok) {
                     const message = `Failed to load favorites (${response.status})`;
-                    console.error(message);
                     setError(message);
                     setFavorites([]);
                     return;
@@ -41,7 +40,6 @@ export function useFavorites() {
             } catch (err) {
                 if (!isActive) return;
                 const message = err instanceof Error ? err.message : "Erro ao carregar favoritos";
-                console.error(message);
                 setError(message);
                 setFavorites([]);
             }
@@ -108,7 +106,6 @@ export function useFavorites() {
                 const errorMessage =
                     error instanceof Error ? error.message : "Ocorreu um erro ao atualizar os favoritos";
                 setError(errorMessage);
-                console.error(errorMessage);
             } finally {
                 setIsLoading(false);
             }

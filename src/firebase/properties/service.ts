@@ -48,8 +48,6 @@ export async function countProperties(): Promise<number> {
     try {
         const q = query(collection(db, "properties"));
         const snapshot = await getCountFromServer(q);
-        console.log(snapshot);
-        console.log("Total de propriedades:", snapshot.data().count);
         return snapshot.data().count;
     } catch (error) {
         console.error("Erro ao contar propriedades:", error);

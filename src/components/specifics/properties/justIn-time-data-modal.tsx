@@ -103,7 +103,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
     const handleFormSubmit = async (data: UserDataForm) => {
         setIsUploading(true);
 
-        console.log(data);
         const dataFields: Record<string, string> = {};
 
         Object.entries(data).forEach(([key, value]) => {
@@ -159,7 +158,6 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
                 }
             },
             error: err => {
-                console.error("Submit Error:", err);
                 return err.message || "Ocorreu um erro inesperado. Tente novamente.";
             },
         });
