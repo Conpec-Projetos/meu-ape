@@ -120,13 +120,32 @@ function FavoritesPageContent() {
                     </TabsList>
 
                     <TabsContent value="list" className="grow overflow-y-auto min-h-0 p-0">
-                        <PropertyList
-                            properties={properties}
-                            isLoading={isLoading && !isFetchingMore}
-                            innerRef={lastElementRef}
-                        />
-                        {isFetchingMore && (
-                            <div className="text-center py-4 text-sm text-muted-foreground">Carregando mais...</div>
+                        {!isLoading && properties.length === 0 ? (
+                            <div className="flex flex-col items-center text-center gap-3 px-4 py-10 text-muted-foreground">
+                                <Heart className="h-14 w-14 opacity-20" />
+                                <h3 className="text-lg font-medium">Sua lista está vazia</h3>
+                                <p>Explore imóveis e clique no coração para salvá-los aqui.</p>
+                                <Button
+                                    variant="outline"
+                                    className="mt-2 cursor-pointer"
+                                    onClick={() => router.push("/property-search")}
+                                >
+                                    Ir para busca
+                                </Button>
+                            </div>
+                        ) : (
+                            <>
+                                <PropertyList
+                                    properties={properties}
+                                    isLoading={isLoading && !isFetchingMore}
+                                    innerRef={lastElementRef}
+                                />
+                                {isFetchingMore && (
+                                    <div className="text-center py-4 text-sm text-muted-foreground">
+                                        Carregando mais...
+                                    </div>
+                                )}
+                            </>
                         )}
                     </TabsContent>
 
@@ -160,7 +179,7 @@ function FavoritesPageContent() {
                             {!isLoading && properties.length === 0 && (
                                 <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
                                     <div className="bg-white p-4 rounded-lg shadow-lg">
-                                        <p>Seus favoritos aparecerão aqui no mapa.</p>
+                                        <p>Seus favoritos aparecerão no mapa.</p>
                                     </div>
                                 </div>
                             )}
@@ -172,31 +191,34 @@ function FavoritesPageContent() {
                     <ResizablePanel defaultSize={45} minSize={30}>
                         <div className="flex flex-col h-full bg-white">
                             <div className="grow overflow-y-auto scroll-smooth">
-                                <PropertyList
-                                    properties={properties}
-                                    isLoading={isLoading && !isFetchingMore}
-                                    innerRef={lastElementRef}
-                                />
-                                {isFetchingMore && (
-                                    <div className="py-4 text-center">
-                                        <span className="text-sm text-muted-foreground">
-                                            Carregando mais favoritos...
-                                        </span>
-                                    </div>
-                                )}
-                                {!isLoading && properties.length === 0 && (
-                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center">
-                                        <Heart className="h-16 w-16 mb-4 opacity-20" />
+                                {!isLoading && properties.length === 0 ? (
+                                    <div className="flex flex-col items-center text-center gap-3 p-8 pt-10 text-muted-foreground">
+                                        <Heart className="h-16 w-16 opacity-20" />
                                         <h3 className="text-lg font-medium">Sua lista está vazia</h3>
                                         <p>Explore imóveis e clique no coração para salvá-los aqui.</p>
                                         <Button
                                             variant="outline"
-                                            className="mt-4 cursor-pointer"
+                                            className="mt-2 cursor-pointer"
                                             onClick={() => router.push("/property-search")}
                                         >
                                             Ir para busca
                                         </Button>
                                     </div>
+                                ) : (
+                                    <>
+                                        <PropertyList
+                                            properties={properties}
+                                            isLoading={isLoading && !isFetchingMore}
+                                            innerRef={lastElementRef}
+                                        />
+                                        {isFetchingMore && (
+                                            <div className="py-4 text-center">
+                                                <span className="text-sm text-muted-foreground">
+                                                    Carregando mais favoritos...
+                                                </span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>

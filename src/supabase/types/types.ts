@@ -413,6 +413,7 @@ export type Database = {
           block: string | null
           category: string[] | null
           created_at: string
+          deposit: number | null
           final: number | null
           floor: number | null
           floor_plan_urls: string[] | null
@@ -433,6 +434,7 @@ export type Database = {
           block?: string | null
           category?: string[] | null
           created_at?: string
+          deposit?: number | null
           final?: number | null
           floor?: number | null
           floor_plan_urls?: string[] | null
@@ -453,6 +455,7 @@ export type Database = {
           block?: string | null
           category?: string[] | null
           created_at?: string
+          deposit?: number | null
           final?: number | null
           floor?: number | null
           floor_plan_urls?: string[] | null

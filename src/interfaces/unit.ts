@@ -5,6 +5,7 @@ export interface Unit {
     block?: string; // bloco ao qual a unidade pertence (ex: "Bloco B", ou "Externo")
     category?: string; // categoria ao qual a unidade pertence (ex: "75m^2", "120m^2")
     price: number; // preço da unidade
+    deposit?: number; // valor do depósito caução
     size_sqm: number; // tamanho em m^2
     bedrooms: number; // número de dormitórios
     suites?: number; // número de suítes da unidade

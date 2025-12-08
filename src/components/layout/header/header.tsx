@@ -228,7 +228,7 @@ function Header({ variant }: HeaderProps) {
                                 >
                                     <Avatar className="h-9 w-9">
                                         <AvatarImage src={user?.photoUrl} alt={user?.fullName} />
-                                        <AvatarFallback>
+                                        <AvatarFallback className="text-primary">
                                             {user?.fullName ? getInitials(user.fullName) : <CircleUserRound />}
                                         </AvatarFallback>
                                     </Avatar>

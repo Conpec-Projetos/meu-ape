@@ -32,7 +32,7 @@ const fieldConfig: Record<
     { label: string; type: "text" | "tel" | "file"; placeholder?: string; accept?: string }
 > = {
     fullName: { label: "Nome Completo", type: "text", placeholder: "Ex: Peter Parker" },
-    cpf: { label: "CPF", type: "text", placeholder: "000.000.000-00" },
+    cpf: { label: "CPF/CIN", type: "text", placeholder: "000.000.000-00" },
     address: { label: "Endereço", type: "text", placeholder: "Rua Nº - Bairro, Cidade - UF" },
     phone: { label: "Telefone", type: "tel", placeholder: "(DD) 00000-0000" },
     addressProof: { label: "Comprovante de Endereço", type: "file", accept: "image/*,.pdf" },
@@ -106,8 +106,12 @@ export function JustInTimeDataModal({ missingFields, onClose, onSubmit, isOpen }
         const dataFields: Record<string, string> = {};
 
         Object.entries(data).forEach(([key, value]) => {
-            if (typeof value === "string" && value.trim() !== "") {
-                dataFields[key] = value;
+            if (typeof value !== "string") return;
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            const sanitized = key === "cpf" || key === "phone" ? trimmed.replace(/\D/g, "") : trimmed;
+            if (sanitized) {
+                dataFields[key] = sanitized;
             }
         });
 

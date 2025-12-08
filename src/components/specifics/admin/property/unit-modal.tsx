@@ -269,6 +269,18 @@ export function UnitModal({ isOpen, onClose, onSave, unit }: UnitModalProps) {
                         />
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                        <Label htmlFor="deposit" className="text-left sm:text-right">
+                            Depósito
+                        </Label>
+                        <Input
+                            id="deposit"
+                            type="number"
+                            value={formData.deposit ?? ""}
+                            onChange={handleChange}
+                            className="sm:col-span-3"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
                         <Label htmlFor="isAvailable" className="text-left sm:text-right">
                             Disponível
                         </Label>

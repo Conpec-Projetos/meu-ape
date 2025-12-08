@@ -1,5 +1,15 @@
 "use client";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Unit } from "@/interfaces/unit";
@@ -26,6 +36,8 @@ interface UnitTableProps {
 export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUnit, setEditingUnit] = useState<Partial<Unit> | null>(null);
+    const [unitToDelete, setUnitToDelete] = useState<Partial<Unit> | null>(null);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
     const handleAddNew = () => {
         setEditingUnit(null);
@@ -37,14 +49,24 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
         setIsModalOpen(true);
     };
 
-    const handleDelete = (unitId: string) => {
-        if (confirm("Tem certeza que deseja excluir esta unidade?")) {
-            const isPersisted = unitId && !String(unitId).startsWith("temp-");
-            const updatedUnits = isPersisted
-                ? units.map(u => (u.id === unitId ? { ...u, status: "deleted" } : u))
-                : units.filter(u => u.id !== unitId);
-            onUnitsChange(updatedUnits as DraftUnit[]);
+    const handleOpenDelete = (unit: Unit) => {
+        setUnitToDelete(unit);
+        setIsDeleteOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!unitToDelete?.id) {
+            setIsDeleteOpen(false);
+            return;
         }
+        const unitId = unitToDelete.id;
+        const isPersisted = unitId && !String(unitId).startsWith("temp-");
+        const updatedUnits = isPersisted
+            ? units.map(u => (u.id === unitId ? { ...u, status: "deleted" } : u))
+            : units.filter(u => u.id !== unitId);
+        onUnitsChange(updatedUnits as DraftUnit[]);
+        setIsDeleteOpen(false);
+        setUnitToDelete(null);
     };
 
     const handleSaveUnit = (unit: Unit) => {
@@ -72,11 +94,12 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
             {/* Desktop table */}
             <div className="hidden sm:block border rounded-md overflow-hidden">
                 <div className="overflow-x-auto">
-                    <Table className="min-w-[1100px]">
+                    <Table className="min-w-[1200px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Identificador</TableHead>
                                 <TableHead>Preço</TableHead>
+
                                 <TableHead>Bloco</TableHead>
                                 <TableHead>Categoria</TableHead>
                                 <TableHead>Área (m²)</TableHead>
@@ -86,6 +109,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                 <TableHead>Vagas</TableHead>
                                 <TableHead>Andar</TableHead>
                                 <TableHead>Final</TableHead>
+                                <TableHead>Depósito</TableHead>
                                 <TableHead>Imagens</TableHead>
                                 <TableHead>Plantas</TableHead>
                                 <TableHead>Disponível</TableHead>
@@ -116,6 +140,14 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                             <TableCell>{unit.garages}</TableCell>
                                             <TableCell>{typeof unit.floor === "number" ? unit.floor : "-"}</TableCell>
                                             <TableCell>{typeof unit.final === "number" ? unit.final : "-"}</TableCell>
+                                            <TableCell>
+                                                {typeof unit.deposit === "number"
+                                                    ? new Intl.NumberFormat("pt-BR", {
+                                                          style: "currency",
+                                                          currency: "BRL",
+                                                      }).format(unit.deposit)
+                                                    : "-"}
+                                            </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-2 items-center">
                                                     {((unit.images || [])[0] || (unit.imagePreviews || [])[0]) && (
@@ -164,7 +196,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => unit.id && handleDelete(unit.id)}
+                                                    onClick={() => unit.id && handleOpenDelete(unit as Unit)}
                                                     className="cursor-pointer"
                                                 >
                                                     <Trash2 className="h-4 w-4 text-red-500" />
@@ -174,7 +206,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                     ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={15} className="text-center h-24 text-muted-foreground">
+                                    <TableCell colSpan={16} className="text-center h-24 text-muted-foreground">
                                         Nenhuma unidade cadastrada.
                                     </TableCell>
                                 </TableRow>
@@ -206,6 +238,15 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                                 style: "currency",
                                                 currency: "BRL",
                                             }).format(unit.price || 0)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Depósito:{" "}
+                                            {typeof unit.deposit === "number"
+                                                ? new Intl.NumberFormat("pt-BR", {
+                                                      style: "currency",
+                                                      currency: "BRL",
+                                                  }).format(unit.deposit)
+                                                : "-"}
                                         </p>
                                         <p className="text-xs text-muted-foreground">
                                             {unit.isAvailable ? "Disponível" : "Indisponível"}
@@ -268,7 +309,7 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                                         type="button"
                                         variant="destructive"
                                         className="flex-1 cursor-pointer"
-                                        onClick={() => unit.id && handleDelete(unit.id)}
+                                        onClick={() => unit.id && handleOpenDelete(unit as Unit)}
                                     >
                                         <Trash2 className="h-4 w-4 mr-2" /> Excluir
                                     </Button>
@@ -290,6 +331,25 @@ export default function UnitTable({ units, onUnitsChange }: UnitTableProps) {
                     unit={editingUnit}
                 />
             )}
+
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir unidade</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Essa ação irá marcar a unidade como removida. Deseja continuar?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="cursor-pointer" onClick={() => setUnitToDelete(null)}>
+                            Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction className="cursor-pointer" onClick={handleConfirmDelete}>
+                            Excluir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
