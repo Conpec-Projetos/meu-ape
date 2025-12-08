@@ -11,11 +11,13 @@ import { NextRequest, NextResponse } from "next/server";
 type ActionRequestBody =
     | {
           action: "approve";
+          clientMsg?: string;
+          agentMsg?: string;
+          agentId?: string;
       }
     | {
           action: "deny";
           clientMsg: string;
-          agentMsg?: string;
       }
     | { action: "complete" }
     | { action: "cancel"; clientMsg?: string; agentMsg?: string };
@@ -55,16 +57,17 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         }
 
         if (body.action === "approve") {
-            await approveReservationRequest(id);
+            const { clientMsg, agentMsg, agentId } = body;
+            await approveReservationRequest({ id, clientMsg, agentMsg, agentId });
             return NextResponse.json({ message: "Reserva aprovada com sucesso" });
         }
 
         if (body.action === "deny") {
-            const { clientMsg, agentMsg } = body;
+            const { clientMsg } = body;
             if (!clientMsg || !clientMsg.trim()) {
                 return NextResponse.json({ error: "Mensagem para o cliente é obrigatória" }, { status: 400 });
             }
-            await denyReservationRequest({ id, clientMsg, agentMsg });
+            await denyReservationRequest({ id, clientMsg });
             return NextResponse.json({ message: "Reserva negada com sucesso" });
         }
 

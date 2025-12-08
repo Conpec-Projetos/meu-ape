@@ -72,7 +72,6 @@ function AdminRequestsContent() {
     const [selectedAgentId, setSelectedAgentId] = useState("");
     const [clientMsg, setClientMsg] = useState("");
     const [agentMsg, setAgentMsg] = useState("");
-    const [showDenialFields, setShowDenialFields] = useState(false);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [requestToDelete, setRequestToDelete] = useState<VisitRequestListItem | ReservationRequestListItem | null>(
@@ -101,19 +100,16 @@ function AdminRequestsContent() {
         [pathname, router, searchParams]
     );
 
-    // Keep input in sync when URL changes externally
     useEffect(() => {
         setSearchInput(q);
         setDebouncedSearch(q);
     }, [q]);
 
-    // Debounce search input
     useEffect(() => {
         const handler = window.setTimeout(() => setDebouncedSearch(searchInput), 500);
         return () => window.clearTimeout(handler);
     }, [searchInput]);
 
-    // Write debounced value back to URL
     useEffect(() => {
         const current = searchParams.get("q") ?? "";
         if (debouncedSearch === current) return;
@@ -124,7 +120,6 @@ function AdminRequestsContent() {
         pushParams(params);
     }, [debouncedSearch, pushParams, searchParams]);
 
-    // Fetch requests whenever URL state changes
     const fetchRequests = useCallback(
         async (signal?: AbortSignal) => {
             setIsLoading(true);
@@ -164,9 +159,8 @@ function AdminRequestsContent() {
         return () => controller.abort();
     }, [fetchRequests]);
 
-    // Lazy-load agents when opening a visit request
     useEffect(() => {
-        if (!isModalOpen || selectedRequest?.type !== "visits") return;
+        if (!isModalOpen) return;
         if (agents.length > 0) return;
         const controller = new AbortController();
         (async () => {
@@ -188,7 +182,6 @@ function AdminRequestsContent() {
         return () => controller.abort();
     }, [agents.length, isModalOpen, selectedRequest]);
 
-    // Handlers to update URL-state
     const handleTabChange = (value: string) => {
         const nextTab = TAB_URL_TO_INTERNAL[value] ?? "visits";
         const params = new URLSearchParams(searchParams.toString());
@@ -229,7 +222,6 @@ function AdminRequestsContent() {
 
     const activeStatusUrl = normalizedStatus ? STATUS_INTERNAL_TO_URL[normalizedStatus] : undefined;
 
-    // Open/close modal
     const openModal = (request: VisitRequestListItem | ReservationRequestListItem) => {
         if (tab === "visits") {
             const visit = request as VisitRequestListItem;
@@ -243,7 +235,6 @@ function AdminRequestsContent() {
         setSelectedAgentId("");
         setClientMsg("");
         setAgentMsg("");
-        setShowDenialFields(false);
         setIsModalOpen(true);
     };
 
@@ -254,7 +245,6 @@ function AdminRequestsContent() {
         setSelectedAgentId("");
         setClientMsg("");
         setAgentMsg("");
-        setShowDenialFields(false);
         setIsActionLoading(false);
     };
 
@@ -300,10 +290,9 @@ function AdminRequestsContent() {
         else setIsModalOpen(true);
     };
 
-    // Actions: visits
     const handleApproveVisit = async () => {
         if (!selectedRequest || selectedRequest.type !== "visits") return;
-        if (selectedRequest.data.status !== "pending") return; // read-only guard
+        if (selectedRequest.data.status !== "pending") return;
         if (!selectedSlot || !selectedAgentId) return;
         setIsActionLoading(true);
         const promise = new Promise<string>(async (resolve, reject) => {
@@ -316,6 +305,7 @@ function AdminRequestsContent() {
                         scheduledSlot: selectedSlot,
                         agentId: selectedAgentId,
                         agentMsg,
+                        clientMsg,
                     }),
                 });
                 if (!response.ok) {
@@ -341,10 +331,6 @@ function AdminRequestsContent() {
     const handleDenyVisit = async () => {
         if (!selectedRequest || selectedRequest.type !== "visits") return;
         if (selectedRequest.data.status !== "pending") return; // read-only guard
-        if (!showDenialFields) {
-            setShowDenialFields(true);
-            return;
-        }
         if (!clientMsg.trim()) return;
         setIsActionLoading(true);
         const promise = new Promise<string>(async (resolve, reject) => {
@@ -352,7 +338,7 @@ function AdminRequestsContent() {
                 const response = await fetch(`/api/admin/requests/visits/${selectedRequest.data.id}/action`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "deny", clientMsg, agentMsg }),
+                    body: JSON.stringify({ action: "deny", clientMsg }),
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
@@ -384,7 +370,7 @@ function AdminRequestsContent() {
                 const response = await fetch(`/api/admin/requests/reservations/${selectedRequest.data.id}/action`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "approve" }),
+                    body: JSON.stringify({ action: "approve", clientMsg, agentMsg, agentId: selectedAgentId }),
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
@@ -409,10 +395,6 @@ function AdminRequestsContent() {
     const handleDenyReservation = async () => {
         if (!selectedRequest || selectedRequest.type !== "reservations") return;
         if (selectedRequest.data.status !== "pending") return; // read-only guard
-        if (!showDenialFields) {
-            setShowDenialFields(true);
-            return;
-        }
         if (!clientMsg.trim()) return;
         setIsActionLoading(true);
         const promise = new Promise<string>(async (resolve, reject) => {
@@ -420,7 +402,7 @@ function AdminRequestsContent() {
                 const response = await fetch(`/api/admin/requests/reservations/${selectedRequest.data.id}/action`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "deny", clientMsg, agentMsg }),
+                    body: JSON.stringify({ action: "deny", clientMsg }),
                 });
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
@@ -666,7 +648,6 @@ function AdminRequestsContent() {
                 request={selectedRequest}
                 onOpenChange={handleModalOpenChange}
                 isActionLoading={isActionLoading}
-                showDenialFields={showDenialFields}
                 clientMsg={clientMsg}
                 agentMsg={agentMsg}
                 selectedSlot={selectedSlot}
@@ -685,7 +666,6 @@ function AdminRequestsContent() {
                 onCancelVisit={handleCancelVisit}
                 onCompleteReservation={handleCompleteReservation}
                 onCancelReservation={handleCancelReservation}
-                disableDenyAction={showDenialFields && !clientMsg.trim()}
             />
             <AlertDialog
                 open={isDeleteModalOpen}

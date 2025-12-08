@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/adminRequestsResponse";
 import { User } from "@/interfaces/user";
 import { Loader2 } from "lucide-react";
-import { ChangeEvent } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
 interface BaseRequestSelection<
     TType extends RequestTab,
@@ -36,7 +36,6 @@ interface RequestReviewDialogProps {
     request: RequestSelection | null;
     onOpenChange: (open: boolean) => void;
     isActionLoading: boolean;
-    showDenialFields: boolean;
     clientMsg: string;
     agentMsg: string;
     selectedSlot: string;
@@ -55,8 +54,9 @@ interface RequestReviewDialogProps {
     onCancelVisit: () => void;
     onCompleteReservation: () => void;
     onCancelReservation: () => void;
-    disableDenyAction: boolean;
 }
+
+type InteractionMode = "view" | "approve" | "deny";
 
 function InfoField({ label, value }: { label: string; value?: string | null }) {
     return (
@@ -72,7 +72,6 @@ export function RequestReviewDialog({
     request,
     onOpenChange,
     isActionLoading,
-    showDenialFields,
     clientMsg,
     agentMsg,
     selectedSlot,
@@ -91,8 +90,18 @@ export function RequestReviewDialog({
     onCancelVisit,
     onCompleteReservation,
     onCancelReservation,
-    disableDenyAction,
 }: RequestReviewDialogProps) {
+    const [mode, setMode] = useState<InteractionMode>("view");
+    useEffect(() => {
+        if (open) setMode("view");
+    }, [open]);
+
+    useEffect(() => {
+        if (request?.data.status !== "pending" && mode !== "view") {
+            setMode("view");
+        }
+    }, [mode, request?.data.status]);
+
     if (!request) {
         return null;
     }
@@ -102,14 +111,24 @@ export function RequestReviewDialog({
     const isApproved = request.data.status === "approved";
     const isReadOnly = request.data.status !== "pending"; // approved, denied, completed => somente leitura nos campos
     const isVisitRequest = request.type === "visits";
+    const isPending = request.data.status === "pending";
+    const isClientMsgEmpty = !clientMsg.trim();
+
+    const dialogTitle = (() => {
+        if (mode === "approve") {
+            return isVisitRequest ? "Aprovar solicitação de visita" : "Aprovar solicitação de reserva";
+        }
+        if (mode === "deny") {
+            return isVisitRequest ? "Recusar solicitação de visita" : "Recusar solicitação de reserva";
+        }
+        return isVisitRequest ? "Análise da solicitação de visita" : "Análise da solicitação de reserva";
+    })();
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>
-                        {isVisitRequest ? "Análise da solicitação de visita" : "Análise da solicitação de reserva"}
-                    </DialogTitle>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>
                         {`Solicitação criada em ${formatDateTime(request.data.createdAt)}.`}
                     </DialogDescription>
@@ -151,36 +170,88 @@ export function RequestReviewDialog({
                     ) : (
                         <ReservationRequestDetails request={request.data} readOnly={isReadOnly} />
                     )}
-
-                    {showDenialFields && (
+                    {mode === "approve" && isPending ? (
                         <div className="grid gap-4">
                             <div className="space-y-2">
                                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Mensagem para o cliente
+                                    Mensagem para o cliente (opcional)
                                 </p>
                                 <Textarea
                                     value={clientMsg}
                                     onChange={onClientMsgChange}
-                                    placeholder="Explique ao cliente o motivo da decisão."
+                                    placeholder="Compartilhe orientações ou próximos passos com o cliente."
                                     rows={4}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    Mensagem para o corretor
+                                    Mensagem para o corretor (opcional)
                                 </p>
                                 <Textarea
                                     value={agentMsg}
                                     onChange={onAgentMsgChange}
-                                    placeholder="Informe o corretor sobre os próximos passos (opcional)."
+                                    placeholder="Informe o corretor sobre detalhes ou combinações necessárias."
                                     rows={3}
                                 />
                             </div>
+                            {!isVisitRequest ? (
+                                <div className="space-y-2">
+                                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                        Atribuir corretor (opcional)
+                                    </p>
+                                    <Select
+                                        value={selectedAgentId}
+                                        onValueChange={onAgentChange}
+                                        disabled={isActionLoading || isAgentsLoading || agents.length === 0}
+                                    >
+                                        <SelectTrigger className="w-full justify-between cursor-pointer">
+                                            <SelectValue
+                                                placeholder={
+                                                    isAgentsLoading
+                                                        ? "Carregando corretores..."
+                                                        : agents.length > 0
+                                                          ? "Selecione o corretor"
+                                                          : "Nenhum corretor disponível"
+                                                }
+                                            />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {agents
+                                                .filter(agent => agent.id)
+                                                .map(agent => (
+                                                    <SelectItem
+                                                        className="cursor-pointer"
+                                                        key={agent.id}
+                                                        value={agent.id as string}
+                                                    >
+                                                        {agent.fullName}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : null}
                         </div>
-                    )}
+                    ) : null}
+
+                    {mode === "deny" && isPending ? (
+                        <div className="grid gap-4">
+                            <div className="space-y-2">
+                                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    Motivo da recusa (obrigatório)
+                                </p>
+                                <Textarea
+                                    value={clientMsg}
+                                    onChange={onClientMsgChange}
+                                    placeholder="Explique ao cliente o motivo da recusa."
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
 
-                {(request.data.status === "pending" || isApproved) && (
+                {(isPending || isApproved) && (
                     <DialogFooter className="sm:justify-between">
                         <DialogClose asChild>
                             <Button className="cursor-pointer" variant="outline" disabled={isActionLoading}>
@@ -188,60 +259,95 @@ export function RequestReviewDialog({
                             </Button>
                         </DialogClose>
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                            {request.data.status === "pending" ? (
-                                isVisitRequest ? (
+                            {isPending ? (
+                                mode === "view" ? (
+                                    isVisitRequest ? (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                                onClick={() => setMode("deny")}
+                                                disabled={isActionLoading}
+                                            >
+                                                Negar visita
+                                            </Button>
+                                            <Button
+                                                className="cursor-pointer"
+                                                onClick={() => setMode("approve")}
+                                                disabled={
+                                                    isActionLoading ||
+                                                    !selectedSlot ||
+                                                    !selectedAgentId ||
+                                                    isAgentsLoading
+                                                }
+                                            >
+                                                Aprovar visita
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Button
+                                                variant="outline"
+                                                className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                                onClick={() => setMode("deny")}
+                                                disabled={isActionLoading}
+                                            >
+                                                Negar reserva
+                                            </Button>
+                                            <Button
+                                                className="cursor-pointer"
+                                                onClick={() => setMode("approve")}
+                                                disabled={isActionLoading}
+                                            >
+                                                Aprovar reserva
+                                            </Button>
+                                        </>
+                                    )
+                                ) : mode === "approve" ? (
                                     <>
                                         <Button
                                             variant="outline"
-                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
-                                            onClick={onDenyVisit}
-                                            disabled={isActionLoading || disableDenyAction}
+                                            className="cursor-pointer"
+                                            onClick={() => setMode("view")}
+                                            disabled={isActionLoading}
                                         >
-                                            {isActionLoading && showDenialFields ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : null}
-                                            Negar visita
+                                            Voltar
                                         </Button>
                                         <Button
                                             className="cursor-pointer"
-                                            onClick={onApproveVisit}
+                                            onClick={isVisitRequest ? onApproveVisit : onApproveReservation}
                                             disabled={
-                                                isActionLoading || !selectedSlot || !selectedAgentId || isAgentsLoading
+                                                isActionLoading ||
+                                                (isVisitRequest &&
+                                                    (!selectedSlot || !selectedAgentId || isAgentsLoading))
                                             }
                                         >
-                                            {isActionLoading && !showDenialFields ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : null}
-                                            Aprovar visita
+                                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Confirmar aprovação
                                         </Button>
                                     </>
                                 ) : (
                                     <>
                                         <Button
                                             variant="outline"
-                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
-                                            onClick={onDenyReservation}
-                                            disabled={isActionLoading || disableDenyAction}
-                                        >
-                                            {isActionLoading && showDenialFields ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : null}
-                                            Negar reserva
-                                        </Button>
-                                        <Button
                                             className="cursor-pointer"
-                                            onClick={onApproveReservation}
+                                            onClick={() => setMode("view")}
                                             disabled={isActionLoading}
                                         >
-                                            {isActionLoading && !showDenialFields ? (
-                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            ) : null}
-                                            Aprovar reserva
+                                            Voltar
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
+                                            onClick={isVisitRequest ? onDenyVisit : onDenyReservation}
+                                            disabled={isActionLoading || isClientMsgEmpty}
+                                        >
+                                            {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                            Confirmar recusa
                                         </Button>
                                     </>
                                 )
                             ) : isVisitRequest ? (
-                                // Approved visit actions
                                 <>
                                     <Button
                                         variant="outline"
@@ -263,7 +369,6 @@ export function RequestReviewDialog({
                                     </Button>
                                 </>
                             ) : (
-                                // Approved reservation actions
                                 <>
                                     <Button
                                         variant="outline"

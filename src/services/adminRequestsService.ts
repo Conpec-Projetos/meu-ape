@@ -533,11 +533,6 @@ const fetchAgentById = async (agentId: string) => {
     };
 };
 
-const getAgentsForVisit = async (requestId: string) => {
-    const { map, agents } = await getAssignments([requestId], "visit");
-    return mapAgentsForRequest(requestId, map, agents);
-};
-
 const getAgentsForReservation = async (requestId: string) => {
     const { map, agents } = await getAssignments([requestId], "reservation");
     return mapAgentsForRequest(requestId, map, agents);
@@ -548,11 +543,13 @@ export const approveVisitRequest = async ({
     scheduledSlot,
     agentId,
     agentMsg,
+    clientMsg,
 }: {
     id: string;
     scheduledSlot: string;
     agentId: string;
     agentMsg?: string;
+    clientMsg?: string;
 }) => {
     const scheduledDate = new Date(scheduledSlot);
     if (Number.isNaN(scheduledDate.getTime())) {
@@ -564,6 +561,7 @@ export const approveVisitRequest = async ({
 
     const agent = await fetchAgentById(agentId);
     const trimmedAgentMsg = agentMsg?.trim();
+    const trimmedClientMsg = clientMsg?.trim();
     const timestamp = nowIso();
 
     const { data: updatedRows, error: updateError } = await supabaseAdmin
@@ -572,7 +570,7 @@ export const approveVisitRequest = async ({
             status: "approved",
             scheduled_slot: scheduledDate.toISOString(),
             agent_msg: trimmedAgentMsg || null,
-            client_msg: null,
+            client_msg: trimmedClientMsg || null,
             updated_at: timestamp,
         })
         .eq("id", id)
@@ -599,6 +597,11 @@ export const approveVisitRequest = async ({
     const formattedSlot = formatDateTime(scheduledDate);
 
     if (clientEmail) {
+        const clientMsgBlock = trimmedClientMsg
+            ? `<div style="margin:12px 0"><p style="margin:0 0 6px">Mensagem da administração:</p><p style="margin:0">${formatMultiline(
+                  trimmedClientMsg
+              )}</p></div>`
+            : "";
         const inner = `
             <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
             <p style="margin:0 0 8px">Boa notícia! Sua solicitação de visita ao imóvel <strong>${escapeHtml(
@@ -606,6 +609,7 @@ export const approveVisitRequest = async ({
             )}${escapeHtml(unitIdentifier)}</strong> foi aprovada.</p>
             <p style="margin:0 0 4px">Horário agendado: <strong>${escapeHtml(formattedSlot)}</strong>.</p>
             <p style="margin:0 0 16px">Corretor responsável: <strong>${escapeHtml(agent.fullName)}</strong>.</p>
+            ${clientMsgBlock}
             <p style="margin:0">Em breve o corretor entrará em contato para confirmar os detalhes.</p>
         `;
         const html = buildEmailLayout("Visita aprovada", inner);
@@ -632,15 +636,7 @@ export const approveVisitRequest = async ({
     }
 };
 
-export const denyVisitRequest = async ({
-    id,
-    clientMsg,
-    agentMsg,
-}: {
-    id: string;
-    clientMsg: string;
-    agentMsg?: string;
-}) => {
+export const denyVisitRequest = async ({ id, clientMsg }: { id: string; clientMsg: string }) => {
     const trimmedClientMsg = clientMsg.trim();
     if (!trimmedClientMsg) {
         throw new RequestActionError("INVALID_INPUT", "Mensagem para o cliente é obrigatória.");
@@ -649,7 +645,6 @@ export const denyVisitRequest = async ({
     const request = await fetchVisitRequestById(id);
     ensurePendingStatus(request.status);
 
-    const trimmedAgentMsg = agentMsg?.trim();
     const timestamp = nowIso();
 
     const { data: updatedRows, error } = await supabaseAdmin
@@ -657,7 +652,7 @@ export const denyVisitRequest = async ({
         .update({
             status: "denied",
             client_msg: trimmedClientMsg,
-            agent_msg: trimmedAgentMsg || null,
+            agent_msg: null,
             scheduled_slot: null,
             updated_at: timestamp,
         })
@@ -688,28 +683,11 @@ export const denyVisitRequest = async ({
         const html = buildEmailLayout("Visita negada", inner);
         await sendEmail(clientEmail, "Visita negada", html);
     }
-
-    if (trimmedAgentMsg) {
-        const agents = await getAgentsForVisit(id);
-        const emails = agents.map(agent => agent.email).filter((email): email is string => Boolean(email));
-        if (emails.length > 0) {
-            const inner = `
-                <p style="margin:0 0 8px">Olá,</p>
-                <p style="margin:0 0 8px">A solicitação de visita para o cliente <strong>${escapeHtml(
-                    clientName
-                )}</strong> foi negada.</p>
-                <p style="margin:0 0 6px">Mensagem da administração:</p>
-                <p style="margin:0">${formatMultiline(trimmedAgentMsg)}</p>
-            `;
-            const html = buildEmailLayout("Visita negada", inner);
-            await sendEmail(emails, "Visita negada", html);
-        }
-    }
 };
 
 export const completeVisitRequest = async (id: string) => {
-    const request = await fetchVisitRequestById(id);
-    ensureApprovedStatus(request.status);
+    const { status } = await fetchVisitRequestById(id);
+    ensureApprovedStatus(status);
 
     const { data, error } = await supabaseAdmin
         .from("visit_requests")
@@ -721,20 +699,6 @@ export const completeVisitRequest = async (id: string) => {
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) {
         throw new RequestActionError("INVALID_STATUS", "A solicitação não está aprovada.");
-    }
-
-    const clientEmail = request.client?.email;
-    const clientName = request.client?.full_name ?? "cliente";
-    const propertyName = request.property?.name ?? "imóvel";
-
-    if (clientEmail) {
-        const inner = `
-            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
-            <p style="margin:0 0 8px">Sua visita ao imóvel <strong>${escapeHtml(propertyName)}</strong> foi marcada como concluída.</p>
-            <p style="margin:0">Obrigado pelo interesse! Se precisar de algo mais, estamos à disposição.</p>
-        `;
-        const html = buildEmailLayout("Visita concluída", inner);
-        await sendEmail(clientEmail, "Visita concluída", html);
     }
 };
 
@@ -791,9 +755,25 @@ export const cancelVisitRequest = async ({
     }
 };
 
-export const approveReservationRequest = async (id: string) => {
+export const approveReservationRequest = async ({
+    id,
+    clientMsg,
+    agentMsg,
+    agentId,
+}: {
+    id: string;
+    clientMsg?: string;
+    agentMsg?: string;
+    agentId?: string;
+}) => {
     const request = await fetchReservationRequestById(id);
     ensurePendingStatus(request.status);
+
+    const trimmedClientMsg = clientMsg?.trim();
+    const trimmedAgentMsg = agentMsg?.trim();
+    const timestamp = nowIso();
+
+    const assignedAgent = agentId ? await fetchAgentById(agentId) : null;
 
     const unitId = request.unit?.id ?? request.unit_id;
     if (!unitId) {
@@ -818,13 +798,28 @@ export const approveReservationRequest = async (id: string) => {
     try {
         const { data, error } = await supabaseAdmin
             .from("reservation_requests")
-            .update({ status: "approved", updated_at: nowIso() })
+            .update({
+                status: "approved",
+                client_msg: trimmedClientMsg || null,
+                agent_msg: trimmedAgentMsg || null,
+                updated_at: timestamp,
+            })
             .eq("id", id)
             .eq("status", "pending")
             .select("id");
         if (error) throw error;
         if (!data || data.length === 0) {
             throw new RequestActionError("INVALID_STATUS", "A solicitação já foi processada.");
+        }
+
+        if (assignedAgent) {
+            await supabaseAdmin.from("request_assignments").delete().eq("reservation_request_id", id);
+            const { error: assignmentError } = await supabaseAdmin.from("request_assignments").insert({
+                reservation_request_id: id,
+                agent_id: assignedAgent.id,
+                assigned_at: timestamp,
+            });
+            if (assignmentError) throw assignmentError;
         }
     } catch (error) {
         await supabaseAdmin.from("units").update({ is_available: true }).eq("id", unitId);
@@ -840,27 +835,58 @@ export const approveReservationRequest = async (id: string) => {
     const unitInfo = `${request.unit?.identifier ?? ""}${request.unit?.block ? ` - Bloco ${request.unit.block}` : ""}`;
 
     if (clientEmail) {
+        const clientMsgBlock = trimmedClientMsg
+            ? `<div style="margin:12px 0"><p style="margin:0 0 6px">Mensagem da administração:</p><p style="margin:0">${formatMultiline(
+                  trimmedClientMsg
+              )}</p></div>`
+            : "";
         const inner = `
             <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
             <p style="margin:0 0 8px">Sua solicitação de reserva para o imóvel <strong>${escapeHtml(
                 propertyName
             )}</strong> ${escapeHtml(unitInfo)} foi aprovada.</p>
+            ${clientMsgBlock}
             <p style="margin:0">Em breve entraremos em contato para orientar os próximos passos.</p>
         `;
         const html = buildEmailLayout("Reserva aprovada", inner);
         await sendEmail(clientEmail, "Reserva aprovada", html);
     }
+
+    if (assignedAgent?.email) {
+        const adminMsgBlock = trimmedAgentMsg
+            ? `<div style="margin:12px 0"><p style="margin:0 0 6px">Mensagem da administração:</p><p style="margin:0">${formatMultiline(
+                  trimmedAgentMsg
+              )}</p></div>`
+            : "";
+        const inner = `
+            <p style="margin:0 0 12px">Olá ${escapeHtml(assignedAgent.fullName)},</p>
+            <p style="margin:0 0 8px">Você foi designado para a reserva do imóvel <strong>${escapeHtml(
+                propertyName
+            )}</strong> ${escapeHtml(unitInfo)}.</p>
+            ${adminMsgBlock}
+            <p style="margin:0">Entre em contato com o cliente para alinhar os próximos passos.</p>
+        `;
+        const html = buildEmailLayout("Reserva aprovada", inner);
+        await sendEmail(assignedAgent.email, "Reserva aprovada", html);
+    } else if (trimmedAgentMsg) {
+        const agents = await getAgentsForReservation(id);
+        const emails = agents.map(agent => agent.email).filter((email): email is string => Boolean(email));
+        if (emails.length > 0) {
+            const inner = `
+                <p style="margin:0 0 12px">Olá,</p>
+                <p style="margin:0 0 8px">Há uma solicitação de reserva aprovada para o imóvel <strong>${escapeHtml(
+                    propertyName
+                )}</strong> ${escapeHtml(unitInfo)}.</p>
+                <p style="margin:0 0 6px">Mensagem da administração:</p>
+                <p style="margin:0">${formatMultiline(trimmedAgentMsg)}</p>
+            `;
+            const html = buildEmailLayout("Reserva aprovada", inner);
+            await sendEmail(emails, "Reserva aprovada", html);
+        }
+    }
 };
 
-export const denyReservationRequest = async ({
-    id,
-    clientMsg,
-    agentMsg,
-}: {
-    id: string;
-    clientMsg: string;
-    agentMsg?: string;
-}) => {
+export const denyReservationRequest = async ({ id, clientMsg }: { id: string; clientMsg: string }) => {
     const trimmedClientMsg = clientMsg.trim();
     if (!trimmedClientMsg) {
         throw new RequestActionError("INVALID_INPUT", "Mensagem para o cliente é obrigatória.");
@@ -869,14 +895,12 @@ export const denyReservationRequest = async ({
     const request = await fetchReservationRequestById(id);
     ensurePendingStatus(request.status);
 
-    const trimmedAgentMsg = agentMsg?.trim();
-
     const { data, error } = await supabaseAdmin
         .from("reservation_requests")
         .update({
             status: "denied",
             client_msg: trimmedClientMsg,
-            agent_msg: trimmedAgentMsg || null,
+            agent_msg: null,
             updated_at: nowIso(),
         })
         .eq("id", id)
@@ -903,28 +927,11 @@ export const denyReservationRequest = async ({
         `;
         await sendEmail(clientEmail, "Reserva negada", buildEmailLayout("Reserva negada", clientHtml));
     }
-
-    if (trimmedAgentMsg) {
-        const agents = await getAgentsForReservation(id);
-        const emails = agents.map(agent => agent.email).filter((email): email is string => Boolean(email));
-        if (emails.length > 0) {
-            const inner = `
-                <p style="margin:0 0 8px">Olá,</p>
-                <p style="margin:0 0 8px">A solicitação de reserva associada ao imóvel <strong>${escapeHtml(
-                    propertyName
-                )}</strong> foi negada.</p>
-                <p style="margin:0 0 6px">Mensagem da administração:</p>
-                <p style="margin:0">${formatMultiline(trimmedAgentMsg)}</p>
-            `;
-            const html = buildEmailLayout("Reserva negada", inner);
-            await sendEmail(emails, "Reserva negada", html);
-        }
-    }
 };
 
 export const completeReservationRequest = async (id: string) => {
-    const request = await fetchReservationRequestById(id);
-    ensureApprovedStatus(request.status);
+    const { status } = await fetchReservationRequestById(id);
+    ensureApprovedStatus(status);
 
     const { data, error } = await supabaseAdmin
         .from("reservation_requests")
@@ -936,22 +943,6 @@ export const completeReservationRequest = async (id: string) => {
     if (error) throw new Error(error.message);
     if (!data || data.length === 0) {
         throw new RequestActionError("INVALID_STATUS", "A solicitação não está aprovada.");
-    }
-
-    const clientEmail = request.client?.email;
-    const clientName = request.client?.full_name ?? "cliente";
-    const propertyName = request.property?.name ?? "imóvel";
-
-    if (clientEmail) {
-        const inner = `
-            <p style="margin:0 0 12px">Olá ${escapeHtml(clientName)},</p>
-            <p style="margin:0 0 8px">Sua solicitação de reserva do imóvel <strong>${escapeHtml(
-                propertyName
-            )}</strong> foi marcada como concluída.</p>
-            <p style="margin:0">Obrigado por escolher o Meu Apê.</p>
-        `;
-        const html = buildEmailLayout("Reserva concluída", inner);
-        await sendEmail(clientEmail, "Reserva concluída", html);
     }
 };
 

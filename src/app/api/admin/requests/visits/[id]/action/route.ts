@@ -14,11 +14,11 @@ type ActionRequestBody =
           scheduledSlot: string;
           agentId: string;
           agentMsg?: string;
+          clientMsg?: string;
       }
     | {
           action: "deny";
           clientMsg: string;
-          agentMsg?: string;
       }
     | { action: "complete" }
     | { action: "cancel"; clientMsg?: string; agentMsg?: string };
@@ -59,20 +59,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
         }
 
         if (body.action === "approve") {
-            const { scheduledSlot, agentId, agentMsg } = body;
+            const { scheduledSlot, agentId, agentMsg, clientMsg } = body;
             if (!scheduledSlot || !agentId) {
                 return NextResponse.json({ error: "Horário e corretor são obrigatórios" }, { status: 400 });
             }
-            await approveVisitRequest({ id, scheduledSlot, agentId, agentMsg });
+            await approveVisitRequest({ id, scheduledSlot, agentId, agentMsg, clientMsg });
             return NextResponse.json({ message: "Visita aprovada com sucesso" });
         }
 
         if (body.action === "deny") {
-            const { clientMsg, agentMsg } = body;
+            const { clientMsg } = body;
             if (!clientMsg || !clientMsg.trim()) {
                 return NextResponse.json({ error: "Mensagem para o cliente é obrigatória" }, { status: 400 });
             }
-            await denyVisitRequest({ id, clientMsg, agentMsg });
+            await denyVisitRequest({ id, clientMsg });
             return NextResponse.json({ message: "Visita negada com sucesso" });
         }
 
