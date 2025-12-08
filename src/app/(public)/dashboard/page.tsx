@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/hooks/use-auth";
 import { ReservationRequest } from "@/interfaces/reservationRequest";
 import { VisitRequest } from "@/interfaces/visitRequest";
+import { formatPhone } from "@/lib/utils";
 import { Building2, Calendar, CheckCircle2, Clock, Inbox, Loader2, User2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -127,6 +128,9 @@ function RequestItem({ request, onClick }: RequestItemProps) {
                             </Badge>
                         );
                     })()}
+                </div>
+                <div className="text-xs text-muted-foreground truncate mb-1">
+                    {request.property?.address ?? "Endereço indisponível"}
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
@@ -293,6 +297,11 @@ function RequestDetails({ request }: RequestDetailsProps) {
                     })()}
                 </div>
 
+                <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                    <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Endereço</div>
+                    <div className="text-sm font-medium">{request.property.address || "Endereço indisponível"}</div>
+                </div>
+
                 {isVisit && (
                     <div className="space-y-3">
                         <div>
@@ -327,54 +336,51 @@ function RequestDetails({ request }: RequestDetailsProps) {
                             </TooltipTrigger>
                             <TooltipContent>Horário aprovado</TooltipContent>
                         </Tooltip>
-
-                        {(request as VisitRequest).agentMsg && (
-                            <div className="rounded-lg border p-3">
-                                <div className="text-xs text-muted-foreground mb-1">Mensagem para o corretor</div>
-                                <div className="text-sm">{(request as VisitRequest).agentMsg}</div>
-                            </div>
-                        )}
                     </div>
                 )}
 
-                {agent && (
-                    <div className="rounded-lg border p-3 wrap-break-word">
-                        <div className="text-xs text-muted-foreground mb-1 inline-flex items-center gap-2">
-                            <User2 className="h-4 w-4" /> Corretor alocado
+                {agent && (request.status === "approved" || request.status === "completed") && (
+                    <div className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <User2 className="h-4 w-4" />
+                            <h4 className="font-semibold text-sm">Corretor Responsável</h4>
                         </div>
-                        <div className="grid grid-cols-1 gap-1.5 text-sm min-w-0">
-                            <div className="min-w-0">
-                                <span className="text-muted-foreground">Nome:</span>{" "}
-                                <span className="wrap-break-word">{agent.name}</span>
+
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                            <div>
+                                <span className="text-muted-foreground text-xs block">Nome</span>
+                                <span className="wrap-break-word">{agent.name || "-"}</span>
                             </div>
-                            {agent.creci && (
-                                <div className="min-w-0">
-                                    <span className="text-muted-foreground">CRECI:</span>{" "}
-                                    <span className="wrap-break-word">{agent.creci}</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div>
+                                    <span className="text-muted-foreground text-xs block">CRECI</span>
+                                    <span className="wrap-break-word">{agent.creci || "-"}</span>
                                 </div>
-                            )}
-                            {agent.phone && (
-                                <div className="min-w-0">
-                                    <span className="text-muted-foreground">Telefone:</span>{" "}
-                                    <span className="wrap-break-word">{agent.phone}</span>
+                                <div>
+                                    <span className="text-muted-foreground text-xs block">Telefone</span>
+                                    <span className="wrap-break-word">{formatPhone(agent.phone ?? "") || "-"}</span>
                                 </div>
-                            )}
-                            {agent.email && (
-                                <div className="min-w-0">
-                                    <span className="text-muted-foreground">Email:</span>{" "}
-                                    <span className="break-all md:wrap-break-word">{agent.email}</span>
-                                </div>
-                            )}
+                            </div>
+                            <div>
+                                <span className="text-muted-foreground text-xs block">Email</span>
+                                <span className="break-all md:wrap-break-word">{agent.email || "-"}</span>
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {request.clientMsg && (
-                    <div className={`rounded-lg border p-3 ${request.status === "denied" ? "border-destructive" : ""}`}>
-                        <div className="text-xs text-muted-foreground mb-1">
-                            {request.status === "denied" ? "Motivo (Recusa/Cancelamento)" : "Mensagem para você"}
+                    <div
+                        className={`rounded-lg border p-3 ${
+                            request.status === "denied"
+                                ? "border-destructive"
+                                : "bg-blue-50/60 border-blue-100 dark:bg-blue-950/40"
+                        }`}
+                    >
+                        <div className="text-xs font-medium mb-1 text-blue-900 dark:text-blue-100">
+                            {request.status === "denied" ? "Motivo (Recusa/Cancelamento)" : "Sua mensagem"}
                         </div>
-                        <div className="text-sm">{request.clientMsg}</div>
+                        <div className="text-sm text-blue-950 dark:text-blue-50">{request.clientMsg}</div>
                     </div>
                 )}
 

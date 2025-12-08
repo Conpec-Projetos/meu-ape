@@ -76,6 +76,19 @@ type UnitShape = {
     block: string | null;
 } | null;
 
+type AgentShape = {
+    user: {
+        full_name: string | null;
+        email: string | null;
+        phone: string | null;
+        agents: { creci: string | null } | { creci: string | null }[] | null;
+    } | null;
+};
+
+type RequestWithAssignments = {
+    assignments: AgentShape[] | null;
+};
+
 type VisitRequestRow = {
     id: string;
     status: string;
@@ -87,7 +100,7 @@ type VisitRequestRow = {
     updated_at: string;
     property: PropertyShape;
     unit: UnitShape;
-};
+} & RequestWithAssignments;
 
 type ReservationRequestRow = {
     id: string;
@@ -99,6 +112,22 @@ type ReservationRequestRow = {
     updated_at: string;
     property: PropertyShape;
     unit: UnitShape;
+} & RequestWithAssignments;
+
+const mapAgents = (assignments: AgentShape[] | null) => {
+    if (!assignments) return [];
+    return assignments.map(agentAssignment => {
+        const user = agentAssignment?.user;
+        const agentProfile = Array.isArray(user?.agents) ? user?.agents?.[0] : user?.agents;
+
+        return {
+            ref: null,
+            name: user?.full_name ?? "",
+            email: user?.email ?? "",
+            phone: user?.phone ?? "",
+            creci: agentProfile?.creci ?? "",
+        };
+    });
 };
 
 const mapVisitRequest = (row: VisitRequestRow) => ({
@@ -110,6 +139,7 @@ const mapVisitRequest = (row: VisitRequestRow) => ({
     scheduledSlot: row.scheduled_slot,
     clientMsg: row.client_msg,
     agentMsg: row.agent_msg,
+    agents: mapAgents(row.assignments),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
 });
@@ -122,6 +152,7 @@ const mapReservationRequest = (row: ReservationRequestRow) => ({
     clientMsg: row.client_msg,
     agentMsg: row.agent_msg,
     transactionDocs: row.transaction_docs ?? {},
+    agents: mapAgents(row.assignments),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
 });

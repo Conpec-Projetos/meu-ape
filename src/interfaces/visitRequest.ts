@@ -10,6 +10,7 @@ export interface VisitRequest {
     property: {
         id: string; // id do imóvel no Supabase
         name: string; // nome do imóvel/empreendimento
+        address?: string; // endereço do imóvel
     };
     unit: {
         // ref removida do fluxo principal; manter opcional por compatibilidade
@@ -20,7 +21,7 @@ export interface VisitRequest {
     };
     agents?: {
         // array de map dos corretores associados/alocados para a solicitação
-        ref: DocumentReference; // referência a corretor alocado (na coleção users)
+        ref?: DocumentReference | null; // referência a corretor alocado (na coleção users)
         name: string; // nome do corretor associado/alocado para a solicitação
         email: string; // email do corretor associado/alocado para a solicitação
         phone: string; // telefone do corretor associado/alocado para a solicitação

@@ -15,7 +15,15 @@ const selectMap: Record<RequestType, string> = {
         created_at,
         updated_at,
         property:properties(id,name,address),
-        unit:units(id,identifier,block)
+        unit:units(id,identifier,block),
+        assignments:request_assignments(
+            user:users(
+                full_name,
+                email,
+                phone,
+                agents(creci)
+            )
+        )
     `,
     reservations: `
         id,
@@ -26,7 +34,15 @@ const selectMap: Record<RequestType, string> = {
         created_at,
         updated_at,
         property:properties(id,name,address),
-        unit:units(id,identifier,block)
+        unit:units(id,identifier,block),
+        assignments:request_assignments(
+            user:users(
+                full_name,
+                email,
+                phone,
+                agents(creci)
+            )
+        )
     `,
 };
 

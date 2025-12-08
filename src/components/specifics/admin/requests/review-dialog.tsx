@@ -51,9 +51,7 @@ interface RequestReviewDialogProps {
     onDenyReservation: () => void;
     onApproveReservation: () => void;
     onCompleteVisit: () => void;
-    onCancelVisit: () => void;
     onCompleteReservation: () => void;
-    onCancelReservation: () => void;
 }
 
 type InteractionMode = "view" | "approve" | "deny";
@@ -87,9 +85,7 @@ export function RequestReviewDialog({
     onDenyReservation,
     onApproveReservation,
     onCompleteVisit,
-    onCancelVisit,
     onCompleteReservation,
-    onCancelReservation,
 }: RequestReviewDialogProps) {
     const [mode, setMode] = useState<InteractionMode>("view");
     useEffect(() => {
@@ -351,15 +347,6 @@ export function RequestReviewDialog({
                                 <>
                                     <Button
                                         variant="outline"
-                                        className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
-                                        onClick={onCancelVisit}
-                                        disabled={isActionLoading}
-                                    >
-                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                        Cancelar solicitação
-                                    </Button>
-                                    <Button
-                                        variant="outline"
                                         className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"
                                         onClick={onCompleteVisit}
                                         disabled={isActionLoading}
@@ -370,15 +357,6 @@ export function RequestReviewDialog({
                                 </>
                             ) : (
                                 <>
-                                    <Button
-                                        variant="outline"
-                                        className="border-destructive text-destructive hover:bg-destructive hover:text-white cursor-pointer"
-                                        onClick={onCancelReservation}
-                                        disabled={isActionLoading}
-                                    >
-                                        {isActionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                        Cancelar solicitação
-                                    </Button>
                                     <Button
                                         variant="outline"
                                         className="text-emerald-700 border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer"

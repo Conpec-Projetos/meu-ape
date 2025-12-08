@@ -456,37 +456,6 @@ function AdminRequestsContent() {
         });
     };
 
-    const handleCancelVisit = async () => {
-        if (!selectedRequest || selectedRequest.type !== "visits") return;
-        if (selectedRequest.data.status !== "approved") return;
-        setIsActionLoading(true);
-        const promise = new Promise<string>(async (resolve, reject) => {
-            try {
-                const response = await fetch(`/api/admin/requests/visits/${selectedRequest.data.id}/action`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "cancel", clientMsg, agentMsg }),
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || "Erro ao cancelar a visita.");
-                }
-                await fetchRequests();
-                closeModal();
-                resolve("Visita cancelada com sucesso.");
-            } catch (err) {
-                reject(err);
-            } finally {
-                setIsActionLoading(false);
-            }
-        });
-        notifyPromise(promise, {
-            loading: "Cancelando visita...",
-            success: m => String(m),
-            error: e => (e instanceof Error ? e.message : "Erro ao cancelar visita."),
-        });
-    };
-
     // Post-approval actions: reservations
     const handleCompleteReservation = async () => {
         if (!selectedRequest || selectedRequest.type !== "reservations") return;
@@ -516,37 +485,6 @@ function AdminRequestsContent() {
             loading: "Marcando como concluída...",
             success: m => String(m),
             error: e => (e instanceof Error ? e.message : "Erro ao concluir reserva."),
-        });
-    };
-
-    const handleCancelReservation = async () => {
-        if (!selectedRequest || selectedRequest.type !== "reservations") return;
-        if (selectedRequest.data.status !== "approved") return;
-        setIsActionLoading(true);
-        const promise = new Promise<string>(async (resolve, reject) => {
-            try {
-                const response = await fetch(`/api/admin/requests/reservations/${selectedRequest.data.id}/action`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "cancel", clientMsg, agentMsg }),
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || "Erro ao cancelar a reserva.");
-                }
-                await fetchRequests();
-                closeModal();
-                resolve("Reserva cancelada com sucesso.");
-            } catch (err) {
-                reject(err);
-            } finally {
-                setIsActionLoading(false);
-            }
-        });
-        notifyPromise(promise, {
-            loading: "Cancelando reserva...",
-            success: m => String(m),
-            error: e => (e instanceof Error ? e.message : "Erro ao cancelar reserva."),
         });
     };
 
@@ -663,9 +601,7 @@ function AdminRequestsContent() {
                 onDenyReservation={handleDenyReservation}
                 onApproveReservation={handleApproveReservation}
                 onCompleteVisit={handleCompleteVisit}
-                onCancelVisit={handleCancelVisit}
                 onCompleteReservation={handleCompleteReservation}
-                onCancelReservation={handleCancelReservation}
             />
             <AlertDialog
                 open={isDeleteModalOpen}
