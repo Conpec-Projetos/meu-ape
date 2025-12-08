@@ -51,7 +51,7 @@ type AssignmentRow = Tables["request_assignments"]["Row"];
 type RequestStatus = Database["public"]["Enums"]["request_status"];
 
 type VisitRowWithRelations = VisitRow & {
-    client: Pick<UserRow, "id" | "full_name" | "email" | "phone"> | null;
+    client: Pick<UserRow, "id" | "full_name" | "email" | "phone" | "cpf"> | null;
     property: Pick<PropertyRow, "id" | "name" | "address"> | null;
     unit: Pick<UnitRow, "id" | "identifier" | "block"> | null;
 };
@@ -92,7 +92,8 @@ const visitSelect = `
         id,
         full_name,
         email,
-        phone
+        phone,
+        cpf
     ),
     property:properties!inner (id, name, address),
     unit:units!left (id, identifier, block)
@@ -334,6 +335,9 @@ const buildVisitListItems = async (rows: VisitRowWithRelations[]): Promise<Visit
         client: {
             ref: row.client?.id,
             fullName: row.client?.full_name ?? "",
+            email: row.client?.email ?? "",
+            phone: row.client?.phone ?? "",
+            cpf: row.client?.cpf ?? "",
         },
         property: {
             id: row.property?.id ?? row.property_id,
@@ -374,6 +378,7 @@ const buildReservationListItems = async (
                 phone: row.client?.phone ?? "",
                 rg: row.client?.rg ?? "",
                 cpf: row.client?.cpf ?? "",
+                email: row.client?.email ?? "",
                 addressProof: toStringArray(documents.addressProof),
                 incomeProof: toStringArray(documents.incomeProof),
                 identityDoc: toStringArray(documents.identityDoc),

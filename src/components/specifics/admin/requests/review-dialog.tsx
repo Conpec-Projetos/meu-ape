@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ReservationRequestListItem, VisitRequestListItem } from "@/interfaces/adminRequestsResponse";
 import { User } from "@/interfaces/user";
+import { formatCPF, formatPhone } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -121,8 +122,8 @@ export function RequestReviewDialog({
     })();
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+        <Dialog  open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="w-[95vw] max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>
@@ -397,8 +398,18 @@ function VisitRequestDetails({
     isActionLoading: boolean;
     readOnly: boolean;
 }) {
+    const phoneMasked = request.client.phone ? formatPhone(request.client.phone) : "";
+    const cpfMasked = request.client.cpf ? formatCPF(request.client.cpf) : "";
+
     return (
         <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+                <InfoField label="Cliente" value={request.client.fullName} />
+                <InfoField label="Email" value={request.client.email} />
+                <InfoField label="Telefone" value={phoneMasked} />
+                <InfoField label="CPF" value={cpfMasked} />
+            </div>
+
             <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Horários solicitados
@@ -497,11 +508,15 @@ function VisitRequestDetails({
 }
 
 function ReservationRequestDetails({ request }: { request: ReservationRequestListItem; readOnly: boolean }) {
+    const phoneMasked = request.client.phone ? formatPhone(request.client.phone) : "";
+    const cpfMasked = request.client.cpf ? formatCPF(request.client.cpf) : "";
+
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-                <InfoField label="Telefone" value={request.client.phone} />
-                <InfoField label="CPF" value={request.client.cpf} />
+                <InfoField label="Email" value={request.client.email} />
+                <InfoField label="Telefone" value={phoneMasked} />
+                <InfoField label="CPF" value={cpfMasked} />
                 <InfoField label="Endereço" value={request.client.address} />
             </div>
         </div>

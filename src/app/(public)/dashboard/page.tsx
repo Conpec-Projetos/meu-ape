@@ -599,7 +599,7 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 pt-20">
+        <div className="container min-h-screen mx-auto px-4 py-8 pt-20">
             {" "}
             <h1 className="text-2xl font-bold mb-6">Minhas Solicitações</h1>
             <Tabs

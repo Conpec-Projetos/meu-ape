@@ -17,8 +17,13 @@ type NormalizedReservationAgent = ReservationAgentBase extends never
     ? { ref?: string; name?: string; email?: string; phone?: string; creci?: string }
     : WithOptionalRef<ReservationAgentBase>;
 
-type NormalizedReservationClient = WithOptionalRef<ReservationClient>;
-type NormalizedVisitClient = WithOptionalRef<VisitClient> & { fullName: string };
+type NormalizedReservationClient = WithOptionalRef<ReservationClient> & { email?: string };
+type NormalizedVisitClient = WithOptionalRef<VisitClient> & {
+    fullName: string;
+    email?: string;
+    phone?: string;
+    cpf?: string;
+};
 
 export interface VisitRequestListItem {
     id: string;
