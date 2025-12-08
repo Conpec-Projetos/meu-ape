@@ -221,7 +221,6 @@ export type Database = {
           matterport_urls: string[] | null
           name: string
           property_images: string[] | null
-          search_tsv: unknown
           search_vector: unknown
           units_per_floor: number | null
           updated_at: string
@@ -242,7 +241,6 @@ export type Database = {
           matterport_urls?: string[] | null
           name: string
           property_images?: string[] | null
-          search_tsv?: unknown
           search_vector?: unknown
           units_per_floor?: number | null
           updated_at?: string
@@ -263,7 +261,6 @@ export type Database = {
           matterport_urls?: string[] | null
           name?: string
           property_images?: string[] | null
-          search_tsv?: unknown
           search_vector?: unknown
           units_per_floor?: number | null
           updated_at?: string

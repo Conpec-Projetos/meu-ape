@@ -106,7 +106,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             "matterport_urls",
             "name",
             "property_images",
-            "search_tsv",
             "search_vector",
             "units_per_floor",
             "updated_at",

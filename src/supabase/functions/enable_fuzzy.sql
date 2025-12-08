@@ -7,8 +7,8 @@ CREATE INDEX IF NOT EXISTS idx_properties_address_trgm ON properties USING gin (
 
 -- Índice para full-text search combinado (se usar tsvector/fts)
 ALTER TABLE properties
-  ADD COLUMN IF NOT EXISTS search_tsv tsvector GENERATED ALWAYS AS (
+  ADD COLUMN IF NOT EXISTS search_vector tsvector GENERATED ALWAYS AS (
     to_tsvector('portuguese', coalesce(name,'') || ' ' || coalesce(address,''))
   ) STORED;
 
-CREATE INDEX IF NOT EXISTS idx_properties_search_tsv ON properties USING gin(search_tsv);
+CREATE INDEX IF NOT EXISTS idx_properties_search_vector ON properties USING gin(search_vector);
