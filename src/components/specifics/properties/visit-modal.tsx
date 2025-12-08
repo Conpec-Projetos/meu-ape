@@ -138,46 +138,23 @@ export function VisitModal({ onClose, unit, property, onSubmit, isOpen }: VisitM
     const fetchConflicts = async () => {
         try {
             setConflictLoading(true);
-            let cursor: string | undefined = undefined;
             const disabled = new Set<string>();
-            do {
-                const url = new URL(`/api/user/requests`, window.location.origin);
-                url.searchParams.set("type", "visits");
-                if (cursor) url.searchParams.set("cursor", cursor);
-                const res = await fetch(url.toString());
-                if (!res.ok) break;
-                const data: {
-                    requests: Array<{
-                        status: string;
-                        property?: { id?: string; name?: string };
-                        requestedSlots?: unknown[];
-                    }>;
-                    nextPageCursor: string | null;
-                    hasNextPage: boolean;
-                } = await res.json();
-
-                for (const r of data.requests) {
-                    const status = (r.status || "").toLowerCase();
-                    if (status !== "pending" && status !== "approved") continue;
-                    const sameProperty =
-                        (r.property && r.property.id && property.id && r.property.id === property.id) ||
-                        (r.property && r.property.name && r.property.name === property.name);
-                    if (!sameProperty) continue;
-                    if (!Array.isArray(r.requestedSlots)) continue;
-                    for (const s of r.requestedSlots) {
-                        const d = coerceDate(s);
-                        if (!d) continue;
-                        const hh = String(d.getHours()).padStart(2, "0");
-                        const mm = String(d.getMinutes()).padStart(2, "0");
-                        const time = `${hh}:${mm}`;
-                        const key = `${makeDayLabel(d)}-${time}`;
-                        disabled.add(key);
-                    }
-                }
-
-                cursor = data.hasNextPage && data.nextPageCursor ? data.nextPageCursor : undefined;
-            } while (cursor);
-
+            const url = new URL(
+                `/api/properties/${property.id}/units/${unit.id}/approved-visits`,
+                window.location.origin
+            );
+            const res = await fetch(url.toString());
+            if (!res.ok) throw new Error("Falha ao carregar conflitos");
+            const data: { scheduledSlots?: unknown[] } = await res.json();
+            for (const slot of data.scheduledSlots ?? []) {
+                const scheduled = coerceDate(slot);
+                if (!scheduled) continue;
+                const hh = String(scheduled.getHours()).padStart(2, "0");
+                const mm = String(scheduled.getMinutes()).padStart(2, "0");
+                const time = `${hh}:${mm}`;
+                const key = `${makeDayLabel(scheduled)}-${time}`;
+                disabled.add(key);
+            }
             setDisabledKeys(disabled);
         } catch (e) {
             console.error("Erro ao buscar conflitos de horários", e);
